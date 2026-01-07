@@ -187,18 +187,6 @@ async function handleHotfixFinish(opts) {
 		pullBranch("main", { dryRun, offline });
 	}
 
-	// Ensure changelog present before merges so it propagates
-	// if (!noChangelog) {
-	// 	const version = tag.replace(/^v/, "");
-	// 	const existing = existsSync(CHANGELOG_FILE)
-	// 		? readFileSync(CHANGELOG_FILE, "utf-8")
-	// 		: "";
-	// 	if (!existing.includes(`## v${version}`)) {
-	// 		appendChangelog(version, opts);
-	// 		commitChangelog(version, opts);
-	// 	}
-	// }
-
 	const flags = [];
 	if (push && !offline) flags.push("-p");
 	if (tag) flags.push(`-T ${tag}`);

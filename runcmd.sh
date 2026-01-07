@@ -770,7 +770,7 @@ run_json_sort() {
 #   None
 start_timer() {
   if is_debug_enabled; then
-    START_TIME=$(bun -e 'console.log(Date.now())')
+    START_TIME=$(bun -e 'console.log(Date.now())' | tr -cd '0-9')
   fi
 }
 
@@ -785,9 +785,9 @@ start_timer() {
 end_timer() {
   if is_debug_enabled; then
     local end_time
-    end_time=$(bun -e 'console.log(Date.now())')
+    end_time=$(bun -e 'console.log(Date.now())' | tr -cd '0-9')
     local elapsed_ms
-    elapsed_ms=$((end_time - START_TIME))
+    elapsed_ms=$((10#$end_time - 10#$START_TIME))
 
     # Calculate days, hours, minutes, seconds, and milliseconds
     local days=$((elapsed_ms / 86400000))

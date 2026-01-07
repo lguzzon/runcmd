@@ -1,0 +1,13 @@
+## v1.1.0 - 2026-01-07
+- feat(scripts): update file permissions for release management scripts
+- feat(scripts): add comprehensive git flow release and hotfix management tools
+- feat(config): reorganize TypeScript configuration files with improved formatting and structure
+- feat: update dependencies and improve path resolution robustness
+- feat: reorganize package.json scripts and improve tsconfig.json formatting
+- feat: add .gitignore file for project configuration
+- feat: add version management and help system to runcmd
+- feat: implement enterprise-grade landing page and CI/CD pipeline
+- fix: add robust timeouts and offline checks to update mechanism
+- feat: implement self-update mechanism and GitHub Pages publishing
+- feat: initial implementation of cross-platform command runner
+- Initial commit

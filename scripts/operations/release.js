@@ -128,7 +128,7 @@ async function handleReleaseStart(opts) {
 		process.exit(1);
 	}
 
-	const branchName = `release/${name || newVersion}`;
+	const branchName = `release/${name ? (name.startsWith('v') ? name : `v${name}`) : `v${newVersion}`}`;
 	ensureBranchMissing(branchName);
 
 	const baseBranch = base || "develop";
@@ -137,7 +137,8 @@ async function handleReleaseStart(opts) {
 	}
 
 	logInfo(`Starting release branch: ${branchName}`);
-	runGitFlow(`release start ${name || newVersion} ${baseBranch}`, { dryRun });
+	const releaseName = name ? (name.startsWith('v') ? name : `v${name}`) : `v${newVersion}`;
+	runGitFlow(`release start ${releaseName} ${baseBranch}`, { dryRun });
 	logSuccess(`Release branch started: ${branchName}`);
 
 	const versionChanged = updateVersionFile(newVersion, opts);
@@ -177,7 +178,7 @@ async function handleReleaseFinish(opts) {
 
 	ensureTagMissing(tag.replace(/^v/, ""));
 
-	const branchName = `release/${name || tag.replace(/^v/, "")}`;
+	const branchName = `release/${name ? (name.startsWith('v') ? name : `v${name}`) : tag}`;
 	ensureBranchExists(branchName);
 
 	if (!offline) {
@@ -203,7 +204,8 @@ async function handleReleaseFinish(opts) {
 	if (tag) flags.push(`-T ${tag}`);
 	if (message) flags.push(`-m "${message}"`);
 
-	const cmd = `release finish ${flags.join(" ")} ${name || tag.replace(/^v/, "")}`;
+	const releaseName = name ? (name.startsWith('v') ? name : `v${name}`) : tag;
+	const cmd = `release finish ${flags.join(" ")} ${releaseName}`;
 	logInfo(`Finishing release branch: ${branchName}`);
 	runGitFlow(cmd, { dryRun });
 	logSuccess(`Release branch finalized: ${branchName}`);

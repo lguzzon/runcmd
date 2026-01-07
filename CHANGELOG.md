@@ -1,15 +1,28 @@
-## v1.4.0 - 2026-01-07
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.4.0] - 2026-01-07
+
+### Added
 - Merge branch 'release/1.3.0' into develop
 - feat(release): standardize version prefix handling in release and hotfix operations
 - chore: bump version to 1.3.0 for release
-- fix: prevent git-flow.js from executing when imported as module
+- feat: prevent git-flow.js from executing when imported as module
 - feat: modularize git-flow utilities and migrate commands to shared module
 - feat: modularize git-flow commands and operations
 - feat: migrate release scripts to use git-flow-utils module
+
+### Changed
 - Merge branch 'release/v1.2.0'
 - chore: bump version to 1.2.0 for release
 - feat(ci): add Bun caching to GitHub Pages workflow
 - feat(website): migrate from React/Vite to Astro with Tailwind CSS
+
+### Fixed
 - Merge branch 'release/v1.1.0'
 - fix(scripts): prevent stdin hanging in release scripts
 - chore: bump version to 1.1.0 for release
@@ -25,15 +38,21 @@
 - feat: implement self-update mechanism and GitHub Pages publishing
 - feat: initial implementation of cross-platform command runner
 - Initial commit
-## v1.3.0 - 2026-01-07
-- fix: prevent git-flow.js from executing when imported as module
+
+## [1.3.0] - 2026-01-07
+
+### Added
 - feat: modularize git-flow utilities and migrate commands to shared module
 - feat: modularize git-flow commands and operations
 - feat: migrate release scripts to use git-flow-utils module
+
+### Changed
 - Merge branch 'release/v1.2.0'
 - chore: bump version to 1.2.0 for release
 - feat(ci): add Bun caching to GitHub Pages workflow
 - feat(website): migrate from React/Vite to Astro with Tailwind CSS
+
+### Fixed
 - Merge branch 'release/v1.1.0'
 - fix(scripts): prevent stdin hanging in release scripts
 - chore: bump version to 1.1.0 for release
@@ -49,9 +68,14 @@
 - feat: implement self-update mechanism and GitHub Pages publishing
 - feat: initial implementation of cross-platform command runner
 - Initial commit
-## v1.2.0 - 2026-01-07
+
+## [1.2.0] - 2026-01-07
+
+### Added
 - feat(ci): add Bun caching to GitHub Pages workflow
 - feat(website): migrate from React/Vite to Astro with Tailwind CSS
+
+### Changed
 - Merge branch 'release/v1.1.0'
 - fix(scripts): prevent stdin hanging in release scripts
 - chore: bump version to 1.1.0 for release
@@ -67,7 +91,10 @@
 - feat: implement self-update mechanism and GitHub Pages publishing
 - feat: initial implementation of cross-platform command runner
 - Initial commit
-## v1.1.0 - 2026-01-07
+
+## [1.1.0] - 2026-01-07
+
+### Added
 - feat(scripts): update file permissions for release management scripts
 - feat(scripts): add comprehensive git flow release and hotfix management tools
 - feat(config): reorganize TypeScript configuration files with improved formatting and structure
@@ -80,3 +107,45 @@
 - feat: implement self-update mechanism and GitHub Pages publishing
 - feat: initial implementation of cross-platform command runner
 - Initial commit
+
+## [1.0.0] - 2025-12-01
+
+### Added
+- Initial release of runcmd universal script runner
+- Cross-platform support for Unix/macOS and Windows
+- Automatic Bun installation and environment management
+- Integrated development tooling (Biome, shfmt, json-sort-cli)
+- Git flow management tools and utilities
+- Self-updating mechanism from GitHub Pages
+- Comprehensive documentation and website
+
+### Features
+- **Core Runner Scripts**: `runcmd.sh` and `runcmd.bat` for cross-platform execution
+- **Script Resolution**: Smart discovery of `.mjs` files based on runner names
+- **Environment Management**: Automatic `.env` file loading
+- **Debug Mode**: Millisecond-precision timing and detailed logging
+- **Code Quality**: Integrated formatting and validation tools
+- **Git Flow Integration**: Complete git-flow management system
+- **Self-Healing**: Safe self-formatting and atomic file operations
+- **Version Management**: Automatic updates and version tracking
+
+### Documentation
+- Comprehensive README with usage examples
+- Website built with Astro and Tailwind CSS
+- API documentation in individual script files
+- Git flow command reference and help system
+
+## [Unreleased]
+
+### Planned Features
+- Enhanced Windows PowerShell support
+- Additional development tool integrations
+- Performance optimizations for large codebases
+- Advanced configuration options
+- Plugin system for custom tooling
+
+[1.4.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.4.0
+[1.3.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.3.0
+[1.2.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.2.0
+[1.1.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.1.0
+[1.0.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.0.0

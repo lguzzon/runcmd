@@ -3,24 +3,28 @@ import { execSync } from "node:child_process";
 import {
 	COLOR_BOLD,
 	COLOR_RESET,
-	checkout,
-	currentBranch,
-	detectMainBranch,
-	ensureBranchExists,
-	ensureBranchMissing,
-	ensureCleanTree,
-	ensureTagMissing,
 	logError,
 	logInfo,
 	logSuccess,
 	logWarn,
-	mergeBranch,
-	pullBranch,
-	pushBranch,
 	runGit,
-	stashPop,
-	stashPush,
 } from "./git-flow-utils.js";
+
+// Import command modules
+import { handleInit as handleInitCommand, printHelp as printInitHelp } from "./commands/init.js";
+import { handleStart as handleStartCommand, printHelp as printStartHelp } from "./commands/start.js";
+import { handleFinish as handleFinishCommand, printHelp as printFinishHelp } from "./commands/finish.js";
+import { handlePublish as handlePublishCommand, printHelp as printPublishHelp } from "./commands/publish.js";
+import { handleTrack as handleTrackCommand, printHelp as printTrackHelp } from "./commands/track.js";
+import { handleDelete as handleDeleteCommand, printHelp as printDeleteHelp } from "./commands/delete.js";
+import { handleList as handleListCommand, printHelp as printListHelp } from "./commands/list.js";
+import { handleConfig as handleConfigCommand, printHelp as printConfigHelp } from "./commands/config.js";
+
+// Import operation modules
+import { handleSync as handleSyncOperation, printHelp as printSyncHelp } from "./operations/sync.js";
+import { handleClone as handleCloneOperation, printHelp as printCloneHelp } from "./operations/clone.js";
+import { handleRelease as handleReleaseOperation, printHelp as printReleaseHelp } from "./operations/release.js";
+import { handleHotfix as handleHotfixOperation, printHelp as printHotfixHelp } from "./operations/hotfix.js";
 
 function printHelp() {
 	console.log(`
@@ -28,16 +32,36 @@ ${COLOR_BOLD}Git Flow helper${COLOR_RESET}
 
 Usage: bun scripts/git-flow.js <command> [options]
 
-Commands:
+${COLOR_BOLD}Core Commands:${COLOR_RESET}
   help                          Show this help message
   install [--auto-install]      Ensure git-flow is available; optionally install
-  init                          Run 'git flow init -d' in current repo
+  init                          Initialize git-flow in current repository
+  config [--get|--set|--list]   Get or set Git Flow configuration
+
+${COLOR_BOLD}Branch Commands:${COLOR_RESET}
+  start <type> <name>           Start a new branch (feature/release/hotfix/support)
+  finish <type> <name>          Finish and merge a branch
+  publish <type> <name>         Publish a branch to remote
+  track <type> <name>           Track a remote branch locally
+  delete <type> <name>          Delete a branch
+  list [type]                   List branches by type
+
+${COLOR_BOLD}High-Level Operations:${COLOR_RESET}
   clone <url> [dir]             Clone repo and initialize git-flow
   sync [--offline] [--dry-run]  Sync main/master & develop (stash-safe)
-  release start [--name N] [--base B] [--force] [--offline] [--dry-run]
-  release finish [--name N] --tag TAG --message MSG [--push] [--keep-branch] [--offline] [--dry-run]
-  hotfix start|finish ...       Same as release but base defaults to main
-  next-release --tag TAG --message MSG [--push] [--offline] [--dry-run]
+  release <action>              Manage release branches (start/finish)
+  hotfix <action>               Manage hotfix branches (start/finish)
+
+${COLOR_BOLD}Examples:${COLOR_RESET}
+  bun scripts/git-flow.js init
+  bun scripts/git-flow.js start feature new-auth
+  bun scripts/git-flow.js finish feature new-auth
+  bun scripts/git-flow.js release start --bump minor
+  bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
+  bun scripts/git-flow.js sync --dry-run
+
+${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
+  bun scripts/git-flow.js <command> --help
 `);
 }
 
@@ -54,8 +78,20 @@ function parseArgs(argv) {
 	};
 
 	const command = next();
-	const sub =
-		command && ["release", "hotfix"].includes(command) ? next() : null;
+	// Don't treat --help or -h as subcommands
+	const nextArg = next();
+	let sub = null;
+	if (command && ["release", "hotfix", "start", "finish", "publish", "track", "delete"].includes(command)) {
+		if (nextArg && nextArg !== "--help" && nextArg !== "-h") {
+			sub = nextArg;
+		} else if (nextArg === "--help" || nextArg === "-h") {
+			// Put it back so it's caught by the help flag handler
+			args.unshift(nextArg);
+		}
+	} else if (nextArg === "--help" || nextArg === "-h") {
+		// Put it back for commands that don't have subcommands
+		args.unshift(nextArg);
+	}
 	const opts = {
 		command,
 		sub,
@@ -70,6 +106,17 @@ function parseArgs(argv) {
 		dryRun: false,
 		autoInstall: false,
 		targetDir: undefined,
+		cloneUrl: undefined,
+		type: undefined,
+		bump: undefined,
+		version: undefined,
+		fetch: false,
+		squash: false,
+		noChangelog: false,
+		yes: false,
+		get: undefined,
+		set: undefined,
+		list: false,
 	};
 
 	while (args.length) {
@@ -82,6 +129,7 @@ function parseArgs(argv) {
 				opts.base = takeValue("--base");
 				break;
 			case "--force":
+			case "-f":
 				opts.force = true;
 				break;
 			case "--tag":
@@ -105,11 +153,52 @@ function parseArgs(argv) {
 			case "--auto-install":
 				opts.autoInstall = true;
 				break;
+			case "--type":
+				opts.type = takeValue("--type");
+				break;
+			case "--bump":
+				opts.bump = takeValue("--bump");
+				break;
+			case "--version":
+				opts.version = takeValue("--version");
+				break;
+			case "--fetch":
+				opts.fetch = true;
+				break;
+			case "--squash":
+				opts.squash = true;
+				break;
+			case "--no-changelog":
+				opts.noChangelog = true;
+				break;
+			case "--yes":
+				opts.yes = true;
+				break;
+			case "--get":
+				opts.get = takeValue("--get");
+				break;
+			case "--set":
+				opts.set = [takeValue("--set"), takeValue("value")];
+				break;
+			case "--list":
+				// Only set list flag if not a command
+				if (opts.command !== "list") {
+					opts.list = true;
+				}
+				break;
+			case "--help":
+			case "-h":
+				opts.help = true;
+				break;
 			default:
 				if (!opts.cloneUrl) {
 					opts.cloneUrl = arg;
 				} else if (!opts.targetDir) {
 					opts.targetDir = arg;
+				} else if (!opts.type && ["feature", "release", "hotfix", "support"].includes(arg)) {
+					opts.type = arg;
+				} else if (!opts.name && arg !== "start" && arg !== "finish" && arg !== "publish" && arg !== "track" && arg !== "delete") {
+					opts.name = arg;
 				} else {
 					logWarn(`Ignoring unknown argument: ${arg}`);
 				}
@@ -163,148 +252,58 @@ function handleInstall(opts) {
 	}
 }
 
-function handleInit(opts) {
-	const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
-	if (!available) {
-		logError("git-flow is required for init");
-		process.exit(1);
-	}
-	runGit("flow init -d", { dryRun: opts.dryRun });
-	logSuccess("git-flow initialized");
-}
-
-function handleClone(opts) {
-	if (!opts.cloneUrl) {
-		logError("clone requires a repository URL");
-		process.exit(1);
-	}
-	const target =
-		opts.targetDir ||
-		opts.cloneUrl
-			.split("/")
-			.pop()
-			?.replace(/\.git$/, "") ||
-		"repo";
-	if (opts.dryRun) {
-		logInfo(`[dry-run] git clone ${opts.cloneUrl} ${target}`);
-		logInfo(`[dry-run] (in ${target}) git flow init -d`);
-		return;
-	}
-	runGit(`clone ${opts.cloneUrl} ${target}`);
-	logSuccess(`Cloned into ${target}`);
-	runGit(`-C ${target} flow init -d`);
-	logSuccess("git-flow initialized in clone");
-}
-
-function handleSync(opts) {
-	const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
-	if (!available) {
-		logError("git-flow is required for sync");
-		process.exit(1);
-	}
-	const base = detectMainBranch();
-	const original = currentBranch();
-	const stash = stashPush("git-flow-sync") || "";
-	logInfo(`Using base branch: ${base}`);
-
-	checkout(base, opts);
-	pullBranch(base, opts);
-	pushBranch(base, opts);
-
-	ensureBranchExists("develop");
-	checkout("develop", opts);
-	pullBranch("develop", opts);
-	mergeBranch(base, "develop", opts);
-	pushBranch("develop", opts);
-
-	if (original && original !== "develop" && original !== base) {
-		checkout(original, opts);
-	}
-	if (stash && !stash.includes("No local changes")) {
-		stashPop();
-	}
-	logSuccess("Sync complete");
-}
-
-function handleReleaseStart(opts, type = "release") {
-	const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
-	if (!available) {
-		logError("git-flow is required to start branches");
-		process.exit(1);
-	}
-	ensureCleanTree();
-	const base =
-		opts.base || (type === "hotfix" ? detectMainBranch() : "develop");
-	ensureBranchExists(base);
-	if (!opts.offline) pullBranch(base, opts);
-
-	const branchName = `${type}/${opts.name}`;
-	if (opts.force) {
-		runGit(`branch -D ${branchName}`, { allowFail: true, dryRun: opts.dryRun });
-	} else {
-		ensureBranchMissing(branchName);
-	}
-
-	const baseArg = base ? ` ${base}` : "";
-	runGit(`flow ${type} start ${opts.name}${baseArg}`, { dryRun: opts.dryRun });
-	logSuccess(`${type} branch started: ${branchName}`);
-}
-
-function buildFinishCommand(type, opts) {
-	const flags = [];
-	if (opts.push && !opts.offline) flags.push("-p");
-	if (opts.tag) flags.push(`-T ${opts.tag}`);
-	if (opts.message) flags.push(`-m "${opts.message}"`);
-	return `flow ${type} finish ${flags.join(" ")} ${opts.name}`.trim();
-}
-
-function handleReleaseFinish(opts, type = "release") {
-	const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
-	if (!available) {
-		logError("git-flow is required to finish branches");
-		process.exit(1);
-	}
-	ensureCleanTree();
-	if (!opts.tag || !opts.message) {
-		logError("--tag and --message are required for finish");
-		process.exit(1);
-	}
-	ensureTagMissing(opts.tag.replace(/^v/, ""));
-
-	const branch = `${type}/${opts.name}`;
-	ensureBranchExists(branch);
-	if (!opts.offline) {
-		pullBranch(branch, opts);
-		pullBranch("develop", opts);
-		const base = type === "hotfix" ? detectMainBranch() : "develop";
-		ensureBranchExists(base);
-		pullBranch(base, opts);
-	}
-
-	const cmd = buildFinishCommand(type, opts);
-	runGit(cmd, { dryRun: opts.dryRun });
-	logSuccess(`${type} branch finalized: ${branch}`);
-
-	if (opts.push && opts.offline) {
-		logWarn("--push ignored in offline mode");
-	}
-	if (!opts.keepBranch && !opts.dryRun) {
-		runGit(`branch -d ${branch}`, { allowFail: true });
-	}
-}
-
-function handleNextRelease(opts) {
-	handleReleaseStart(opts, "release");
-	handleReleaseFinish({ ...opts, name: opts.name || "nextRelease" }, "release");
-}
-
-function main() {
+async function main() {
 	const argv = process.argv.slice(2);
 	if (argv.length === 0) {
 		printHelp();
 		process.exit(0);
 	}
 	const opts = parseArgs(argv);
+
+	// Handle help flag for any command
+	if (opts.help) {
+		switch (opts.command) {
+			case "init":
+				printInitHelp();
+				break;
+			case "start":
+				printStartHelp();
+				break;
+			case "finish":
+				printFinishHelp();
+				break;
+			case "publish":
+				printPublishHelp();
+				break;
+			case "track":
+				printTrackHelp();
+				break;
+			case "delete":
+				printDeleteHelp();
+				break;
+			case "list":
+				printListHelp();
+				break;
+			case "config":
+				printConfigHelp();
+				break;
+			case "sync":
+				printSyncHelp();
+				break;
+			case "clone":
+				printCloneHelp();
+				break;
+			case "release":
+				printReleaseHelp();
+				break;
+			case "hotfix":
+				printHotfixHelp();
+				break;
+			default:
+				printHelp();
+		}
+		return;
+	}
 
 	switch (opts.command) {
 		case "help":
@@ -316,24 +315,41 @@ function main() {
 			handleInstall(opts);
 			return;
 		case "init":
-			handleInit(opts);
+			await handleInitCommand(opts);
+			return;
+		case "start":
+			await handleStartCommand(opts);
+			return;
+		case "finish":
+			await handleFinishCommand(opts);
+			return;
+		case "publish":
+			await handlePublishCommand(opts);
+			return;
+		case "track":
+			await handleTrackCommand(opts);
+			return;
+		case "delete":
+			await handleDeleteCommand(opts);
+			return;
+		case "list":
+			await handleListCommand(opts);
+			return;
+		case "config":
+			await handleConfigCommand(opts);
 			return;
 		case "clone":
-			handleClone(opts);
+			await handleCloneOperation(opts);
 			return;
 		case "sync":
-			handleSync(opts);
+			await handleSyncOperation(opts);
 			return;
 		case "release":
-			if (opts.sub === "start") return handleReleaseStart(opts, "release");
-			if (opts.sub === "finish") return handleReleaseFinish(opts, "release");
-			break;
+			await handleReleaseOperation(opts.sub, opts);
+			return;
 		case "hotfix":
-			if (opts.sub === "start") return handleReleaseStart(opts, "hotfix");
-			if (opts.sub === "finish") return handleReleaseFinish(opts, "hotfix");
-			break;
-		case "next-release":
-			return handleNextRelease(opts);
+			await handleHotfixOperation(opts.sub, opts);
+			return;
 		default:
 			logError(`Unknown command: ${opts.command}`);
 	}
@@ -342,4 +358,7 @@ function main() {
 	process.exit(1);
 }
 
-main();
+main().catch((error) => {
+	logError(`Unexpected error: ${error.message}`);
+	process.exit(1);
+});

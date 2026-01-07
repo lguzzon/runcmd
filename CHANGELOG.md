@@ -1,3 +1,5 @@
+## v1.6.0 - 2026-01-07
+- Internal changes
 ## v1.5.0 - 2026-01-07
 - docs: update .gitignore path format for public directory
 - feat(website): implement comprehensive UI redesign with component architecture

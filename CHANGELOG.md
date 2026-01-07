@@ -1,3 +1,5 @@
+## v1.8.0 - 2026-01-07
+- Merge tag 'v1.7.0' into develop
 ## v1.7.0 - 2026-01-07
 - fix(runcmd.sh): fix timer function variable assignment and arithmetic
 - fix(runcmd.sh): fix shell variable assignment syntax

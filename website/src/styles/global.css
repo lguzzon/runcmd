@@ -26,3 +26,43 @@ a {
 code {
   font-family: 'IBM Plex Mono', 'SFMono-Regular', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
+
+/* Theme transition effects */
+html {
+  transition: color-scheme 0.2s ease;
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for all color properties */
+* {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme toggle button enhancements */
+button[data-theme-toggle] {
+  transition: all 0.2s ease;
+}
+
+button[data-theme-toggle]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+button[data-theme-toggle]:active {
+  transform: translateY(0);
+}
+
+/* Ensure theme icons transition smoothly */
+button[data-theme-toggle] svg {
+  transition: all 0.3s ease;
+}
+
+/* Reduce motion preference support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

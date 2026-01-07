@@ -24,6 +24,8 @@ The result is a professional-grade script runner with zero configuration and cro
 
 ## Quick Start
 
+Install [Bun](https://bun.sh/) (or let the runner install it automatically) and make the runner executable.
+
 ### Unix/macOS
 
 ```bash
@@ -154,6 +156,23 @@ The runner automatically discovers `build.mjs` based on the runner name.
 | Internet | Initial Bun and tool installation | Same |
 
 All tools (Bun, Biome, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
+
+## Development
+
+### Website (Astro)
+
+```bash
+cd website
+bun install
+bun run dev    # start dev server
+bun run lint   # eslint
+bun run check  # astro type checks
+bun run build  # outputs to ../public for GitHub Pages
+```
+
+### Publishing
+
+GitHub Pages is built from the `website` folder using Bun in `.github/workflows/publish.yml`. Locally, run the commands above; CI uses `bun install --frozen-lockfile` and `bun run build`.
 
 ## Project Structure
 

@@ -632,7 +632,10 @@ async function main() {
 	process.exit(1);
 }
 
-main().catch((error) => {
-	logError(`Unexpected error: ${error.message}`);
-	process.exit(1);
-});
+// Only execute main() when this file is run directly, not when imported
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main().catch((error) => {
+		logError(`Unexpected error: ${error.message}`);
+		process.exit(1);
+	});
+}

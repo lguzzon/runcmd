@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
 	COLOR_BOLD,
 	COLOR_RESET,
@@ -15,7 +16,14 @@ import {
 	pullBranch,
 	runGit,
 	runGitFlow,
-} from "../git-flow-utils.js";
+} from "../git-flow.js";
+import { appendChangelog, commitChangelog } from "../lib/changelog.js";
+import { validateVersion, parseVersion, incrementVersion, compareVersions, readVersion } from "../lib/version.js";
+import { promptText } from "../lib/prompts.js";
+
+const PROJECT_ROOT = process.cwd();
+const VERSION_FILE = `${PROJECT_ROOT}/version.txt`;
+const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`;
 
 export function printHelp() {
 	console.log(`
@@ -57,74 +65,46 @@ Examples:
 `);
 }
 
-function validateVersion(version) {
-	return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version);
-}
-
-function parseVersion(version) {
-	const [major, minor, patch] = version.split(".").map(Number);
-	return { major, minor, patch };
-}
-
-function incrementVersion(version, bump) {
-	const { major, minor, patch } = parseVersion(version);
-	switch ((bump || "").toLowerCase()) {
-		case "major":
-			return `${major + 1}.0.0`;
-		case "minor":
-			return `${major}.${minor + 1}.0`;
-		case "patch":
-			return `${major}.${minor}.${patch + 1}`;
-		default:
-			return version;
-	}
-}
-
-function compareVersions(a, b) {
-	const pa = a.split(".").map(Number);
-	const pb = b.split(".").map(Number);
-	for (let i = 0; i < 3; i++) {
-		if (pa[i] > pb[i]) return 1;
-		if (pa[i] < pb[i]) return -1;
-	}
-	return 0;
-}
-
-function readVersion() {
-	const version = runGit("show HEAD:version.txt", { allowFail: true });
-	if (!version) {
-		logError("version.txt not found in repository");
-		process.exit(1);
-	}
-	const versionLine = version.trim().split("\n")[0].trim();
-	if (!validateVersion(versionLine)) {
-		logError(`Invalid version format in version.txt: ${versionLine}`);
-		process.exit(1);
-	}
-	return versionLine;
-}
-
 function updateVersionFile(version, { dryRun }) {
-	const content = runGit("show HEAD:version.txt", { allowFail: true });
-	if (!content) {
-		logError("version.txt not found in repository");
+	if (!existsSync(VERSION_FILE)) {
+		logError(`version.txt not found at ${VERSION_FILE}`);
 		process.exit(1);
 	}
-	const lines = content.split("\n");
+	const lines = readFileSync(VERSION_FILE, "utf-8").split("\n");
 	lines[0] = version;
 	const nextContent = lines.join("\n");
 	if (dryRun) {
 		logInfo(`[dry-run] would write version.txt => ${version}`);
 		return false;
 	}
-	runGit(`write-tree`, { allowFail: true });
+	writeFileSync(VERSION_FILE, nextContent, "utf-8");
 	return true;
 }
 
 function commitChanges(version, type, { dryRun }) {
 	const message = `chore: bump version to ${version} for ${type}`;
-	runGit(`add version.txt`, { dryRun });
+	runGit(`add ${VERSION_FILE}${existsSync(CHANGELOG_FILE) ? ` ${CHANGELOG_FILE}` : ""}`, { dryRun });
 	runGit(`commit -m "${message}"`, { dryRun });
+}
+
+async function promptVersion(currentVersion, opts) {
+	if (opts.version) {
+		if (!validateVersion(opts.version)) {
+			logError("--version must be semver x.y.z");
+			process.exit(1);
+		}
+		return opts.version;
+	}
+	const bumped = incrementVersion(currentVersion, opts.bump);
+	if (opts.yes) return bumped;
+	const answer = await promptText(`Use version ${bumped}? [Y/n] `);
+	if (!answer || answer.toLowerCase().startsWith("y")) return bumped;
+	const custom = await promptText("Enter custom version (x.y.z): ");
+	if (!validateVersion(custom)) {
+		logError("Invalid version format");
+		process.exit(1);
+	}
+	return custom;
 }
 
 async function handleHotfixStart(opts) {
@@ -132,9 +112,9 @@ async function handleHotfixStart(opts) {
 	ensureBranchExists("main");
 
 	const currentVersion = readVersion();
-	const { name, bump, version, base, push, noChangelog, dryRun, offline } = opts;
+	const { name, bump, version, base, push, noChangelog, dryRun, offline, yes } = opts;
 
-	const newVersion = version || incrementVersion(currentVersion, bump || "patch");
+	const newVersion = await promptVersion(currentVersion, { ...opts, bump: bump || "patch", version });
 
 	if (!validateVersion(newVersion)) {
 		logError("Invalid version format");
@@ -160,7 +140,12 @@ async function handleHotfixStart(opts) {
 	runGitFlow(`hotfix start ${name || newVersion} ${baseBranch}`, { dryRun });
 	logSuccess(`Hotfix branch started: ${branchName}`);
 
-	updateVersionFile(newVersion, opts);
+	const versionChanged = updateVersionFile(newVersion, opts);
+	let changelogChanged = false;
+	if (!noChangelog) {
+		changelogChanged = appendChangelog(newVersion, opts);
+	}
+
 	commitChanges(newVersion, "hotfix", opts);
 
 	if (push) {
@@ -169,6 +154,13 @@ async function handleHotfixStart(opts) {
 	}
 
 	logSuccess(`Hotfix initialized: ${branchName} (version ${newVersion})`);
+	if (opts.dryRun) {
+		logWarn("Dry-run completed. No changes were applied.");
+	} else {
+		if (!versionChanged && !changelogChanged) {
+			logWarn("No files were changed (version/changelog). Check your inputs.");
+		}
+	}
 }
 
 async function handleHotfixFinish(opts) {
@@ -176,7 +168,7 @@ async function handleHotfixFinish(opts) {
 	ensureBranchExists("main");
 	ensureBranchExists("develop");
 
-	const { name, tag, message, push, keepBranch, dryRun, offline } = opts;
+	const { name, tag, message, push, keepBranch, dryRun, offline, noChangelog } = opts;
 
 	if (!tag || !message) {
 		logError("--tag and --message are required for hotfix finish");
@@ -192,6 +184,18 @@ async function handleHotfixFinish(opts) {
 		pullBranch(branchName, { dryRun, offline });
 		pullBranch("develop", { dryRun, offline });
 		pullBranch("main", { dryRun, offline });
+	}
+
+	// Ensure changelog present before merges so it propagates
+	if (!noChangelog) {
+		const version = tag.replace(/^v/, "");
+		const existing = existsSync(CHANGELOG_FILE)
+			? readFileSync(CHANGELOG_FILE, "utf-8")
+			: "";
+		if (!existing.includes(`## v${version}`)) {
+			appendChangelog(version, opts);
+			commitChangelog(version, opts);
+		}
 	}
 
 	const flags = [];

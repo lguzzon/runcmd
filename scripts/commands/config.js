@@ -9,7 +9,7 @@ import {
 	logInfo,
 	logSuccess,
 	runGit,
-} from "../git-flow-utils.js";
+} from "../git-flow.js";
 
 export function printHelp() {
 	console.log(`

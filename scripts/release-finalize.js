@@ -1,36 +1,35 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync, readSync, writeFileSync } from "node:fs";
-import {
-	COLOR_BOLD,
-	COLOR_ERROR,
-	COLOR_INFO,
-	COLOR_RESET,
-	COLOR_WARN,
-	checkout,
-	ensureBranchExists,
-	ensureCleanTree,
-	ensureTagMissing,
-	mergeBranch,
-	pullBranch,
-	runGit,
-} from "./git-flow-utils.js";
+import { handleRelease } from "./operations/release.js";
+import { handleHotfix } from "./operations/hotfix.js";
+import { ensureBranchExists, ensureCleanTree, runGit } from "./git-flow.js";
+import { promptTextSync } from "./lib/prompts.js";
 
-const PROJECT_ROOT = process.cwd();
-const VERSION_FILE = `${PROJECT_ROOT}/version.txt`;
-const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`;
+const defaults = {
+	type: undefined, // release|hotfix (auto-detect)
+	branch: undefined,
+	push: false,
+	dryRun: false,
+	yes: false,
+	noChangelog: false,
+	keepBranch: false,
+	json: false,
+	offline: false,
+	help: false,
+};
 
 const operations = [];
 
 function log(type, message) {
 	const map = {
-		info: COLOR_INFO,
-		warn: COLOR_WARN,
-		error: COLOR_ERROR,
-		success: COLOR_INFO,
+		info: "\x1b[32m",
+		warn: "\x1b[33m",
+		error: "\x1b[31m",
+		success: "\x1b[32m",
 	};
-	const prefix = map[type] || COLOR_INFO;
+	const prefix = map[type] || "\x1b[32m";
+	const reset = "\x1b[0m";
 	const tag = type === "success" ? "OK" : type.toUpperCase();
-	const line = `${prefix}[${tag}]${COLOR_RESET} ${message}`;
+	const line = `${prefix}[${tag}]${reset} ${message}`;
 	if (type === "error") {
 		console.error(line);
 	} else {
@@ -51,18 +50,6 @@ function logError(m) {
 function logSuccess(m) {
 	log("success", m);
 }
-
-const defaults = {
-	type: undefined, // release|hotfix (auto-detect)
-	branch: undefined,
-	push: false,
-	dryRun: false,
-	yes: false,
-	noChangelog: false,
-	keepBranch: false,
-	json: false,
-	offline: false,
-};
 
 function parseArgs() {
 	const args = process.argv.slice(2);
@@ -99,13 +86,11 @@ function parseArgs() {
 				break;
 			case "--help":
 			case "-h":
-				printHelp();
-				process.exit(0);
+				opts.help = true;
 				break;
 			default:
-				logWarn(`Unknown option: ${arg}`);
-				printHelp();
-				process.exit(1);
+				// Ignore unknown arguments for backward compatibility
+				break;
 		}
 	}
 	if (process.env.CI === "true") {
@@ -116,7 +101,7 @@ function parseArgs() {
 
 function printHelp() {
 	console.log(`
-${COLOR_BOLD}Git Flow Release/Hotfix Finalizer${COLOR_RESET}
+${"\x1b[1m"}Git Flow Release/Hotfix Finalizer${"\x1b[0m"}
 
 Usage: bun scripts/release-finalize.js [options]
 
@@ -131,27 +116,11 @@ Options:
   --offline                 Skip pulls/fetches
   --yes                     Non-interactive
   -h, --help                Show help
+
+Examples:
+  bun scripts/release-finalize.js --type release --branch release/v1.2.0
+  bun scripts/release-finalize.js --push --yes
 `);
-}
-
-function validateVersion(version) {
-	return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version);
-}
-
-function readVersion() {
-	if (!existsSync(VERSION_FILE)) {
-		logError(`version.txt not found at ${VERSION_FILE}`);
-		process.exit(1);
-	}
-	const version = readFileSync(VERSION_FILE, "utf-8")
-		.trim()
-		.split("\n")[0]
-		.trim();
-	if (!validateVersion(version)) {
-		logError(`Invalid version format in version.txt: ${version}`);
-		process.exit(1);
-	}
-	return version;
 }
 
 function listBranches(glob) {
@@ -198,101 +167,6 @@ function detectBranch(opts) {
 	return candidates[index];
 }
 
-function promptTextSync(question) {
-	process.stdout.write(question);
-	const buffer = Buffer.alloc(1024);
-	const bytes = readSync(0, buffer, 0, buffer.length, null);
-	return buffer.slice(0, bytes).toString().trim();
-}
-
-function createTag(version, opts) {
-	const tagName = `v${version}`;
-	const message = `Release version ${version}`;
-	runGit(`tag -a ${tagName} -m "${message}"`, { dryRun: opts.dryRun });
-	logSuccess(`Created tag ${tagName}`);
-}
-
-function deleteBranch(branch, opts) {
-	if (opts.keepBranch) {
-		logWarn("Skipping branch deletion (--keep-branch)");
-		return;
-	}
-	runGit(`branch -D ${branch}`, { dryRun: opts.dryRun, allowFail: true });
-	runGit(`push origin --delete ${branch}`, {
-		dryRun: opts.dryRun,
-		allowFail: true,
-	});
-	logSuccess(`Deleted branch ${branch}`);
-}
-
-function pushAll(opts) {
-	if (!opts.push) {
-		logWarn("Skipping push (use --push to publish)");
-		return;
-	}
-	runGit("push origin main", {
-		dryRun: opts.dryRun,
-		allowFail: true,
-		pipeStdout: true,
-	});
-	runGit("push origin develop", {
-		dryRun: opts.dryRun,
-		allowFail: true,
-		pipeStdout: true,
-	});
-	runGit("push origin --tags", {
-		dryRun: opts.dryRun,
-		allowFail: true,
-		pipeStdout: true,
-	});
-	logSuccess("Pushed main, develop, and tags");
-}
-
-function getLastTag() {
-	const tag = runGit("describe --tags --abbrev=0", { allowFail: true });
-	return tag || null;
-}
-
-function collectCommitsSince(ref) {
-	const range = ref ? `${ref}..HEAD` : "HEAD";
-	const commits = runGit(`log ${range} --pretty=format:"- %s"`, {
-		allowFail: true,
-	});
-	if (!commits) return [];
-	return commits.split("\n").filter(Boolean);
-}
-
-function ensureChangelog(version, opts) {
-	if (opts.noChangelog) return false;
-	const existing = existsSync(CHANGELOG_FILE)
-		? readFileSync(CHANGELOG_FILE, "utf-8")
-		: "";
-	if (existing.includes(`## v${version}`)) {
-		logInfo("Changelog already has this version.");
-		return false;
-	}
-	const lastTag = getLastTag();
-	const commits = collectCommitsSince(lastTag);
-	const date = new Date().toISOString().slice(0, 10);
-	const sectionLines = [
-		`## v${version} - ${date}`,
-		commits.length ? commits.join("\n") : "- Internal changes",
-		"",
-	];
-	const content = `${sectionLines.join("\n")}${existing}`;
-	if (opts.dryRun) {
-		logInfo(`[dry-run] would update CHANGELOG.md with v${version}`);
-		return false;
-	}
-	writeFileSync(CHANGELOG_FILE, content, "utf-8");
-	runGit(`add ${CHANGELOG_FILE}`, { dryRun: opts.dryRun });
-	runGit(`commit -m "docs: update changelog for v${version}"`, {
-		dryRun: opts.dryRun,
-	});
-	logSuccess("Changelog updated");
-	return true;
-}
-
 function branchType(branch) {
 	if (branch.startsWith("release/")) return "release";
 	if (branch.startsWith("hotfix/")) return "hotfix";
@@ -312,17 +186,6 @@ function ensureBranchMatchesType(branch, requested) {
 	return detected;
 }
 
-function requireBranchVersion(branch, fileVersion) {
-	const match = branch.match(/v(\d+\.\d+\.\d+)$/);
-	if (!match) return;
-	const branchVersion = match[1];
-	if (branchVersion !== fileVersion) {
-		logWarn(
-			`Branch version (${branchVersion}) differs from version.txt (${fileVersion}). Using version.txt.`,
-		);
-	}
-}
-
 function generateJsonSummary(status, branch, version) {
 	return JSON.stringify({
 		status,
@@ -333,48 +196,45 @@ function generateJsonSummary(status, branch, version) {
 }
 
 async function main() {
-	console.log(`${COLOR_BOLD}Git Flow Release/Hotfix Finalizer${COLOR_RESET}\n`);
 	const opts = parseArgs();
+
+	if (opts.help) {
+		printHelp();
+		process.exit(0);
+	}
 
 	ensureCleanTree();
 	ensureBranchExists("main");
 	ensureBranchExists("develop");
 
-	const version = readVersion();
-	ensureTagMissing(version);
-
 	const targetBranch = detectBranch(opts);
-	ensureBranchMatchesType(targetBranch, opts.type);
-	requireBranchVersion(targetBranch, version);
+	const detectedType = ensureBranchMatchesType(targetBranch, opts.type);
 
-	if (!opts.offline) {
-		pullBranch("main", opts);
-		pullBranch("develop", opts);
-		pullBranch(targetBranch, opts);
+	// Extract version from branch name for tag and message
+	const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/);
+	if (!versionMatch) {
+		logError("Branch name must include version (e.g., release/v1.2.0)");
+		process.exit(1);
+	}
+	const version = versionMatch[1];
+
+	// Set required options for git-flow operations
+	opts.name = version;
+	opts.tag = `v${version}`;
+	opts.message = `Release version ${version}`;
+
+	// Map to git-flow.js operation
+	const action = "finish";
+
+	if (detectedType === "hotfix") {
+		await handleHotfix(action, opts);
+	} else {
+		await handleRelease(action, opts);
 	}
 
-	// Ensure changelog present before merges so it propagates
-	checkout(targetBranch, opts);
-	ensureChangelog(version, opts);
-
-	// Merge to main, tag
-	mergeBranch(targetBranch, "main", opts);
-	logSuccess(`Merged ${targetBranch} -> main`);
-	createTag(version, opts);
-
-	// Merge to develop
-	mergeBranch(targetBranch, "develop", opts);
-	logSuccess(`Merged ${targetBranch} -> develop`);
-
-	// Delete branch
-	deleteBranch(targetBranch, opts);
-
-	// Push
-	pushAll(opts);
-
 	logSuccess("Release/hotfix finalized.");
-	console.log(`\n${COLOR_BOLD}Version:${COLOR_RESET} ${version}`);
-	console.log(`${COLOR_BOLD}Branch:${COLOR_RESET} ${targetBranch}`);
+	console.log(`\n${"\x1b[1m"}Version:${"\x1b[0m"} ${version}`);
+	console.log(`${"\x1b[1m"}Branch:${"\x1b[0m"} ${targetBranch}`);
 
 	if (opts.json) {
 		console.log(generateJsonSummary("ok", targetBranch, version));

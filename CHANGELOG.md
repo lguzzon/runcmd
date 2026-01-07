@@ -1,5 +1,6 @@
 ## v1.6.0 - 2026-01-07
-- Internal changes
+- feat(ui): enhance theme toggle button with hover effects and improved accessibility
+- Merge tag 'v1.5.0' into develop
 ## v1.5.0 - 2026-01-07
 - docs: update .gitignore path format for public directory
 - feat(website): implement comprehensive UI redesign with component architecture

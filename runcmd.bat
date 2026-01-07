@@ -44,6 +44,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :initialize_environment
     :: Initialize environment variables and output redirection
     SET "OLD_DEBUG=%DEBUG%"
+    SET "RUNCMD_VERSION=1.0.0"
     SET "TO_NUL= > nul 2> nul"
     SET "ECHO_TO_NUL= > nul 2> nul"
     EXIT /B 0
@@ -173,6 +174,26 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Handle environment variable listing
     IF /I "%first_arg%" == "+e" (
         SET
+        EXIT /B 99
+    )
+
+    :: Handle help
+    IF /I "%first_arg%" == "+help" (
+        CALL :show_help
+        EXIT /B 99
+    )
+    IF /I "%first_arg%" == "+h" (
+        CALL :show_help
+        EXIT /B 99
+    )
+
+    :: Handle version
+    IF /I "%first_arg%" == "+version" (
+        ECHO runcmd v%RUNCMD_VERSION%
+        EXIT /B 99
+    )
+    IF /I "%first_arg%" == "+v" (
+        ECHO runcmd v%RUNCMD_VERSION%
         EXIT /B 99
     )
 
@@ -395,12 +416,13 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO const STATE_FILE = path.join^(RUNCMD_HOME, 'state.json'^);
     ECHO const CHECK_INTERVAL = 7 * 24 * 3600 * 1000; // 7 days in ms
     ECHO const CURRENT_SCRIPT = process.argv[2];
+    ECHO const CURRENT_VERSION = process.argv[3];
     ECHO.
     ECHO async function main^(^) {
     ECHO   try {
     ECHO     if ^(!fs.existsSync^(RUNCMD_HOME^)^) fs.mkdirSync^(RUNCMD_HOME, { recursive: true }^);
     ECHO.
-    ECHO     let state = { last_check: 0, current_version: '0.0.0' };
+    ECHO     let state = { last_check: 0 };
     ECHO     try { state = JSON.parse^(fs.readFileSync^(STATE_FILE, 'utf8'^)^); } catch ^(e^) {}
     ECHO.
     ECHO     const now = Date.now^(^);
@@ -411,8 +433,8 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO     if ^(!res.ok^) throw new Error^('Failed to fetch version'^);
     ECHO     const remoteVersion = ^(await res.text^(^)^).trim^(^);
     ECHO.
-    ECHO     if ^(compareVersions^(state.current_version, remoteVersion^) ^>= 0^) {
-    ECHO        console.error^('[INFO] Runcmd is up to date '^ + state.current_version^);
+    ECHO     if ^(compareVersions^(CURRENT_VERSION, remoteVersion^) ^>= 0^) {
+    ECHO        console.error^('[INFO] Runcmd is up to date '^ + CURRENT_VERSION^);
     ECHO        state.last_check = now;
     ECHO        fs.writeFileSync^(STATE_FILE, JSON.stringify^(state^)^);
     ECHO        return;
@@ -459,7 +481,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ) > "%UPDATE_SCRIPT%"
 
     :: Execute the update check script
-    FOR /F "usebackq tokens=1,2,3 delims=|" %%A IN (`call !BUN_CMD! "%UPDATE_SCRIPT%" "%~f0"`) DO (
+    FOR /F "usebackq tokens=1,2,3 delims=|" %%A IN (`call !BUN_CMD! "%UPDATE_SCRIPT%" "%~f0" "%RUNCMD_VERSION%"`) DO (
         IF "%%A"=="UPDATE_READY" (
             SET "NEW_SCRIPT=%%B"
             SET "NEW_VER=%%C"
@@ -498,6 +520,41 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Cleanup old backup if exists
     IF EXIST "%~f0.old" DEL "%~f0.old" >nul 2>&1
     
+    EXIT /B 0
+
+:show_help
+    :: Display help message
+    ECHO runcmd v%RUNCMD_VERSION%
+    ECHO.
+    ECHO Usage: runcmd.bat [options] [arguments]
+    ECHO.
+    ECHO A universal script runner for JavaScript, TypeScript, and Python files.
+    ECHO.
+    ECHO OPTIONS:
+    ECHO   +d, +dd, +ddd, +d0
+    ECHO       Set debug level (basic, with file ops, full echo, disable)
+    ECHO.
+    ECHO   +e
+    ECHO       List all environment variables
+    ECHO.
+    ECHO   +h, +help
+    ECHO       Display this help message and exit
+    ECHO.
+    ECHO   +v, +version
+    ECHO       Display version information and exit
+    ECHO.
+    ECHO   --env ^<file^>
+    ECHO       Load environment variables from a custom file
+    ECHO.
+    ECHO ARGUMENTS:
+    ECHO   Any remaining arguments are passed directly to the target script
+    ECHO.
+    ECHO EXAMPLES:
+    ECHO   runcmd.bat +d                    # Run with debug logging
+    ECHO   runcmd.bat +e                    # List environment variables
+    ECHO   runcmd.bat --env custom.env      # Load custom environment file
+    ECHO   runcmd.bat +v                    # Show version
+    ECHO.
     EXIT /B 0
 
 :show_error

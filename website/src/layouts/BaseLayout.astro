@@ -26,6 +26,12 @@ const {
               : true
           document.documentElement.classList.toggle('dark', isDark)
           document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
+          
+          // Initialize button state
+          const toggle = document.querySelector('[data-theme-toggle]')
+          if (toggle) {
+            toggle.setAttribute('aria-pressed', String(isDark))
+          }
         } catch (error) {
           console.error('Theme init failed', error)
         }
@@ -39,10 +45,14 @@ const {
         const toggle = document.querySelector('[data-theme-toggle]')
         if (!toggle) return
 
-        const updateState = (isDark: boolean) => {
+        const updateState = (isDark) => {
           document.documentElement.classList.toggle('dark', isDark)
           document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
-          localStorage.setItem('theme', isDark ? 'dark' : 'light')
+          try {
+            localStorage.setItem('theme', isDark ? 'dark' : 'light')
+          } catch (error) {
+            console.warn('localStorage not available:', error)
+          }
           toggle.setAttribute('aria-pressed', String(isDark))
         }
 

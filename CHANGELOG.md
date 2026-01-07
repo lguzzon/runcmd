@@ -1,3 +1,5 @@
+## v1.5.0 - 2026-01-07
+- Internal changes
 ## v1.4.0 - 2026-01-07
 - Merge branch 'release/1.3.0' into develop
 - feat(release): standardize version prefix handling in release and hotfix operations

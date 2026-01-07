@@ -25,6 +25,9 @@ set "args_after_debug="
 CALL :parse_debug_mode_and_collect %*
 CALL :configure_output_redirection
 
+:: Update Check
+CALL :check_for_updates
+
 ECHO Debug=%DEBUG% %ECHO_TO_NUL%
 
 ECHO Starting ... %ECHO_TO_NUL%
@@ -356,6 +359,146 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
         EXIT /B 0
     )
     EXIT /B 1
+
+:: ===================================================================================
+:: UPDATE FUNCTIONS
+:: ===================================================================================
+
+:check_for_updates
+    :: Check for updates from GitHub Pages
+    :: Uses Bun for logic since it's cleaner than batch/powershell
+    :: Stores state in %USERPROFILE%\.runcmd\state.json
+    
+    :: Skip if explicitly disabled
+    IF "%RUNCMD_NO_UPDATE%"=="1" EXIT /B 0
+    
+    :: Ensure Bun is available (we need it for the update check script)
+    :: But we don't want to fail if bun isn't there yet (chicken/egg)
+    :: So we try to find it, if not, we skip update check until next run (when main will install it)
+    IF NOT defined BUN_CMD (
+        FOR /F "usebackq delims=" %%I IN (`where bun 2^>nul`) DO SET "BUN_CMD=%%~fI"
+        IF NOT defined BUN_CMD IF EXIST "%BUN_INSTALL_DIR%\bun.exe" SET "BUN_CMD=%BUN_INSTALL_DIR%\bun.exe"
+    )
+    
+    IF NOT defined BUN_CMD EXIT /B 0
+
+    :: Run the update check logic in a temporary JS file
+    SET "UPDATE_SCRIPT=%TEMP%\runcmd_update_check_%RANDOM%.js"
+    
+    (
+    ECHO const fs = require^('fs'^);
+    ECHO const path = require^('path'^);
+    ECHO const os = require^('os'^);
+    ECHO.
+    ECHO const UPDATE_URL_BASE = 'https://lguzzon.github.io/runcmd';
+    ECHO const RUNCMD_HOME = path.join^(os.homedir^(^), '.runcmd'^);
+    ECHO const STATE_FILE = path.join^(RUNCMD_HOME, 'state.json'^);
+    ECHO const CHECK_INTERVAL = 7 * 24 * 3600 * 1000; // 7 days in ms
+    ECHO const CURRENT_SCRIPT = process.argv[2];
+    ECHO.
+    ECHO async function main^(^) {
+    ECHO   try {
+    ECHO     if ^(!fs.existsSync^(RUNCMD_HOME^)^) fs.mkdirSync^(RUNCMD_HOME, { recursive: true }^);
+    ECHO.
+    ECHO     let state = { last_check: 0, current_version: '0.0.0' };
+    ECHO     try { state = JSON.parse^(fs.readFileSync^(STATE_FILE, 'utf8'^)^); } catch ^(e^) {}
+    ECHO.
+    ECHO     const now = Date.now^(^);
+    ECHO     if ^(now - state.last_check ^< CHECK_INTERVAL^) return;
+    ECHO.
+    ECHO     console.error^('[INFO] Checking for updates...'^);
+    ECHO     const res = await fetch^(UPDATE_URL_BASE + '/version.txt'^);
+    ECHO     if ^(!res.ok^) throw new Error^('Failed to fetch version'^);
+    ECHO     const remoteVersion = ^(await res.text^(^)^).trim^(^);
+    ECHO.
+    ECHO     if ^(compareVersions^(state.current_version, remoteVersion^) ^>= 0^) {
+    ECHO        console.error^('[INFO] Runcmd is up to date '^ + state.current_version^);
+    ECHO        state.last_check = now;
+    ECHO        fs.writeFileSync^(STATE_FILE, JSON.stringify^(state^)^);
+    ECHO        return;
+    ECHO     }
+    ECHO.
+    ECHO     console.error^('[INFO] New version available: ' + remoteVersion + '. Updating...'^);
+    ECHO     const scriptRes = await fetch^(UPDATE_URL_BASE + '/runcmd.bat'^);
+    ECHO     if ^(!scriptRes.ok^) throw new Error^('Failed to fetch update'^);
+    ECHO     const newContent = await scriptRes.text^(^);
+    ECHO.
+    ECHO     if ^(!newContent.includes^('runcmd.bat'^)^) throw new Error^('Invalid update content'^);
+    ECHO.
+    ECHO     // Write new content to a temporary file
+    ECHO     const tempFile = CURRENT_SCRIPT + '.new';
+    ECHO     fs.writeFileSync^(tempFile, newContent^);
+    ECHO.
+    ECHO     // Signal the batch script to update
+    ECHO     console.log^('UPDATE_READY|' + tempFile + '|' + remoteVersion^);
+    ECHO.
+    ECHO     // Update state (assuming success)
+    ECHO     state.current_version = remoteVersion;
+    ECHO     state.last_check = now;
+    ECHO     fs.writeFileSync^(STATE_FILE, JSON.stringify^(state^)^);
+    ECHO.
+    ECHO   } catch ^(e^) {
+    ECHO     // console.error^('Update check failed:', e.message^);
+    ECHO   }
+    ECHO }
+    ECHO.
+    ECHO function compareVersions^(a, b^) {
+    ECHO   if ^(a === b^) return 0;
+    ECHO   const pa = a.split^('.'^).map^(Number^);
+    ECHO   const pb = b.split^('.'^).map^(Number^);
+    ECHO   for ^(let i = 0; i ^< 3; i++^) {
+    ECHO     const na = pa[i] ^|^| 0;
+    ECHO     const nb = pb[i] ^|^| 0;
+    ECHO     if ^(na ^> nb^) return 1;
+    ECHO     if ^(nb ^> na^) return -1;
+    ECHO   }
+    ECHO   return 0;
+    ECHO }
+    ECHO.
+    ECHO main^(^);
+    ) > "%UPDATE_SCRIPT%"
+
+    :: Execute the update check script
+    FOR /F "usebackq tokens=1,2,3 delims=|" %%A IN (`call !BUN_CMD! "%UPDATE_SCRIPT%" "%~f0"`) DO (
+        IF "%%A"=="UPDATE_READY" (
+            SET "NEW_SCRIPT=%%B"
+            SET "NEW_VER=%%C"
+            
+            ECHO [INFO] Applying update to version !NEW_VER!...
+            
+            :: Self-update dance for Windows
+            :: 1. Move current script to .old
+            :: 2. Move new script to current
+            :: 3. Schedule .old deletion (can be done next run or via separate process)
+            
+            MOVE /Y "%~f0" "%~f0.old" >nul
+            MOVE /Y "!NEW_SCRIPT!" "%~f0" >nul
+            
+            ECHO [INFO] Update applied. Restarting...
+            
+            :: Restart the script with original arguments
+            :: We use START /B to run in same window, but since we are restarting, 
+            :: we probably want to just CALL the new script and exit this one.
+            :: But since we renamed ourselves, we might be in a fragile state.
+            
+            :: Correct approach:
+            :: The current batch file content is already read into memory by CMD mostly, but renaming it is safe.
+            :: We can just continue, OR restart. 
+            :: Restarting ensures we run the NEW code immediately.
+            
+            "%~f0" %*
+            DEL "%UPDATE_SCRIPT%" >nul 2>&1
+            EXIT /B
+        )
+    )
+    
+    :: Cleanup
+    DEL "%UPDATE_SCRIPT%" >nul 2>&1
+    
+    :: Cleanup old backup if exists
+    IF EXIST "%~f0.old" DEL "%~f0.old" >nul 2>&1
+    
+    EXIT /B 0
 
 :show_error
     :: Display error message

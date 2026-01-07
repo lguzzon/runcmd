@@ -128,7 +128,7 @@ async function handleHotfixStart(opts) {
 		process.exit(1);
 	}
 
-	const branchName = `hotfix/${name || newVersion}`;
+	const branchName = `hotfix/${name ? (name.startsWith('v') ? name : `v${name}`) : `v${newVersion}`}`;
 	ensureBranchMissing(branchName);
 
 	const baseBranch = base || "main";
@@ -137,7 +137,8 @@ async function handleHotfixStart(opts) {
 	}
 
 	logInfo(`Starting hotfix branch: ${branchName}`);
-	runGitFlow(`hotfix start ${name || newVersion} ${baseBranch}`, { dryRun });
+	const hotfixName = name ? (name.startsWith('v') ? name : `v${name}`) : `v${newVersion}`;
+	runGitFlow(`hotfix start ${hotfixName} ${baseBranch}`, { dryRun });
 	logSuccess(`Hotfix branch started: ${branchName}`);
 
 	const versionChanged = updateVersionFile(newVersion, opts);
@@ -177,7 +178,7 @@ async function handleHotfixFinish(opts) {
 
 	ensureTagMissing(tag.replace(/^v/, ""));
 
-	const branchName = `hotfix/${name || tag.replace(/^v/, "")}`;
+	const branchName = `hotfix/${name ? (name.startsWith('v') ? name : `v${name}`) : tag}`;
 	ensureBranchExists(branchName);
 
 	if (!offline) {
@@ -203,7 +204,8 @@ async function handleHotfixFinish(opts) {
 	if (tag) flags.push(`-T ${tag}`);
 	if (message) flags.push(`-m "${message}"`);
 
-	const cmd = `hotfix finish ${flags.join(" ")} ${name || tag.replace(/^v/, "")}`;
+	const hotfixName = name ? (name.startsWith('v') ? name : `v${name}`) : tag;
+	const cmd = `hotfix finish ${flags.join(" ")} ${hotfixName}`;
 	logInfo(`Finishing hotfix branch: ${branchName}`);
 	runGitFlow(cmd, { dryRun });
 	logSuccess(`Hotfix branch finalized: ${branchName}`);

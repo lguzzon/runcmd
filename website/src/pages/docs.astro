@@ -1,0 +1,249 @@
+---
+import fs from 'node:fs/promises'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Nav from '../components/Nav.astro'
+
+const basePath = Astro.site?.pathname ?? '/runcmd/'
+const normalizedBase = basePath === '/' ? '' : basePath.replace(/\/$/, '')
+
+let version = '1.0.0'
+try {
+  version = (await fs.readFile(new URL('../../../version.txt', import.meta.url), 'utf8')).trim()
+} catch {}
+
+const githubUrl = 'https://github.com/lguzzon/runcmd'
+const scriptHref = `${normalizedBase}/runcmd.sh`
+---
+<BaseLayout title="RunCmd Documentation" description="Comprehensive docs for the RunCmd universal script runner." >
+  <div class="min-h-screen">
+    <Nav base={normalizedBase} githubUrl={githubUrl} />
+
+    <main id="top" class="pt-32 pb-20">
+      <section id="docs" class="pb-12">
+        <div class="container mx-auto px-4 max-w-6xl">
+          <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 mb-4 font-medium text-sm border border-blue-500/20">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                v{version} documentation
+              </div>
+              <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">RunCmd Documentation</h1>
+              <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl">
+                Everything you need to install, configure, and operate the RunCmd universal script runner across macOS, Linux, and Windows.
+              </p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <a href={scriptHref} class="group flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-blue-500/25">
+                <svg class="w-5 h-5 group-hover:-translate-y-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3v14m0 0l-5-5m5 5 5-5" />
+                  <path d="M5 19h14" />
+                </svg>
+                Download Script
+              </a>
+              <a href="#installation" class="flex items-center gap-2 px-5 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold transition-all">
+                Start Installing
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-10 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 backdrop-blur">
+            <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Table of contents</h2>
+            <div class="grid gap-2 sm:grid-cols-2 md:grid-cols-3 text-sm text-gray-700 dark:text-gray-200">
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#overview">Overview</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#installation">Installation</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#usage">Usage & Resolution</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#debugging">Debug & Checks</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#environment">Environment</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#runners">Runner Capabilities</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#git-flow">Git-Flow Toolkit</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#quick-commands">Quick Commands</a>
+              <a class="hover:text-blue-600 dark:hover:text-blue-400" href="#resources">Resources</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="overview" class="py-12">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>What is RunCmd?</h2>
+            <p>RunCmd is a universal script runner that separates runtime setup from your business logic. Runner scripts (<code>runcmd.sh</code>, <code>runcmd.bat</code>) handle Bun installation, environment loading, cross-platform path resolution, and built-in tooling so your <code>.mjs</code> scripts stay focused on logic.</p>
+            <ul>
+              <li><strong>Cross-platform:</strong> Seamless on macOS, Linux, and Windows.</li>
+              <li><strong>Zero config:</strong> Automatically installs Bun and required tooling.</li>
+              <li><strong>Robust:</strong> Atomic updates, safe self-formatting, and exit-code propagation.</li>
+              <li><strong>Integrated tooling:</strong> Biome, shfmt, and JSON validation built in.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="installation" class="py-12 bg-gray-50/50 dark:bg-gray-900/50">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="grid gap-8 md:grid-cols-2">
+            <div class="prose prose-lg dark:prose-invert max-w-none">
+              <h2>Install (Unix / macOS)</h2>
+              <p>Download and make the runner executable:</p>
+              <div class="not-prose bg-gray-900 rounded-xl p-5 mb-6 overflow-x-auto">
+                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh', 'chmod +x runcmd.sh'].join('\n')}</pre>
+              </div>
+              <p>Run the default script or pass a target:</p>
+              <div class="not-prose bg-gray-900 rounded-xl p-5 overflow-x-auto">
+                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['./runcmd.sh', './runcmd.sh +r ./my-script.mjs --flag value', './runcmd.sh +check'].join('\n')}</pre>
+              </div>
+            </div>
+            <div class="prose prose-lg dark:prose-invert max-w-none">
+              <h2>Install (Windows)</h2>
+              <p>Place <code>runcmd.bat</code> alongside your script or in <code>PATH</code>. Usage examples:</p>
+              <div class="not-prose bg-gray-900 rounded-xl p-5 overflow-x-auto mb-6">
+                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['runcmd.bat', 'runcmd.bat +d', 'runcmd.bat +e my-script.mjs'].join('\n')}</pre>
+              </div>
+              <p><strong>Supported files:</strong> <code>.js</code>, <code>.mjs</code>, <code>.ts</code>, and <code>.py</code>. Bun and supporting tools auto-install as needed.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="usage" class="py-12">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Usage & Script Resolution</h2>
+            <p>Runner scripts locate your target script automatically. Priority:</p>
+            <ol>
+              <li><strong>Explicit path:</strong> <code>+r &lt;path&gt;</code> (Unix/macOS) or first argument (Windows).</li>
+              <li><strong>Current directory:</strong> <code>&lt;runner_name&gt;.mjs</code>.</li>
+              <li><strong>Runner directory:</strong> <code>&lt;runner_name&gt;.mjs</code> alongside the runner.</li>
+            </ol>
+            <p>Example for a custom runner:</p>
+            <pre class="not-prose bg-gray-900 rounded-xl p-5 text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['cp runcmd.sh build.sh', 'echo "console.log(\"Building...\");" > build.mjs', './build.sh'].join('\n')}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="debugging" class="py-12 bg-gray-50/50 dark:bg-gray-900/50">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Debugging & Code Quality</h2>
+            <h3>Debug modes</h3>
+            <ul>
+              <li><code>./runcmd.sh +debug</code> or <code>DEBUG=1 ./runcmd.sh</code></li>
+              <li><code>./runcmd.sh +dd</code> (file operations) or <code>+ddd</code> (full echo)</li>
+              <li>Windows: <code>runcmd.bat +d</code>, <code>+dd</code>, <code>+ddd</code>, <code>+d0</code> to disable</li>
+            </ul>
+            <h3>Checks & formatting</h3>
+            <ul>
+              <li><code>./runcmd.sh +check</code> — formats shell scripts, sorts JSON, runs Biome.</li>
+              <li>Manual: <code>bunx @biomejs/biome check --unsafe --write .</code></li>
+              <li>Manual: <code>bunx shfmt -w -bn -ci -i 2 -s *.sh</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="environment" class="py-12">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Environment & Configuration</h2>
+            <ul>
+              <li><strong>.env loading order:</strong> script directory <code>.env</code>, then current directory <code>.env</code> (overrides).</li>
+              <li><strong>Env vars:</strong> <code>DEBUG</code>, <code>RUNCMD_NO_UPDATE</code>, <code>RUNCMD_HOME</code>.</li>
+              <li><strong>Exit codes:</strong> Target script exit codes propagate to the caller.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="runners" class="py-12 bg-gray-50/50 dark:bg-gray-900/50">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="grid gap-8 md:grid-cols-2">
+            <div class="prose prose-lg dark:prose-invert max-w-none">
+              <h2>runcmd.sh (Unix / macOS)</h2>
+              <ul>
+                <li>Installs Bun to <code>~/.bun</code> if missing.</li>
+                <li>Safe self-formatting with rollback protection.</li>
+                <li>Cross-platform path resolution with Python fallback.</li>
+                <li>Timing and debug logging utilities.</li>
+              </ul>
+            </div>
+            <div class="prose prose-lg dark:prose-invert max-w-none">
+              <h2>runcmd.bat (Windows)</h2>
+              <ul>
+                <li>Supports <code>.js</code>, <code>.mjs</code>, <code>.ts</code>, and <code>.py</code>.</li>
+                <li>Auto-installs tooling via PowerShell when needed.</li>
+                <li>Multiple debug levels (<code>+d</code>, <code>+dd</code>, <code>+ddd</code>, <code>+d0</code>).</li>
+                <li>Delayed variable expansion for complex operations.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="git-flow" class="py-12">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Git-Flow Toolkit</h2>
+            <p>High-level git-flow automation lives in <code>scripts/</code>. Common actions:</p>
+            <ul>
+              <li><code>bun scripts/git-flow.js init</code> — initialize git-flow.</li>
+              <li><code>bun scripts/git-flow.js start feature my-feature</code> — start a branch.</li>
+              <li><code>bun scripts/git-flow.js finish feature my-feature</code> — finish and merge.</li>
+              <li><code>bun scripts/git-flow.js release start --bump minor</code> — start a release.</li>
+              <li><code>bun scripts/git-flow.js hotfix finish --tag v1.1.1</code> — complete a hotfix.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="quick-commands" class="py-12 bg-gray-50/50 dark:bg-gray-900/50">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Quick Commands</h2>
+          </div>
+          <div class="grid gap-6 md:grid-cols-2 mt-4">
+            <div class="p-5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Core</h3>
+              <ul class="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">./runcmd.sh</code> — run default script.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">./runcmd.sh +r ./task.mjs --flag</code> — run specific script.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">./runcmd.sh +check</code> — format and validate.</li>
+              </ul>
+            </div>
+            <div class="p-5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Windows</h3>
+              <ul class="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat</code> — run default script.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +d</code> — enable debug output.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +e my-script.mjs</code> — list env vars then run.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="resources" class="py-12">
+        <div class="container mx-auto px-4 max-w-5xl">
+          <div class="prose prose-lg dark:prose-invert max-w-none">
+            <h2>Resources</h2>
+            <ul>
+              <li><a href={githubUrl}>GitHub repository</a></li>
+              <li><a href={scriptHref}>Download runner (runcmd.sh)</a></li>
+              <li><a href={`${normalizedBase}/#features`}>Feature overview</a></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="py-12 border-t border-gray-200 dark:border-gray-800">
+      <div class="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
+        <p>© {new Date().getFullYear()} RunCmd. Open Source Software.</p>
+      </div>
+    </footer>
+  </div>
+</BaseLayout>

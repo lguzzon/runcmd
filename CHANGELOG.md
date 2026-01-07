@@ -1,3 +1,5 @@
+## v1.7.0 - 2026-01-07
+- Internal changes
 ## v1.6.0 - 2026-01-07
 - feat(ui): enhance theme toggle button with hover effects and improved accessibility
 - Merge tag 'v1.5.0' into develop

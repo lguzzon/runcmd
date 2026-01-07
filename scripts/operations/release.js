@@ -187,17 +187,17 @@ async function handleReleaseFinish(opts) {
 		pullBranch("main", { dryRun, offline });
 	}
 
-	// Ensure changelog present before merges so it propagates
-	if (!noChangelog) {
-		const version = tag.replace(/^v/, "");
-		const existing = existsSync(CHANGELOG_FILE)
-			? readFileSync(CHANGELOG_FILE, "utf-8")
-			: "";
-		if (!existing.includes(`## v${version}`)) {
-			appendChangelog(version, opts);
-			commitChangelog(version, opts);
-		}
-	}
+	// // Ensure changelog present before merges so it propagates
+	// if (!noChangelog) {
+	// 	const version = tag.replace(/^v/, "");
+	// 	const existing = existsSync(CHANGELOG_FILE)
+	// 		? readFileSync(CHANGELOG_FILE, "utf-8")
+	// 		: "";
+	// 	if (!existing.includes(`## v${version}`)) {
+	// 		appendChangelog(version, opts);
+	// 		commitChangelog(version, opts);
+	// 	}
+	// }
 
 	const flags = [];
 	if (push && !offline) flags.push("-p");

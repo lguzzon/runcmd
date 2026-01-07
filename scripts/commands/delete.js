@@ -11,7 +11,7 @@ import {
 	logWarn,
 	runGit,
 	runGitFlow,
-} from "../git-flow-utils.js";
+} from "../git-flow.js";
 
 export function printHelp() {
 	console.log(`

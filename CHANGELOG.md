@@ -1,5 +1,8 @@
 ## v1.7.0 - 2026-01-07
-- Internal changes
+- fix(runcmd.sh): fix timer function variable assignment and arithmetic
+- fix(runcmd.sh): fix shell variable assignment syntax
+- refactor(website): reorganize package.json scripts and tsconfig.json structure
+- Merge tag 'v1.6.0' into develop
 ## v1.6.0 - 2026-01-07
 - feat(ui): enhance theme toggle button with hover effects and improved accessibility
 - Merge tag 'v1.5.0' into develop

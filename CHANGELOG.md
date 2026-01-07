@@ -1,3 +1,9 @@
+## v1.5.0 - 2026-01-07
+- docs: update .gitignore path format for public directory
+- feat(website): implement comprehensive UI redesign with component architecture
+- docs: remove generated static files from repository
+- docs: update project documentation and add comprehensive scripts guide
+- Merge tag 'v1.4.0' into develop
 # Changelog
 
 All notable changes to this project will be documented in this file.

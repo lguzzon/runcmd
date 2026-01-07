@@ -1,3 +1,6 @@
+## v1.9.0 - 2026-01-07
+- chore(operations): remove commented-out changelog generation code
+- Merge tag 'v1.8.0' into develop
 ## v1.8.0 - 2026-01-07
 - Merge tag 'v1.7.0' into develop
 ## v1.7.0 - 2026-01-07

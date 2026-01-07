@@ -204,6 +204,11 @@ readonly script_name
 readonly BUN_INSTALL="$HOME/.bun"
 readonly BUN_INSTALL_SCRIPT="https://bun.sh/install"
 readonly DEFAULT_SCRIPT="${script_name}.mjs"
+# Update Configuration
+readonly UPDATE_URL_BASE="https://lguzzon.github.io/runcmd"
+readonly RUNCMD_HOME="$HOME/.runcmd"
+readonly RUNCMD_STATE="$RUNCMD_HOME/state.json"
+readonly UPDATE_CHECK_INTERVAL=$((7 * 24 * 3600)) # 7 days in seconds
 
 current_dir=$(pwd)
 readonly current_dir
@@ -230,6 +235,125 @@ resolve_default_script() {
 
   log_error "Default script '$DEFAULT_SCRIPT' not found in '$current_dir' or '$script_dir'."
   exit 1
+}
+
+# Compare two semantic versions (x.y.z)
+# Args:
+#   $1: Version A (local)
+#   $2: Version B (remote)
+# Returns:
+#   0 if A >= B
+#   1 if A < B (update needed)
+version_lt() {
+  # Trivial case: equal versions
+  [[ "$1" == "$2" ]] && return 0
+  
+  # Parse versions into arrays
+  local ver1=(${1//./ })
+  local ver2=(${2//./ })
+  
+  # Fill missing parts with 0
+  for ((i=${#ver1[@]}; i<3; i++)); do ver1[i]=0; done
+  for ((i=${#ver2[@]}; i<3; i++)); do ver2[i]=0; done
+  
+  for ((i=0; i<3; i++)); do
+    if ((ver1[i] < ver2[i])); then return 0; fi # A < B is true (0 in bash usually means success, but here we want boolean semantics. Let's stick to bash convention: 0 is TRUE/SUCCESS, 1 is FALSE/FAILURE)
+    # Wait, the convention in bash is: 0 is SUCCESS (true), non-zero is FAILURE (false).
+    # Function returns 0 (success) if A < B.
+    if ((ver1[i] > ver2[i])); then return 1; fi
+  done
+  
+  return 1 # A >= B
+}
+
+# Check for updates from GitHub Pages
+# Checks weekly for a new version and self-updates if available.
+# Uses state file in ~/.runcmd/state.json to track last check time and current version.
+#
+# Process:
+#   1. Ensure state directory exists
+#   2. Check if update check is needed (time based)
+#   3. Fetch remote version.txt
+#   4. Compare versions
+#   5. If newer, download and replace self
+#   6. Update state file
+check_for_updates() {
+  # Skip update check if explicitly disabled or in debug/CI environments
+  [[ "${RUNCMD_NO_UPDATE:-0}" == "1" ]] && return 0
+  
+  mkdir -p "$RUNCMD_HOME"
+  
+  # Initialize or read state
+  local last_check=0
+  local current_version="0.0.0"
+  
+  if [[ -f "$RUNCMD_STATE" ]]; then
+    # Simple JSON parsing using grep/cut since we want to avoid complex dependencies for this core function
+    # or rely on python since it's already a dependency
+    if command_exists python3; then
+      last_check=$(python3 -c "import json, sys; print(json.load(open('$RUNCMD_STATE')).get('last_check', 0))" 2>/dev/null || echo 0)
+      current_version=$(python3 -c "import json, sys; print(json.load(open('$RUNCMD_STATE')).get('current_version', '0.0.0'))" 2>/dev/null || echo "0.0.0")
+    fi
+  fi
+  
+  local now
+  now=$(date +%s)
+  
+  if (( (now - last_check) < UPDATE_CHECK_INTERVAL )); then
+    return 0
+  fi
+  
+  log_info "Checking for updates..."
+  
+  # Fetch remote version
+  local remote_version
+  remote_version=$(curl -fsSL --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
+  
+  if [[ -z "$remote_version" ]]; then
+    log_info "Failed to check for updates (network issue or timeout)."
+    # Update last check anyway to prevent retry on every run
+    # Write state safely
+     echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" > "$RUNCMD_STATE"
+    return 0
+  fi
+  
+  # Clean up version string
+  remote_version=$(echo "$remote_version" | tr -d '[:space:]')
+  
+  # Check if update is needed
+  # version_lt returns 0 (true) if current < remote
+  if version_lt "$current_version" "$remote_version"; then
+     # Perform update
+     log_info "New version available: $remote_version (current: $current_version). Updating..."
+     
+     local temp_script
+     temp_script=$(mktemp)
+     
+     if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
+       # Verify it looks like a script
+       if grep -q "runcmd.sh" "$temp_script"; then
+         chmod +x "$temp_script"
+         
+         # Atomic replacement
+         # Note: Replacing the running script in bash is generally safe-ish if we exec the new one or if the OS handles it (Unix usually does)
+         # However, to be cleaner, we can overwrite the file
+         cat "$temp_script" > "$script_path"
+         
+         log_info "Updated to version $remote_version."
+         current_version="$remote_version"
+       else
+         log_error "Downloaded update appears invalid."
+       fi
+       rm -f "$temp_script"
+     else
+       log_error "Failed to download update."
+     fi
+  else
+    log_info "Runcmd is up to date ($current_version)."
+  fi
+  
+  # Update state
+  echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" > "$RUNCMD_STATE"
 }
 
 # Resolve the default script path within a specified directory
@@ -946,6 +1070,9 @@ load_env_files() {
 main() {
   # Load environment variables from .env files before processing arguments
   load_env_files
+
+  # Check for updates
+  check_for_updates
 
   parse_args "$@"
   local resolved_script

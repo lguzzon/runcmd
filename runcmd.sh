@@ -22,7 +22,7 @@
 #
 # PREREQUISITES:
 #   - Bash 4.0+ (for array support and enhanced features)
-#   - Python 3.x (for path resolution and timing functions)
+#   - Bun (for path resolution fallback)
 #   - curl (for Bun installation, auto-installed if missing)
 #   - Internet connection (for initial Bun and tool installation)
 #
@@ -48,6 +48,7 @@ readonly UNAME_S
 readonly COLOR_INFO="\033[32m"
 readonly COLOR_ERROR="\033[31m"
 readonly COLOR_RESET="\033[0m"
+readonly RUNCMD_VERSION="1.0.0"
 
 DEBUG=0
 CHECK_MODE=0
@@ -56,14 +57,43 @@ BUN_ARGS=()
 START_TIME=0
 TEMP_FILES_ARRAY=()
 
+# Check if debug mode is enabled
+# Returns:
+#   0 (true) if DEBUG is set to 1, 1 (false) otherwise
+is_debug_enabled() {
+  [[ ${DEBUG:-0} == "1" ]]
+}
+
 log_info() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
+  if is_debug_enabled; then
     printf '%b[INFO]%b %s\n' "$COLOR_INFO" "$COLOR_RESET" "$1"
   fi
 }
 
 log_error() {
   printf '%b[ERROR]%b %s\n' "$COLOR_ERROR" "$COLOR_RESET" "$1" >&2
+}
+
+# Normalize DEBUG environment variable to a consistent value
+# Accepts various truthy/falsy values and normalizes to 0 or 1
+# Args:
+#   None (uses global DEBUG variable)
+# Globals:
+#   DEBUG: Modified to be either 0 or 1
+# Returns:
+#   None
+normalize_debug() {
+  local debug_value="${DEBUG:-0}"
+  local lower_value
+  lower_value=$(echo "$debug_value" | tr '[:upper:]' '[:lower:]')
+  case "$lower_value" in
+    1 | true | yes | on) DEBUG=1 ;;
+    0 | false | no | off | "") DEBUG=0 ;;
+    *)
+      log_error "Invalid DEBUG value '$DEBUG'. Use: 1/true/yes/on or 0/false/no/off"
+      DEBUG=0
+      ;;
+  esac
 }
 
 # Check if a command exists in the system PATH
@@ -77,6 +107,8 @@ command_exists() {
 
 usage() {
   cat <<EOF
+runcmd v${RUNCMD_VERSION}
+
 Usage: $0 [options] [arguments]
 
 A comprehensive script runner with integrated development tooling that ensures
@@ -94,7 +126,10 @@ FEATURES:
 OPTIONS:
   +debug, +d
       Enable debug logging with execution timing and detailed operation info
-      
+
+  +nodebug, +nd
+      Disable debug logging (overrides DEBUG environment variable)
+
   +help, +h
       Display this comprehensive help message and exit
       
@@ -147,12 +182,12 @@ EOF
 #
 # DEPENDENCIES:
 #   - readlink coreutils (Linux) or greadlink (macOS via coreutils)
-#   - python3 as final fallback for path resolution
+#   - bun as final fallback for path resolution
 #
 # NOTES:
 #   - Handles symlinks, relative paths, and complex directory structures
 #   - Each method is tried in sequence, first successful method wins
-#   - Python fallback uses os.path.realpath() for robust path handling
+#   - Bun fallback uses require('path').resolve() for robust path handling
 resolve_path() {
   local target="$1"
   if [[ -z $target ]]; then
@@ -179,16 +214,12 @@ resolve_path() {
     return
   fi
 
-  if command_exists python3; then
-    python3 - "$target" <<'PY'
-import os
-import sys
-print(os.path.realpath(sys.argv[1]))
-PY
+  if command_exists bun; then
+    bun -e "console.log(require('path').resolve('$target'))"
     return
   fi
 
-  log_error "Unable to resolve path '$target': install coreutils (readlink) or ensure python3 is available."
+  log_error "Unable to resolve path '$target': install coreutils (readlink) or ensure bun is available."
   exit 1
 }
 
@@ -204,6 +235,11 @@ readonly script_name
 readonly BUN_INSTALL="$HOME/.bun"
 readonly BUN_INSTALL_SCRIPT="https://bun.sh/install"
 readonly DEFAULT_SCRIPT="${script_name}.mjs"
+# Update Configuration
+readonly UPDATE_URL_BASE="https://lguzzon.github.io/runcmd"
+readonly RUNCMD_HOME="$HOME/.runcmd"
+readonly RUNCMD_STATE="$RUNCMD_HOME/state.json"
+readonly UPDATE_CHECK_INTERVAL=$((7 * 24 * 3600)) # 7 days in seconds
 
 current_dir=$(pwd)
 readonly current_dir
@@ -230,6 +266,128 @@ resolve_default_script() {
 
   log_error "Default script '$DEFAULT_SCRIPT' not found in '$current_dir' or '$script_dir'."
   exit 1
+}
+
+# Compare two semantic versions (x.y.z)
+# Args:
+#   $1: Version A (local)
+#   $2: Version B (remote)
+# Returns:
+#   0 if A >= B
+#   1 if A < B (update needed)
+version_lt() {
+  # Trivial case: equal versions
+  [[ $1 == "$2" ]] && return 0
+
+  # Parse versions into arrays
+  local ver1=(${1//./ })
+  local ver2=(${2//./ })
+
+  # Fill missing parts with 0
+  for ((i = ${#ver1[@]}; i < 3; i++)); do ver1[i]=0; done
+  for ((i = ${#ver2[@]}; i < 3; i++)); do ver2[i]=0; done
+
+  for ((i = 0; i < 3; i++)); do
+    if ((ver1[i] < ver2[i])); then return 0; fi # A < B is true (0 in bash usually means success, but here we want boolean semantics. Let's stick to bash convention: 0 is TRUE/SUCCESS, 1 is FALSE/FAILURE)
+    # Wait, the convention in bash is: 0 is SUCCESS (true), non-zero is FAILURE (false).
+    # Function returns 0 (success) if A < B.
+    if ((ver1[i] > ver2[i])); then return 1; fi
+  done
+
+  return 1 # A >= B
+}
+
+# Check for updates from GitHub Pages
+# Checks weekly for a new version and self-updates if available.
+# Uses state file in ~/.runcmd/state.json to track last check time and current version.
+#
+# Process:
+#   1. Ensure state directory exists
+#   2. Check if update check is needed (time based)
+#   3. Fetch remote version.txt
+#   4. Compare versions
+#   5. If newer, download and replace self
+#   6. Update state file
+check_for_updates() {
+  # Skip update check if explicitly disabled or in debug/CI environments
+  [[ ${RUNCMD_NO_UPDATE:-0} == "1" ]] && return 0
+
+  mkdir -p "$RUNCMD_HOME"
+
+  # Initialize or read state
+  local last_check=0
+  local current_version="$RUNCMD_VERSION"
+
+  if [[ -f $RUNCMD_STATE ]]; then
+    # Simple JSON parsing using Bun since we want to avoid complex dependencies for this core function
+    if command_exists bun; then
+      last_check=$(bun -e "try { console.log(require('$RUNCMD_STATE').last_check || 0) } catch(e) { console.log(0) }" 2>/dev/null || echo 0)
+    fi
+  fi
+
+  local now
+  now=$(date +%s)
+
+  if (((now - last_check) < UPDATE_CHECK_INTERVAL)); then
+    return 0
+  fi
+
+  if ! command_exists curl; then
+    log_info "Skipping update check: curl not found."
+    return 0
+  fi
+
+  log_info "Checking for updates..."
+
+  # Fetch remote version
+  local remote_version
+  remote_version=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
+
+  if [[ -z $remote_version ]]; then
+    log_info "Failed to check for updates (network issue or timeout)."
+    # Update last check anyway to prevent retry on every run
+    # Write state safely
+    echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
+    return 0
+  fi
+
+  # Clean up version string
+  remote_version=$(echo "$remote_version" | tr -d '[:space:]')
+
+  # Check if update is needed
+  # version_lt returns 0 (true) if current < remote
+  if version_lt "$current_version" "$remote_version"; then
+    # Perform update
+    log_info "New version available: $remote_version (current: $current_version). Updating..."
+
+    local temp_script
+    temp_script=$(mktemp)
+
+    if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
+      # Verify it looks like a script
+      if grep -q "runcmd.sh" "$temp_script"; then
+        chmod +x "$temp_script"
+
+        # Atomic replacement
+        # Note: Replacing the running script in bash is generally safe-ish if we exec the new one or if the OS handles it (Unix usually does)
+        # However, to be cleaner, we can overwrite the file
+        cat "$temp_script" >"$script_path"
+
+        log_info "Updated to version $remote_version."
+        current_version="$remote_version"
+      else
+        log_error "Downloaded update appears invalid."
+      fi
+      rm -f "$temp_script"
+    else
+      log_error "Failed to download update."
+    fi
+  else
+    log_info "Runcmd is up to date ($current_version)."
+  fi
+
+  # Update state
+  echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
 }
 
 # Resolve the default script path within a specified directory
@@ -401,6 +559,7 @@ safe_format_file() {
   TEMP_FILES_ARRAY+=("$temp_file" "$backup_file")
 
   # Ensure cleanup on exit - function to remove temp files
+  # shellcheck disable=SC2329
   cleanup_on_exit() {
     for file in "${TEMP_FILES_ARRAY[@]}"; do
       rm -f "$file" 2>/dev/null || true
@@ -603,15 +762,15 @@ run_json_sort() {
 }
 
 # Start timing execution if debug mode is enabled
-# Captures the current time with millisecond precision using Python
+# Captures the current time with millisecond precision using Bun (cross-platform)
 # Globals:
 #   DEBUG: Flag indicating if debug mode is enabled
 #   START_TIME: Global variable to store start time in milliseconds
 # Returns:
 #   None
 start_timer() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
-    START_TIME=$(python3 -c 'import time; print(int(time.time() * 1000))')
+  if is_debug_enabled; then
+    START_TIME=$(bun -e 'console.log(Date.now())')
   fi
 }
 
@@ -624,9 +783,9 @@ start_timer() {
 # Returns:
 #   None
 end_timer() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
+  if is_debug_enabled; then
     local end_time
-    end_time=$(python3 -c 'import time; print(int(time.time() * 1000))')
+    end_time=$(bun -e 'console.log(Date.now())')
     local elapsed_ms=$((end_time - START_TIME))
 
     # Calculate days, hours, minutes, seconds, and milliseconds
@@ -824,8 +983,15 @@ parse_args() {
       +debug | +d)
         DEBUG=1
         ;;
+      +nodebug | +nd)
+        DEBUG=0
+        ;;
       +help | +h)
         usage
+        ;;
+      +version | +v)
+        echo "runcmd v${RUNCMD_VERSION}"
+        exit 0
         ;;
       +runme | +r)
         if [[ $# -lt 2 ]]; then
@@ -874,7 +1040,8 @@ load_env_file() {
     [[ -z ${line// /} ]] && continue
 
     if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      export "${line?}"
+      # Use eval to properly set and export the variable
+      eval "export \"$line\""
       log_info "${export_prefix}${line%%=*}"
     fi
   done <"$env_file"
@@ -947,7 +1114,14 @@ main() {
   # Load environment variables from .env files before processing arguments
   load_env_files
 
+  # Check for updates
+  check_for_updates
+
   parse_args "$@"
+
+  # Normalize DEBUG value to ensure consistent behavior
+  normalize_debug
+
   local resolved_script
   resolved_script=$(resolve_script_path "$REQUESTED_SCRIPT")
 

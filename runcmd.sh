@@ -786,7 +786,8 @@ end_timer() {
   if is_debug_enabled; then
     local end_time
     end_time=$(bun -e 'console.log(Date.now())')
-    local elapsed_ms=$((end_time - START_TIME))
+    local elapsed_ms
+    elapsed_ms=$((end_time - START_TIME))
 
     # Calculate days, hours, minutes, seconds, and milliseconds
     local days=$((elapsed_ms / 86400000))

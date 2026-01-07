@@ -2,7 +2,7 @@
 
 A universal script runner that simplifies JavaScript/TypeScript execution using the Bun runtime. The runners handle all the boilerplate—Bun installation, environment setup, and integrated tooling—so you can focus on your script logic.
 
-## What is runcmd?
+## 🚀 What is runcmd?
 
 runcmd separates boilerplate from business logic:
 
@@ -11,25 +11,46 @@ runcmd separates boilerplate from business logic:
 
 The result is a professional-grade script runner with zero configuration and cross-platform support.
 
-## Features
+## ✨ Key Features
+
+### Core Functionality
 
 - **Automatic Bun Installation** - Detects and installs Bun to your home directory if missing
 - **Cross-Platform Support** - Works on Unix/macOS (`runcmd.sh`) and Windows (`runcmd.bat`)
-- **Integrated Tooling** - Built-in support for Biome, shfmt, and json-sort-cli via `bunx`
-- **Environment Management** - Automatic `.env` file loading from script and current directories
 - **Smart Script Resolution** - Automatically discovers `.mjs` files based on runner name
-- **Debug Mode** - Millisecond-precision timing and detailed execution logs
+- **Environment Management** - Automatic `.env` file loading from script and current directories
 - **Exit Code Propagation** - Script exit codes are correctly passed back to the caller
-- **Self-Formatting** - Runners can format their own source code safely
 
-## Quick Start
+### Development Tooling
 
-Install [Bun](https://bun.sh/) (or let the runner install it automatically) and make the runner executable.
+- **Integrated Code Formatting** - Biome for JavaScript/TypeScript, shfmt for shell scripts
+- **JSON Validation** - Automatic JSON file sorting and validation
+- **Debug Mode** - Millisecond-precision timing and detailed execution logs
+- **Self-Healing** - Safe self-formatting for currently running scripts
+- **Atomic Operations** - Safe file operations with rollback protection
 
-### Unix/macOS
+### Advanced Features
+
+- **Git Flow Integration** - Comprehensive git-flow management tools in [`scripts/`](scripts/)
+- **Version Management** - Automatic self-updates from GitHub Pages
+- **Comprehensive Help** - Built-in help system with examples
+- **Zero Dependencies** - Only requires basic system tools (curl, bash)
+
+## 📦 Quick Start
+
+### Installation
+
+Download and make executable:
 
 ```bash
-# Download and run
+curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh
+chmod +x runcmd.sh
+```
+
+### Basic Usage
+
+```bash
+# Run default script (runcmd.mjs)
 ./runcmd.sh
 
 # With debug output
@@ -37,45 +58,46 @@ Install [Bun](https://bun.sh/) (or let the runner install it automatically) and 
 
 # Run a specific script with arguments
 ./runcmd.sh +r ./my-script.mjs --option value
+
+# Format and validate code
+./runcmd.sh +check
 ```
 
-### Windows
+### Windows Support
 
 ```cmd
 runcmd.bat
-
-:: With debug output
 runcmd.bat +d
-
-:: Run a specific script
 runcmd.bat +e my-script.mjs
 ```
 
-## Usage
-
-### Basic Execution
-
-The runner automatically looks for `<runner_name>.mjs` in the current directory, then falls back to the same directory as the runner.
-
-```bash
-# Copies of the runner inherit the naming convention:
-./build.sh    # looks for build.mjs
-./deploy.sh   # looks for deploy.mjs
-```
+## 🛠️ Usage Guide
 
 ### Script Resolution
 
-| Priority | Unix/macOS | Windows |
-|----------|------------|---------|
-| 1 | `+r <path>` flag | Path as first argument |
-| 2 | Current directory `<runner>.mjs` | Current directory with supported extensions |
-| 3 | Script directory `<runner>.mjs` | Script directory with supported extensions |
+The runner automatically looks for `<runner_name>.mjs` in this order:
 
-Supported extensions: `.js`, `.mjs`, `.ts`, `.py` (Windows)
+1. **Explicit path**: `+r <path>` flag (Unix/macOS) or first argument (Windows)
+2. **Current directory**: `<runner>.mjs` in working directory
+3. **Script directory**: `<runner>.mjs` in runner's directory
+
+**Example:**
+
+```bash
+# Creates build.sh runner
+cp runcmd.sh build.sh
+
+# Creates corresponding script
+echo 'console.log("Building...");' > build.mjs
+
+# Run it - automatically finds build.mjs
+./build.sh
+```
 
 ### Debug Mode
 
 **Unix/macOS:**
+
 ```bash
 ./runcmd.sh +debug              # Enable debug logging
 DEBUG=1 ./runcmd.sh             # Alternative via environment variable
@@ -85,6 +107,7 @@ DEBUG=1 ./runcmd.sh             # Alternative via environment variable
 ```
 
 **Windows:**
+
 ```cmd
 runcmd.bat +d       :: Basic debug output
 runcmd.bat +dd      :: With file operations
@@ -97,7 +120,7 @@ runcmd.bat +d0      :: Disable debug
 Comprehensive check mode formats and validates your code:
 
 ```bash
-# Unix/macOS only - format and check everything
+# Format shell scripts, sort JSON, run Biome checks
 ./runcmd.sh +check
 
 # Manual tool execution
@@ -109,6 +132,7 @@ bunx json-sort-cli "**/*.json"
 ### Environment Variables
 
 `.env` files are automatically loaded in this order:
+
 1. Script directory `.env`
 2. Current directory `.env` (can override script directory values)
 
@@ -119,45 +143,124 @@ VAR2=value2
 # Comments start with #
 ```
 
-**Windows custom environment:**
-```cmd
-runcmd.bat --env custom.env
+## 🎯 Git Flow Integration
+
+The [`scripts/`](scripts/) directory contains comprehensive git-flow management tools:
+
+### Core Commands
+
+```bash
+# Initialize git-flow
+bun scripts/git-flow.js init
+
+# Branch management
+bun scripts/git-flow.js start feature new-auth
+bun scripts/git-flow.js finish feature new-auth
+
+# Release management
+bun scripts/git-flow.js release start --bump minor
+bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
 ```
 
-## Creating Custom Runners
+### Available Commands
 
-The design makes it easy to create specialized runners:
+- **Branch Operations**: `start`, `finish`, `publish`, `track`, `delete`, `list`
+- **High-Level Operations**: `release`, `hotfix`, `sync`, `clone`
+- **Configuration**: `config` (get/set/list git-flow settings)
+- **Utilities**: `init`, `install` (ensure git-flow availability)
 
-1. Copy `runcmd.sh` to your desired name:
-   ```bash
-   cp runcmd.sh build.sh
-   ```
+### Commands Reference
 
-2. Create the corresponding script file:
-   ```bash
-   # build.mjs - your build logic
-   console.log('Running build...');
-   ```
+| Command | Description | Example |
+| --------- | ------------- | --------- |
+| `init` | Initialize git-flow in repository | `git-flow.js init` |
+| `start <type> <name>` | Start new branch | `start feature new-auth` |
+| `finish <type> <name>` | Finish and merge branch | `finish feature new-auth` |
+| `publish <type> <name>` | Publish branch to remote | `publish feature new-auth` |
+| `track <type> <name>` | Track remote branch locally | `track feature new-auth` |
+| `delete <type> <name>` | Delete branch | `delete feature old-feature` |
+| `list [type]` | List branches by type | `list feature` |
+| `release <action>` | Manage release branches | `release start --bump minor` |
+| `hotfix <action>` | Manage hotfix branches | `hotfix finish --tag v1.1.1` |
+| `sync` | Sync main/master & develop | `sync --dry-run` |
+| `clone <url> [dir]` | Clone and initialize git-flow | `clone https://github.com/user/repo` |
 
-3. Run it:
-   ```bash
-   ./build.sh
-   ```
+## 🏗️ Project Structure
 
-The runner automatically discovers `build.mjs` based on the runner name.
+```
+runcmd/
+├── runcmd.sh           # Unix/macOS runner (1141 lines)
+├── runcmd.bat          # Windows runner (364 lines)
+├── runcmd.mjs          # Default target script
+├── version.txt         # Current version
+├── biome.json          # Biome configuration
+├── CHANGELOG.md        # Version history
+├── LICENSE             # MIT License
+├── scripts/            # Git-flow management tools
+│   ├── git-flow.js     # Main git-flow command handler
+│   ├── commands/       # Individual command implementations
+│   │   ├── init.js     # Initialize git-flow
+│   │   ├── start.js    # Start branches
+│   │   ├── finish.js   # Finish branches
+│   │   ├── publish.js  # Publish branches
+│   │   ├── track.js    # Track branches
+│   │   ├── delete.js   # Delete branches
+│   │   ├── list.js     # List branches
+│   │   └── config.js   # Configuration management
+│   ├── lib/            # Shared utilities
+│   │   ├── version.js  # Version utilities
+│   │   ├── changelog.js # Changelog utilities
+│   │   └── prompts.js  # User interaction utilities
+│   └── operations/     # High-level operations
+│       ├── sync.js     # Sync branches
+│       ├── clone.js    # Clone with git-flow
+│       ├── release.js  # Release management
+│       └── hotfix.js   # Hotfix management
+├── website/            # Astro-based documentation site
+│   ├── src/            # Website source
+│   ├── public/         # Static assets
+│   └── package.json    # Website dependencies
+└── .github/            # GitHub workflows
+    └── workflows/      # CI/CD pipelines
+```
 
-## Requirements
+## ⚙️ Configuration
 
-| Component | Unix/macOS | Windows |
-|-----------|------------|---------|
-| Bash | 4.0+ | - |
-| Python 3 | For path resolution and timing | - |
-| curl | For Bun installation | - |
-| Internet | Initial Bun and tool installation | Same |
+### Biome Settings (`biome.json`)
 
-All tools (Bun, Biome, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
+The project uses Biome for formatting and linting with these defaults:
 
-## Development
+```json
+{
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "rules": {
+      "recommended": true
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+| ---------- | ------------- | --------- |
+| `DEBUG` | Enable debug logging | `0` |
+| `RUNCMD_NO_UPDATE` | Disable auto-updates | `0` |
+| `RUNCMD_HOME` | State directory | `~/.runcmd` |
+
+## 🚀 Development
 
 ### Website (Astro)
 
@@ -170,35 +273,60 @@ bun run check  # astro type checks
 bun run build  # outputs to ../public for GitHub Pages
 ```
 
+### Testing
+
+```bash
+# Test runner functionality
+./runcmd.sh +debug
+
+# Test git-flow commands
+bun scripts/git-flow.js help
+
+# Test with custom scripts
+echo 'console.log("Test");' > test.mjs
+./runcmd.sh +r test.mjs
+```
+
 ### Publishing
 
 GitHub Pages is built from the `website` folder using Bun in `.github/workflows/publish.yml`. Locally, run the commands above; CI uses `bun install --frozen-lockfile` and `bun run build`.
 
-## Project Structure
+## 📋 Requirements
 
-```
-runcmd/
-├── runcmd.sh       # Unix/macOS runner (968 lines)
-├── runcmd.bat      # Windows runner (364 lines)
-├── runcmd.mjs      # Default target script
-├── biome.json      # Biome configuration
-└── LICENSE         # MIT License
-```
+| Component | Unix/macOS | Windows |
+| ----------- | ------------ | --------- |
+| Bash | 4.0+ | - |
+| Python 3 | For path resolution and timing | - |
+| curl | For Bun installation | - |
+| Internet | Initial Bun and tool installation | Same |
 
-## Configuration
+All tools (Bun, Biome, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
 
-### Biome Settings (`biome.json`)
+## 📚 Documentation
 
-The project uses Biome for formatting and linting with these defaults:
+- **Main Documentation**: [`README.md`](README.md)
+- **Website**: [https://lguzzon.github.io/runcmd](https://lguzzon.github.io/runcmd)
+- **API Reference**: See individual script files for detailed comments
+- **Git Flow Guide**: [`scripts/git-flow.js`](scripts/git-flow.js) help system
 
-- **Formatter**: 2-space indent, single quotes, 80 char line width
-- **Linter**: Recommended rules enabled
-- **Import organization**: Auto-enabled on save
+## 🤝 Contributing
 
-## License
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## 🙏 Acknowledgments
+
+- Built with [Bun](https://bun.sh/) for speed and simplicity
+- Uses [Biome](https://biomejs.dev/) for code formatting and linting
+- Integrates with [git-flow](https://github.com/nvie/gitflow) for Git workflow management
+
 ---
 
-Built with Bun for speed and simplicity.
+**runcmd** - Universal Script Runner for Modern Development Teams

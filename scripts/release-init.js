@@ -369,6 +369,9 @@ async function main() {
       logWarn("No files were changed (version/changelog). Check your inputs.");
     }
   }
+
+  // Close stdin to prevent hanging
+  process.stdin.pause();
 }
 
 main().catch((error) => {

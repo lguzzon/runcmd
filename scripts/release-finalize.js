@@ -403,6 +403,9 @@ async function main() {
   if (opts.json) {
     console.log(generateJsonSummary("ok", targetBranch, version));
   }
+
+  // Close stdin to prevent hanging
+  process.stdin.pause();
 }
 
 main().catch((error) => {

@@ -1,0 +1,11 @@
+# Generated content for GitHub Pages deployment
+public/
+
+# Editor and system files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db

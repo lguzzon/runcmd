@@ -303,11 +303,16 @@ check_for_updates() {
     return 0
   fi
   
+  if ! command_exists curl; then
+     log_info "Skipping update check: curl not found."
+     return 0
+  fi
+
   log_info "Checking for updates..."
   
   # Fetch remote version
   local remote_version
-  remote_version=$(curl -fsSL --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
+  remote_version=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
   
   if [[ -z "$remote_version" ]]; then
     log_info "Failed to check for updates (network issue or timeout)."

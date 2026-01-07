@@ -407,7 +407,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO     if ^(now - state.last_check ^< CHECK_INTERVAL^) return;
     ECHO.
     ECHO     console.error^('[INFO] Checking for updates...'^);
-    ECHO     const res = await fetch^(UPDATE_URL_BASE + '/version.txt'^);
+    ECHO     const res = await fetch^(UPDATE_URL_BASE + '/version.txt', { signal: AbortSignal.timeout(5000) }^);
     ECHO     if ^(!res.ok^) throw new Error^('Failed to fetch version'^);
     ECHO     const remoteVersion = ^(await res.text^(^)^).trim^(^);
     ECHO.
@@ -419,7 +419,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO     }
     ECHO.
     ECHO     console.error^('[INFO] New version available: ' + remoteVersion + '. Updating...'^);
-    ECHO     const scriptRes = await fetch^(UPDATE_URL_BASE + '/runcmd.bat'^);
+    ECHO     const scriptRes = await fetch^(UPDATE_URL_BASE + '/runcmd.bat', { signal: AbortSignal.timeout(10000) }^);
     ECHO     if ^(!scriptRes.ok^) throw new Error^('Failed to fetch update'^);
     ECHO     const newContent = await scriptRes.text^(^);
     ECHO.

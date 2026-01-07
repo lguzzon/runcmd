@@ -22,7 +22,7 @@
 #
 # PREREQUISITES:
 #   - Bash 4.0+ (for array support and enhanced features)
-#   - Python 3.x (for path resolution and timing functions)
+#   - Bun (for path resolution fallback)
 #   - curl (for Bun installation, auto-installed if missing)
 #   - Internet connection (for initial Bun and tool installation)
 #
@@ -61,7 +61,7 @@ TEMP_FILES_ARRAY=()
 # Returns:
 #   0 (true) if DEBUG is set to 1, 1 (false) otherwise
 is_debug_enabled() {
-  [[ "${DEBUG:-0}" == "1" ]]
+  [[ ${DEBUG:-0} == "1" ]]
 }
 
 log_info() {
@@ -87,8 +87,8 @@ normalize_debug() {
   local lower_value
   lower_value=$(echo "$debug_value" | tr '[:upper:]' '[:lower:]')
   case "$lower_value" in
-    1|true|yes|on) DEBUG=1 ;;
-    0|false|no|off|"") DEBUG=0 ;;
+    1 | true | yes | on) DEBUG=1 ;;
+    0 | false | no | off | "") DEBUG=0 ;;
     *)
       log_error "Invalid DEBUG value '$DEBUG'. Use: 1/true/yes/on or 0/false/no/off"
       DEBUG=0
@@ -182,12 +182,12 @@ EOF
 #
 # DEPENDENCIES:
 #   - readlink coreutils (Linux) or greadlink (macOS via coreutils)
-#   - python3 as final fallback for path resolution
+#   - bun as final fallback for path resolution
 #
 # NOTES:
 #   - Handles symlinks, relative paths, and complex directory structures
 #   - Each method is tried in sequence, first successful method wins
-#   - Python fallback uses os.path.realpath() for robust path handling
+#   - Bun fallback uses require('path').resolve() for robust path handling
 resolve_path() {
   local target="$1"
   if [[ -z $target ]]; then
@@ -214,16 +214,12 @@ resolve_path() {
     return
   fi
 
-  if command_exists python3; then
-    python3 - "$target" <<'PY'
-import os
-import sys
-print(os.path.realpath(sys.argv[1]))
-PY
+  if command_exists bun; then
+    bun -e "console.log(require('path').resolve('$target'))"
     return
   fi
 
-  log_error "Unable to resolve path '$target': install coreutils (readlink) or ensure python3 is available."
+  log_error "Unable to resolve path '$target': install coreutils (readlink) or ensure bun is available."
   exit 1
 }
 
@@ -281,23 +277,23 @@ resolve_default_script() {
 #   1 if A < B (update needed)
 version_lt() {
   # Trivial case: equal versions
-  [[ "$1" == "$2" ]] && return 0
-  
+  [[ $1 == "$2" ]] && return 0
+
   # Parse versions into arrays
   local ver1=(${1//./ })
   local ver2=(${2//./ })
-  
+
   # Fill missing parts with 0
-  for ((i=${#ver1[@]}; i<3; i++)); do ver1[i]=0; done
-  for ((i=${#ver2[@]}; i<3; i++)); do ver2[i]=0; done
-  
-  for ((i=0; i<3; i++)); do
+  for ((i = ${#ver1[@]}; i < 3; i++)); do ver1[i]=0; done
+  for ((i = ${#ver2[@]}; i < 3; i++)); do ver2[i]=0; done
+
+  for ((i = 0; i < 3; i++)); do
     if ((ver1[i] < ver2[i])); then return 0; fi # A < B is true (0 in bash usually means success, but here we want boolean semantics. Let's stick to bash convention: 0 is TRUE/SUCCESS, 1 is FALSE/FAILURE)
     # Wait, the convention in bash is: 0 is SUCCESS (true), non-zero is FAILURE (false).
     # Function returns 0 (success) if A < B.
     if ((ver1[i] > ver2[i])); then return 1; fi
   done
-  
+
   return 1 # A >= B
 }
 
@@ -314,85 +310,84 @@ version_lt() {
 #   6. Update state file
 check_for_updates() {
   # Skip update check if explicitly disabled or in debug/CI environments
-  [[ "${RUNCMD_NO_UPDATE:-0}" == "1" ]] && return 0
-  
+  [[ ${RUNCMD_NO_UPDATE:-0} == "1" ]] && return 0
+
   mkdir -p "$RUNCMD_HOME"
-  
+
   # Initialize or read state
   local last_check=0
   local current_version="$RUNCMD_VERSION"
 
-  if [[ -f "$RUNCMD_STATE" ]]; then
-    # Simple JSON parsing using grep/cut since we want to avoid complex dependencies for this core function
-    # or rely on python since it's already a dependency
-    if command_exists python3; then
-      last_check=$(python3 -c "import json, sys; print(json.load(open('$RUNCMD_STATE')).get('last_check', 0))" 2>/dev/null || echo 0)
+  if [[ -f $RUNCMD_STATE ]]; then
+    # Simple JSON parsing using Bun since we want to avoid complex dependencies for this core function
+    if command_exists bun; then
+      last_check=$(bun -e "try { console.log(require('$RUNCMD_STATE').last_check || 0) } catch(e) { console.log(0) }" 2>/dev/null || echo 0)
     fi
   fi
-  
+
   local now
   now=$(date +%s)
-  
-  if (( (now - last_check) < UPDATE_CHECK_INTERVAL )); then
+
+  if (((now - last_check) < UPDATE_CHECK_INTERVAL)); then
     return 0
   fi
-  
+
   if ! command_exists curl; then
-     log_info "Skipping update check: curl not found."
-     return 0
+    log_info "Skipping update check: curl not found."
+    return 0
   fi
 
   log_info "Checking for updates..."
-  
+
   # Fetch remote version
   local remote_version
   remote_version=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
-  
-  if [[ -z "$remote_version" ]]; then
+
+  if [[ -z $remote_version ]]; then
     log_info "Failed to check for updates (network issue or timeout)."
     # Update last check anyway to prevent retry on every run
     # Write state safely
-     echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" > "$RUNCMD_STATE"
+    echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
     return 0
   fi
-  
+
   # Clean up version string
   remote_version=$(echo "$remote_version" | tr -d '[:space:]')
-  
+
   # Check if update is needed
   # version_lt returns 0 (true) if current < remote
   if version_lt "$current_version" "$remote_version"; then
-     # Perform update
-     log_info "New version available: $remote_version (current: $current_version). Updating..."
-     
-     local temp_script
-     temp_script=$(mktemp)
-     
-     if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
-       # Verify it looks like a script
-       if grep -q "runcmd.sh" "$temp_script"; then
-         chmod +x "$temp_script"
-         
-         # Atomic replacement
-         # Note: Replacing the running script in bash is generally safe-ish if we exec the new one or if the OS handles it (Unix usually does)
-         # However, to be cleaner, we can overwrite the file
-         cat "$temp_script" > "$script_path"
-         
-         log_info "Updated to version $remote_version."
-         current_version="$remote_version"
-       else
-         log_error "Downloaded update appears invalid."
-       fi
-       rm -f "$temp_script"
-     else
-       log_error "Failed to download update."
-     fi
+    # Perform update
+    log_info "New version available: $remote_version (current: $current_version). Updating..."
+
+    local temp_script
+    temp_script=$(mktemp)
+
+    if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
+      # Verify it looks like a script
+      if grep -q "runcmd.sh" "$temp_script"; then
+        chmod +x "$temp_script"
+
+        # Atomic replacement
+        # Note: Replacing the running script in bash is generally safe-ish if we exec the new one or if the OS handles it (Unix usually does)
+        # However, to be cleaner, we can overwrite the file
+        cat "$temp_script" >"$script_path"
+
+        log_info "Updated to version $remote_version."
+        current_version="$remote_version"
+      else
+        log_error "Downloaded update appears invalid."
+      fi
+      rm -f "$temp_script"
+    else
+      log_error "Failed to download update."
+    fi
   else
     log_info "Runcmd is up to date ($current_version)."
   fi
-  
+
   # Update state
-  echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" > "$RUNCMD_STATE"
+  echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
 }
 
 # Resolve the default script path within a specified directory
@@ -767,7 +762,7 @@ run_json_sort() {
 }
 
 # Start timing execution if debug mode is enabled
-# Captures the current time with millisecond precision using Python
+# Captures the current time with millisecond precision using Bun (cross-platform)
 # Globals:
 #   DEBUG: Flag indicating if debug mode is enabled
 #   START_TIME: Global variable to store start time in milliseconds
@@ -775,7 +770,7 @@ run_json_sort() {
 #   None
 start_timer() {
   if is_debug_enabled; then
-    START_TIME=$(python3 -c 'import time; print(int(time.time() * 1000))')
+    START_TIME=$(bun -e 'console.log(Date.now())')
   fi
 }
 
@@ -790,7 +785,7 @@ start_timer() {
 end_timer() {
   if is_debug_enabled; then
     local end_time
-    end_time=$(python3 -c 'import time; print(int(time.time() * 1000))')
+    end_time=$(bun -e 'console.log(Date.now())')
     local elapsed_ms=$((end_time - START_TIME))
 
     # Calculate days, hours, minutes, seconds, and milliseconds

@@ -48,6 +48,7 @@ readonly UNAME_S
 readonly COLOR_INFO="\033[32m"
 readonly COLOR_ERROR="\033[31m"
 readonly COLOR_RESET="\033[0m"
+readonly RUNCMD_VERSION="1.0.0"
 
 DEBUG=0
 CHECK_MODE=0
@@ -56,14 +57,43 @@ BUN_ARGS=()
 START_TIME=0
 TEMP_FILES_ARRAY=()
 
+# Check if debug mode is enabled
+# Returns:
+#   0 (true) if DEBUG is set to 1, 1 (false) otherwise
+is_debug_enabled() {
+  [[ "${DEBUG:-0}" == "1" ]]
+}
+
 log_info() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
+  if is_debug_enabled; then
     printf '%b[INFO]%b %s\n' "$COLOR_INFO" "$COLOR_RESET" "$1"
   fi
 }
 
 log_error() {
   printf '%b[ERROR]%b %s\n' "$COLOR_ERROR" "$COLOR_RESET" "$1" >&2
+}
+
+# Normalize DEBUG environment variable to a consistent value
+# Accepts various truthy/falsy values and normalizes to 0 or 1
+# Args:
+#   None (uses global DEBUG variable)
+# Globals:
+#   DEBUG: Modified to be either 0 or 1
+# Returns:
+#   None
+normalize_debug() {
+  local debug_value="${DEBUG:-0}"
+  local lower_value
+  lower_value=$(echo "$debug_value" | tr '[:upper:]' '[:lower:]')
+  case "$lower_value" in
+    1|true|yes|on) DEBUG=1 ;;
+    0|false|no|off|"") DEBUG=0 ;;
+    *)
+      log_error "Invalid DEBUG value '$DEBUG'. Use: 1/true/yes/on or 0/false/no/off"
+      DEBUG=0
+      ;;
+  esac
 }
 
 # Check if a command exists in the system PATH
@@ -77,6 +107,8 @@ command_exists() {
 
 usage() {
   cat <<EOF
+runcmd v${RUNCMD_VERSION}
+
 Usage: $0 [options] [arguments]
 
 A comprehensive script runner with integrated development tooling that ensures
@@ -94,7 +126,10 @@ FEATURES:
 OPTIONS:
   +debug, +d
       Enable debug logging with execution timing and detailed operation info
-      
+
+  +nodebug, +nd
+      Disable debug logging (overrides DEBUG environment variable)
+
   +help, +h
       Display this comprehensive help message and exit
       
@@ -285,14 +320,13 @@ check_for_updates() {
   
   # Initialize or read state
   local last_check=0
-  local current_version="0.0.0"
-  
+  local current_version="$RUNCMD_VERSION"
+
   if [[ -f "$RUNCMD_STATE" ]]; then
     # Simple JSON parsing using grep/cut since we want to avoid complex dependencies for this core function
     # or rely on python since it's already a dependency
     if command_exists python3; then
       last_check=$(python3 -c "import json, sys; print(json.load(open('$RUNCMD_STATE')).get('last_check', 0))" 2>/dev/null || echo 0)
-      current_version=$(python3 -c "import json, sys; print(json.load(open('$RUNCMD_STATE')).get('current_version', '0.0.0'))" 2>/dev/null || echo "0.0.0")
     fi
   fi
   
@@ -530,6 +564,7 @@ safe_format_file() {
   TEMP_FILES_ARRAY+=("$temp_file" "$backup_file")
 
   # Ensure cleanup on exit - function to remove temp files
+  # shellcheck disable=SC2329
   cleanup_on_exit() {
     for file in "${TEMP_FILES_ARRAY[@]}"; do
       rm -f "$file" 2>/dev/null || true
@@ -739,7 +774,7 @@ run_json_sort() {
 # Returns:
 #   None
 start_timer() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
+  if is_debug_enabled; then
     START_TIME=$(python3 -c 'import time; print(int(time.time() * 1000))')
   fi
 }
@@ -753,7 +788,7 @@ start_timer() {
 # Returns:
 #   None
 end_timer() {
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
+  if is_debug_enabled; then
     local end_time
     end_time=$(python3 -c 'import time; print(int(time.time() * 1000))')
     local elapsed_ms=$((end_time - START_TIME))
@@ -953,8 +988,15 @@ parse_args() {
       +debug | +d)
         DEBUG=1
         ;;
+      +nodebug | +nd)
+        DEBUG=0
+        ;;
       +help | +h)
         usage
+        ;;
+      +version | +v)
+        echo "runcmd v${RUNCMD_VERSION}"
+        exit 0
         ;;
       +runme | +r)
         if [[ $# -lt 2 ]]; then
@@ -1003,7 +1045,8 @@ load_env_file() {
     [[ -z ${line// /} ]] && continue
 
     if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      export "${line?}"
+      # Use eval to properly set and export the variable
+      eval "export \"$line\""
       log_info "${export_prefix}${line%%=*}"
     fi
   done <"$env_file"
@@ -1080,6 +1123,10 @@ main() {
   check_for_updates
 
   parse_args "$@"
+
+  # Normalize DEBUG value to ensure consistent behavior
+  normalize_debug
+
   local resolved_script
   resolved_script=$(resolve_script_path "$REQUESTED_SCRIPT")
 

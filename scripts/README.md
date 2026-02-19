@@ -4,7 +4,7 @@ This directory contains comprehensive git-flow management tools and utilities fo
 
 ## 📁 Directory Structure
 
-```
+```text
 scripts/
 ├── git-flow.js          # Main git-flow command handler and utilities
 ├── commands/            # Individual git-flow command implementations

@@ -1,23 +1,23 @@
 #!/usr/bin/env bun
 import {
-	COLOR_BOLD,
-	COLOR_RESET,
-	ensureBranchExists,
-	ensureCleanTree,
-	ensureGitFlowAvailable,
-	ensureGitFlowInitialized,
-	ensureTagMissing,
-	logError,
-	logInfo,
-	logSuccess,
-	logWarn,
-	pullBranch,
-	runGit,
-	runGitFlow,
-} from "../git-flow.js";
+  COLOR_BOLD,
+  COLOR_RESET,
+  ensureBranchExists,
+  ensureCleanTree,
+  ensureGitFlowAvailable,
+  ensureGitFlowInitialized,
+  ensureTagMissing,
+  logError,
+  logInfo,
+  logSuccess,
+  logWarn,
+  pullBranch,
+  runGit,
+  runGitFlow
+} from "../git-flow.js"
 
 export function printHelp() {
-	console.log(`
+  console.log(`
 ${COLOR_BOLD}Git Flow Finish${COLOR_RESET}
 
 Usage: bun scripts/git-flow.js finish <type> <name> [options]
@@ -42,80 +42,78 @@ Examples:
   bun scripts/git-flow.js finish feature new-auth
   bun scripts/git-flow.js finish release v1.2.0 --tag v1.2.0 --message "Release 1.2.0"
   bun scripts/git-flow.js finish hotfix v1.1.1 --tag v1.1.1 --message "Hotfix 1.1.1" --push
-`);
+`)
 }
 
 export async function handleFinish(opts) {
-	const available = ensureGitFlowAvailable({
-		...opts,
-		autoInstall: false,
-	});
-	if (!available) {
-		logError("git-flow is required to finish branches");
-		process.exit(1);
-	}
+  const available = ensureGitFlowAvailable({...opts, autoInstall: false})
+  if (!available) {
+    logError("git-flow is required to finish branches")
+    process.exit(1)
+  }
 
-	ensureGitFlowInitialized();
-	
-	// Check for help flag before requiring clean tree
-	if (opts.help) {
-		printHelp();
-		return;
-	}
-	
-	ensureCleanTree();
+  ensureGitFlowInitialized()
 
-	const { type, name, tag, message, push, keepBranch, squash, dryRun, offline } = opts;
+  // Check for help flag before requiring clean tree
+  if (opts.help) {
+    printHelp()
+    return
+  }
 
-	if (!type || !name) {
-		logError("Both <type> and <name> are required");
-		process.exit(1);
-	}
+  ensureCleanTree()
 
-	const branchName = `${type}/${name}`;
-	ensureBranchExists(branchName);
+  const {type, name, tag, message, push, keepBranch, squash, dryRun, offline} =
+    opts
 
-	if ((type === "release" || type === "hotfix") && (!tag || !message)) {
-		logError("--tag and --message are required for release/hotfix finish");
-		process.exit(1);
-	}
+  if (!type || !name) {
+    logError("Both <type> and <name> are required")
+    process.exit(1)
+  }
 
-	if (tag) {
-		ensureTagMissing(tag.replace(/^v/, ""));
-	}
+  const branchName = `${type}/${name}`
+  ensureBranchExists(branchName)
 
-	if (!offline) {
-		logInfo("Pulling latest changes...");
-		pullBranch(branchName, { dryRun, offline });
-		const base = type === "hotfix" || type === "support" ? "main" : "develop";
-		ensureBranchExists(base);
-		pullBranch(base, { dryRun, offline });
-	}
+  if ((type === "release" || type === "hotfix") && (!tag || !message)) {
+    logError("--tag and --message are required for release/hotfix finish")
+    process.exit(1)
+  }
 
-	const flags = [];
-	if (push && !offline) flags.push("-p");
-	if (squash) flags.push("--squash");
-	if (tag) flags.push(`-T ${tag}`);
-	if (message) flags.push(`-m "${message}"`);
+  if (tag) {
+    ensureTagMissing(tag.replace(/^v/, ""))
+  }
 
-	const cmd = `${type} finish ${flags.join(" ")} ${name}`.trim();
-	logInfo(`Finishing ${type} branch: ${branchName}`);
-	runGitFlow(cmd, { dryRun });
+  if (!offline) {
+    logInfo("Pulling latest changes...")
+    pullBranch(branchName, {dryRun, offline})
+    const base = type === "hotfix" || type === "support" ? "main" : "develop"
+    ensureBranchExists(base)
+    pullBranch(base, {dryRun, offline})
+  }
 
-	logSuccess(`${type} branch finalized: ${branchName}`);
+  const flags = []
+  if (push && !offline) flags.push("-p")
+  if (squash) flags.push("--squash")
+  if (tag) flags.push(`-T ${tag}`)
+  if (message) flags.push(`-m "${message}"`)
 
-	if (push && offline) {
-		logWarn("--push ignored in offline mode");
-	}
+  const cmd = `${type} finish ${flags.join(" ")} ${name}`.trim()
+  logInfo(`Finishing ${type} branch: ${branchName}`)
+  runGitFlow(cmd, {dryRun})
 
-	if (!keepBranch && !dryRun) {
-		logInfo(`Deleting branch: ${branchName}`);
-		runGit(`branch -D ${branchName}`, { allowFail: true });
-	} else if (keepBranch) {
-		logInfo(`Keeping branch: ${branchName}`);
-	}
+  logSuccess(`${type} branch finalized: ${branchName}`)
 
-	if (tag) {
-		logSuccess(`Created tag: ${tag}`);
-	}
+  if (push && offline) {
+    logWarn("--push ignored in offline mode")
+  }
+
+  if (!keepBranch && !dryRun) {
+    logInfo(`Deleting branch: ${branchName}`)
+    runGit(`branch -D ${branchName}`, {allowFail: true})
+  } else if (keepBranch) {
+    logInfo(`Keeping branch: ${branchName}`)
+  }
+
+  if (tag) {
+    logSuccess(`Created tag: ${tag}`)
+  }
 }

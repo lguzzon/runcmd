@@ -1,24 +1,23 @@
 #!/usr/bin/env bun
 import {
-	COLOR_BOLD,
-	COLOR_RESET,
-	ensureBranchExists,
-	ensureBranchMissing,
-	ensureCleanTree,
-	ensureGitFlowAvailable,
-	ensureGitFlowInitialized,
-	getBranchType,
-	logError,
-	logInfo,
-	logSuccess,
-	logWarn,
-	pullBranch,
-	runGitFlow,
-	validateBranchName,
-} from "../git-flow.js";
+  COLOR_BOLD,
+  COLOR_RESET,
+  ensureBranchExists,
+  ensureBranchMissing,
+  ensureCleanTree,
+  ensureGitFlowAvailable,
+  ensureGitFlowInitialized,
+  logError,
+  logInfo,
+  logSuccess,
+  logWarn,
+  pullBranch,
+  runGitFlow,
+  validateBranchName
+} from "../git-flow.js"
 
 export function printHelp() {
-	console.log(`
+  console.log(`
 ${COLOR_BOLD}Git Flow Start${COLOR_RESET}
 
 Usage: bun scripts/git-flow.js start <type> <name> [options]
@@ -42,69 +41,67 @@ Examples:
   bun scripts/git-flow.js start release v1.2.0 --base develop
   bun scripts/git-flow.js start hotfix v1.1.1 --base main
   bun scripts/git-flow.js start support v1.0.x --base v1.0.0
-`);
+`)
 }
 
 export async function handleStart(opts) {
-	const available = ensureGitFlowAvailable({
-		...opts,
-		autoInstall: false,
-	});
-	if (!available) {
-		logError("git-flow is required to start branches");
-		process.exit(1);
-	}
+  const available = ensureGitFlowAvailable({...opts, autoInstall: false})
+  if (!available) {
+    logError("git-flow is required to start branches")
+    process.exit(1)
+  }
 
-	ensureGitFlowInitialized();
-	
-	// Check for help flag before requiring clean tree
-	if (opts.help) {
-		printHelp();
-		return;
-	}
-	
-	ensureCleanTree();
+  ensureGitFlowInitialized()
 
-	const { type, name, base, fetch, force, dryRun, offline } = opts;
+  // Check for help flag before requiring clean tree
+  if (opts.help) {
+    printHelp()
+    return
+  }
 
-	if (!type || !name) {
-		logError("Both <type> and <name> are required");
-		process.exit(1);
-	}
+  ensureCleanTree()
 
-	if (!validateBranchName(name, type)) {
-		process.exit(1);
-	}
+  const {type, name, base, fetch, force, dryRun, offline} = opts
 
-	const config = runGitFlow("config", { allowFail: true, dryRun: false });
-	const baseBranch =
-		base ||
-		(type === "hotfix" || type === "support" ? "main" : "develop");
+  if (!type || !name) {
+    logError("Both <type> and <name> are required")
+    process.exit(1)
+  }
 
-	ensureBranchExists(baseBranch);
+  if (!validateBranchName(name, type)) {
+    process.exit(1)
+  }
 
-	if (fetch && !offline) {
-		logInfo(`Fetching ${baseBranch}...`);
-		pullBranch(baseBranch, { dryRun, offline });
-	}
+  const _config = runGitFlow("config", {allowFail: true, dryRun: false})
+  const baseBranch =
+    base || (type === "hotfix" || type === "support" ? "main" : "develop")
 
-	const branchName = `${type}/${name}`;
+  ensureBranchExists(baseBranch)
 
-	if (force) {
-		logWarn(`Force mode: will delete existing branch ${branchName} if it exists`);
-		runGit(`branch -D ${branchName}`, { allowFail: true, dryRun });
-	} else {
-		ensureBranchMissing(branchName);
-	}
+  if (fetch && !offline) {
+    logInfo(`Fetching ${baseBranch}...`)
+    pullBranch(baseBranch, {dryRun, offline})
+  }
 
-	const baseArg = base ? ` ${base}` : "";
-	const cmd = `${type} start ${name}${baseArg}`;
-	logInfo(`Starting ${type} branch: ${branchName}`);
-	runGitFlow(cmd, { dryRun });
+  const branchName = `${type}/${name}`
 
-	logSuccess(`${type} branch started: ${branchName}`);
+  if (force) {
+    logWarn(
+      `Force mode: will delete existing branch ${branchName} if it exists`
+    )
+    runGit(`branch -D ${branchName}`, {allowFail: true, dryRun})
+  } else {
+    ensureBranchMissing(branchName)
+  }
 
-	if (!dryRun) {
-		logInfo(`Switched to branch: ${branchName}`);
-	}
+  const baseArg = base ? ` ${base}` : ""
+  const cmd = `${type} start ${name}${baseArg}`
+  logInfo(`Starting ${type} branch: ${branchName}`)
+  runGitFlow(cmd, {dryRun})
+
+  logSuccess(`${type} branch started: ${branchName}`)
+
+  if (!dryRun) {
+    logInfo(`Switched to branch: ${branchName}`)
+  }
 }

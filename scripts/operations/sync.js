@@ -1,25 +1,25 @@
 #!/usr/bin/env bun
 import {
-	COLOR_BOLD,
-	COLOR_RESET,
-	ensureBranchExists,
-	ensureGitFlowAvailable,
-	ensureGitFlowInitialized,
-	checkout,
-	currentBranch,
-	detectMainBranch,
-	logError,
-	logInfo,
-	logSuccess,
-	mergeBranch,
-	pullBranch,
-	pushBranch,
-	stashPop,
-	stashPush,
-} from "../git-flow.js";
+  COLOR_BOLD,
+  COLOR_RESET,
+  checkout,
+  currentBranch,
+  detectMainBranch,
+  ensureBranchExists,
+  ensureGitFlowAvailable,
+  ensureGitFlowInitialized,
+  logError,
+  logInfo,
+  logSuccess,
+  mergeBranch,
+  pullBranch,
+  pushBranch,
+  stashPop,
+  stashPush
+} from "../git-flow.js"
 
 export function printHelp() {
-	console.log(`
+  console.log(`
 ${COLOR_BOLD}Git Flow Sync${COLOR_RESET}
 
 Usage: bun scripts/git-flow.js sync [options]
@@ -43,52 +43,49 @@ Examples:
   bun scripts/git-flow.js sync
   bun scripts/git-flow.js sync --dry-run
   bun scripts/git-flow.js sync --offline
-`);
+`)
 }
 
 export async function handleSync(opts) {
-	const available = ensureGitFlowAvailable({
-		...opts,
-		autoInstall: false,
-	});
-	if (!available) {
-		logError("git-flow is required for sync");
-		process.exit(1);
-	}
+  const available = ensureGitFlowAvailable({...opts, autoInstall: false})
+  if (!available) {
+    logError("git-flow is required for sync")
+    process.exit(1)
+  }
 
-	ensureGitFlowInitialized();
+  ensureGitFlowInitialized()
 
-	// Check for help flag before processing
-	if (opts.help) {
-		printHelp();
-		return;
-	}
+  // Check for help flag before processing
+  if (opts.help) {
+    printHelp()
+    return
+  }
 
-	const { dryRun, offline } = opts;
+  const {dryRun, offline} = opts
 
-	const base = detectMainBranch();
-	const original = currentBranch();
-	const stash = stashPush("git-flow-sync") || "";
+  const base = detectMainBranch()
+  const original = currentBranch()
+  const stash = stashPush("git-flow-sync") || ""
 
-	logInfo(`Using base branch: ${base}`);
+  logInfo(`Using base branch: ${base}`)
 
-	checkout(base, { dryRun });
-	pullBranch(base, { dryRun, offline });
-	pushBranch(base, { dryRun, offline });
+  checkout(base, {dryRun})
+  pullBranch(base, {dryRun, offline})
+  pushBranch(base, {dryRun, offline})
 
-	ensureBranchExists("develop");
-	checkout("develop", { dryRun });
-	pullBranch("develop", { dryRun, offline });
-	mergeBranch(base, "develop", { dryRun });
-	pushBranch("develop", { dryRun, offline });
+  ensureBranchExists("develop")
+  checkout("develop", {dryRun})
+  pullBranch("develop", {dryRun, offline})
+  mergeBranch(base, "develop", {dryRun})
+  pushBranch("develop", {dryRun, offline})
 
-	if (original && original !== "develop" && original !== base) {
-		checkout(original, { dryRun });
-	}
+  if (original && original !== "develop" && original !== base) {
+    checkout(original, {dryRun})
+  }
 
-	if (stash && !stash.includes("No local changes")) {
-		stashPop();
-	}
+  if (stash && !stash.includes("No local changes")) {
+    stashPop()
+  }
 
-	logSuccess("Sync complete");
+  logSuccess("Sync complete")
 }

@@ -1,3 +1,4 @@
+node_modules/
 # Generated content for GitHub Pages deployment
 public/
 
@@ -9,3 +10,9 @@ public/
 
 # OS files
 Thumbs.db
+
+# agents-reverse-engineer
+*.sum
+
+.opencode/
+.agents-reverse-engineer/

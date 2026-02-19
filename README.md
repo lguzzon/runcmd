@@ -187,7 +187,7 @@ bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
 
 ## 🏗️ Project Structure
 
-```
+```text
 runcmd/
 ├── runcmd.sh           # Unix/macOS runner (1141 lines)
 ├── runcmd.bat          # Windows runner (364 lines)

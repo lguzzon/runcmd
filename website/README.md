@@ -52,7 +52,7 @@ bun run build
 
 ## 📁 Project Structure
 
-```
+```text
 website/
 ├── src/
 │   ├── env.d.ts              # TypeScript environment declarations
@@ -114,7 +114,7 @@ The deployment is automated via GitHub Actions in `.github/workflows/publish.yml
 ```yaml
 - name: Install dependencies
   run: bun install --frozen-lockfile
-  
+
 - name: Build website
   run: bun run build
 ```

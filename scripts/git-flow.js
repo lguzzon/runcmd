@@ -226,8 +226,8 @@ export function validateBranchName(name, type) {
 }
 
 export function ensureGitFlowInitialized() {
-  const config = runGit("config --get gitflow.branch.master", {allowFail: true})
-  if (!config) {
+  const initialized = runGit("config --get gitflow.initialized", {allowFail: true})
+  if (!initialized) {
     logError(
       "Git Flow is not initialized. Run 'git flow init' or 'bun scripts/git-flow.js init' first."
     )

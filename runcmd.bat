@@ -44,7 +44,14 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :initialize_environment
     :: Initialize environment variables and output redirection
     SET "OLD_DEBUG=%DEBUG%"
+    
+    :: Read version from version.txt for single source of truth
+    :: Falls back to 1.0.0 if file is missing
     SET "RUNCMD_VERSION=1.0.0"
+    IF EXIST "%~dp0version.txt" (
+        FOR /F "usebackq delims=" %%V IN ("%~dp0version.txt") DO SET "RUNCMD_VERSION=%%V"
+    )
+    
     SET "TO_NUL= > nul 2> nul"
     SET "ECHO_TO_NUL= > nul 2> nul"
     EXIT /B 0

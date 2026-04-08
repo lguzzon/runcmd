@@ -1,3 +1,5 @@
+## v1.9.2 - 2026-04-08
+- feat(version): read version from version.txt for single source of truth
 ## v1.9.0 - 2026-01-07
 
 - chore(operations): remove commented-out changelog generation code

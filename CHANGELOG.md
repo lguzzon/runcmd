@@ -5,12 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.9.2 - 2026-04-08
+
+- feat(version): read version from version.txt for single source of truth
+
 ## v1.9.1 - 2026-06-09
 
 - chore: bump version to 1.9.1
 - chore: integrate agents-reverse-engineer and reformat config files
 - style(scripts): reformat JS files to 2-space indent and no semicolons
-
 ## v1.9.0 - 2026-01-07
 
 - chore(operations): remove commented-out changelog generation code

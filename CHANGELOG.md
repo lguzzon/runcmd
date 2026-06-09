@@ -1,3 +1,7 @@
+## v1.10.2 - 2026-06-09
+- ci: bump actions to latest major versions
+- ci: upgrade actions to latest major versions
+- Merge branch 'main' into develop
 ## v1.10.1 - 2026-06-09
 - ci: opt Node.js 24 for GitHub Actions runner
 - Merge branch 'main' into develop

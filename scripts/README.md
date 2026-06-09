@@ -1,3 +1,5 @@
+> For the authoritative API reference, see [AGENTS.md](./AGENTS.md)
+
 # Scripts Directory Documentation
 
 This directory contains comprehensive git-flow management tools and utilities for the RunCmd project. These scripts provide enterprise-grade Git workflow management with automated release and hotfix handling.
@@ -127,7 +129,6 @@ Finishes and merges a branch according to git-flow conventions.
 - Automatic merge strategy selection
 - Tag creation for releases and hotfixes
 - Remote branch cleanup
-- Changelog generation
 
 **Usage:**
 
@@ -144,7 +145,6 @@ Publishes a local branch to the remote repository.
 **Features:**
 
 - Automatic remote creation
-- Force push support
 - Progress reporting
 
 **Usage:**
@@ -160,7 +160,6 @@ Tracks a remote branch locally.
 
 **Features:**
 
-- Remote branch discovery
 - Local branch creation
 - Tracking setup
 
@@ -185,7 +184,7 @@ Deletes a branch locally and optionally from remote.
 
 ```bash
 bun scripts/git-flow.js delete feature old-feature
-bun scripts/git-flow.js delete release v1.1.0 --remote
+bun scripts/git-flow.js delete release v1.1.0
 ```
 
 ### [`commands/list.js`](commands/list.js)
@@ -195,7 +194,6 @@ Lists branches by type with detailed information.
 **Features:**
 
 - Filter by branch type
-- Remote branch detection
 - Status information
 - Color-coded output
 
@@ -413,7 +411,7 @@ bun scripts/git-flow.js publish feature user-authentication
 bun scripts/git-flow.js finish feature user-authentication
 
 # Delete the branch
-bun scripts/git-flow.js delete feature user-authentication --remote
+bun scripts/git-flow.js delete feature user-authentication
 ```
 
 ### Release Management

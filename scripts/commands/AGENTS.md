@@ -38,11 +38,11 @@ All commands import from `../git-flow.js`:
 |--------|---------|
 | `COLOR_BOLD`, `COLOR_RESET` | All files (help text formatting) |
 | `ensureGitFlowAvailable` | All files |
-| `ensureGitFlowInitialized` | All except config.js, init.js |
+| `ensureGitFlowInitialized` | All except init.js |
 | `runGitFlow` | delete.js, finish.js, init.js, publish.js, start.js, track.js |
 | `logError`, `logInfo`, `logSuccess` | All files |
 | `ensureBranchExists` | delete.js, finish.js, publish.js, start.js |
 | `ensureCleanTree` | finish.js, start.js |
-| `runGit` | config.js, delete.js, finish.js |
+| `runGit` | config.js, finish.js |
 | `getGitFlowConfig` | config.js |
 | `listBranchesByType` | list.js |

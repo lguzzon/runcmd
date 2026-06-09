@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The project has three core runner files:
 
-1. **runcmd.sh** (968 lines): Unix/macOS bash script with comprehensive features
+1. **runcmd.sh** (1142 lines): Unix/macOS bash script with comprehensive features
 2. **runcmd.bat** (364 lines): Windows batch equivalent
 3. **runcmd.mjs**: Target script that the runner executes (this is the user's actual script)
 

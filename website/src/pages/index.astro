@@ -1,18 +1,8 @@
 ---
-import fs from 'node:fs/promises'
+import { normalizedBase, version, githubUrl, scriptHref } from '../lib/constants'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Nav from '../components/Nav.astro'
 
-const basePath = Astro.site?.pathname ?? '/runcmd/'
-const normalizedBase = basePath === '/' ? '' : basePath.replace(/\/$/, '')
-
-let version = '1.0.0'
-try {
-  version = (await fs.readFile(new URL('../../../version.txt', import.meta.url), 'utf8')).trim()
-} catch {}
-
-const scriptHref = `${normalizedBase}/runcmd.sh`
-const githubUrl = 'https://github.com/lguzzon/runcmd'
 const docsHref = `${normalizedBase}/docs/#docs`
 
 const features = [

@@ -26,12 +26,6 @@ const {
               : true
           document.documentElement.classList.toggle('dark', isDark)
           document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
-          
-          // Initialize button state
-          const toggle = document.querySelector('[data-theme-toggle]')
-          if (toggle) {
-            toggle.setAttribute('aria-pressed', String(isDark))
-          }
         } catch (error) {
           console.error('Theme init failed', error)
         }

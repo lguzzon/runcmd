@@ -17,9 +17,9 @@ Universal Bun-based script runner with auto-installation, cross-platform support
 
 ### Runner Scripts
 
-[runcmd.sh](./runcmd.sh) — Unix/macOS runner (1141 lines) with DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution order, update checking, check mode (+check).
+[runcmd.sh](./runcmd.sh) — Unix/macOS runner (1142 lines) with DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution order, update checking, check mode (+check).
 
-[runcmd.bat](./runcmd.bat) — Windows runner (364 lines) with equivalent functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing, update mechanism.
+[runcmd.bat](./runcmd.bat) — Windows runner (563 lines) with equivalent functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing, update mechanism.
 
 [runcmd.mjs](./runcmd.mjs) — Default target script, logs CWD and CLI args, exits with code 10.
 
@@ -31,7 +31,7 @@ Universal Bun-based script runner with auto-installation, cross-platform support
 
 [LICENSE](./LICENSE) — MIT license for Luca Guzzon 2026.
 
-[version.txt](./version.txt) — Declares version 1.9.0.
+[version.txt](./version.txt) — Declares version 1.9.1.
 
 ### Configuration
 

@@ -450,14 +450,14 @@ None (uses Bun runtime and git commands).
    - No quotes around values
 
 2. **version.txt:**
-   - Single line containing semantic version (e.g., "1.9.0")
+   - Single line containing semantic version (e.g., "1.9.1")
 
 3. **state.json:**
 
    ```json
    {
      "lastCheck": 1234567890,
-     "currentVersion": "1.9.0"
+     "currentVersion": "1.9.1"
    }
    ```
 
@@ -687,7 +687,7 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `runcmd.bat` | Runner | Windows batch script with equivalent functionality |
 | `runcmd.mjs` | Runner | Default target script, logs CWD and CLI args |
 | `biome.json` | Configuration | Biome formatter/linter config (2-space indent, 80-char width, single quotes) |
-| `version.txt` | Configuration | Version file (1.9.0) |
+| `version.txt` | Configuration | Version file (1.9.1) |
 | `README.md` | Documentation | Project overview and usage |
 | `CHANGELOG.md` | Documentation | Keep a Changelog format |
 | `LICENSE` | Documentation | MIT license |

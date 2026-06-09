@@ -1,59 +1,46 @@
 #!/usr/bin/env bun
-import {ensureBranchExists, ensureCleanTree, runGit} from "./git-flow.js"
+import {
+  ensureBranchExists,
+  ensureCleanTree,
+  listBranchesByType,
+  logError,
+  logSuccess,
+  runGit
+} from "./git-flow.js"
+import {releaseFinalizeDefaults} from "./lib/options.js"
 import {promptTextSync} from "./lib/prompts.js"
 import {handleHotfix} from "./operations/hotfix.js"
 import {handleRelease} from "./operations/release.js"
 
-const defaults = {
-  type: undefined, // release|hotfix (auto-detect)
-  branch: undefined,
-  push: false,
-  dryRun: false,
-  yes: false,
-  noChangelog: false,
-  keepBranch: false,
-  json: false,
-  offline: false,
-  help: false
-}
-
 const operations = []
 
-function log(type, message) {
-  const map = {
-    info: "\x1b[32m",
-    warn: "\x1b[33m",
-    error: "\x1b[31m",
-    success: "\x1b[32m"
-  }
-  const prefix = map[type] || "\x1b[32m"
-  const reset = "\x1b[0m"
-  const tag = type === "success" ? "OK" : type.toUpperCase()
-  const line = `${prefix}[${tag}]${reset} ${message}`
-  if (type === "error") {
-    console.error(line)
-  } else {
-    console.log(line)
-  }
-  operations.push({type, message})
-}
+function printHelp() {
+  console.log(`
+${"\x1b[1m"}Git Flow Release/Hotfix Finalizer${"\x1b[0m"}
 
-function _logInfo(m) {
-  log("info", m)
-}
-function _logWarn(m) {
-  log("warn", m)
-}
-function logError(m) {
-  log("error", m)
-}
-function logSuccess(m) {
-  log("success", m)
+Usage: bun scripts/release-finalize.js [options]
+
+Options:
+  --type <release|hotfix>   Branch type (auto-detect if omitted)
+  --branch <name>           Branch to finalize (release/* or hotfix/*)
+  --push                    Push branches/tags
+  --dry-run                 Print planned actions only
+  --no-changelog            Skip changelog update
+  --keep-branch             Do not delete release/hotfix branch
+  --json                    Emit JSON summary to stdout
+  --offline                 Skip pulls/fetches
+  --yes                     Non-interactive
+  -h, --help                Show help
+
+Examples:
+  bun scripts/release-finalize.js --type release --branch release/v1.2.0
+  bun scripts/release-finalize.js --push --yes
+`)
 }
 
 function parseArgs() {
   const args = process.argv.slice(2)
-  const opts = {...defaults}
+  const opts = {...releaseFinalizeDefaults}
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     switch (arg) {
@@ -99,44 +86,11 @@ function parseArgs() {
   return opts
 }
 
-function printHelp() {
-  console.log(`
-${"\x1b[1m"}Git Flow Release/Hotfix Finalizer${"\x1b[0m"}
-
-Usage: bun scripts/release-finalize.js [options]
-
-Options:
-  --type <release|hotfix>   Branch type (auto-detect if omitted)
-  --branch <name>           Branch to finalize (release/* or hotfix/*)
-  --push                    Push branches/tags
-  --dry-run                 Print planned actions only
-  --no-changelog            Skip changelog update
-  --keep-branch             Do not delete release/hotfix branch
-  --json                    Emit JSON summary to stdout
-  --offline                 Skip pulls/fetches
-  --yes                     Non-interactive
-  -h, --help                Show help
-
-Examples:
-  bun scripts/release-finalize.js --type release --branch release/v1.2.0
-  bun scripts/release-finalize.js --push --yes
-`)
-}
-
-function listBranches(glob) {
-  const out = runGit(`branch --list "${glob}"`, {allowFail: true})
-  if (!out) return []
-  return out
-    .split("\n")
-    .map(b => b.replace("*", "").trim())
-    .filter(Boolean)
-}
-
 function detectBranch(opts) {
   if (opts.branch) return opts.branch
 
-  const releases = listBranches("release/*")
-  const hotfixes = listBranches("hotfix/*")
+  const releases = listBranchesByType("release")
+  const hotfixes = listBranchesByType("hotfix")
 
   const candidates = []
   if (!opts.type || opts.type === "release") candidates.push(...releases)
@@ -193,56 +147,60 @@ function generateJsonSummary(status, branch, version) {
 async function main() {
   const opts = parseArgs()
 
-  if (opts.help) {
-    printHelp()
-    process.exit(0)
-  }
+  try {
+    if (opts.help) {
+      printHelp()
+      process.exit(0)
+    }
 
-  ensureCleanTree()
-  ensureBranchExists("main")
-  ensureBranchExists("develop")
+    ensureCleanTree()
+    ensureBranchExists("main")
+    ensureBranchExists("develop")
 
-  const targetBranch = detectBranch(opts)
-  const detectedType = ensureBranchMatchesType(targetBranch, opts.type)
+    const targetBranch = detectBranch(opts)
+    const detectedType = ensureBranchMatchesType(targetBranch, opts.type)
 
-  // Extract version from branch name for tag and message
-  const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/)
-  if (!versionMatch) {
-    logError("Branch name must include version (e.g., release/v1.2.0)")
+    // Extract version from branch name for tag and message
+    const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/)
+    if (!versionMatch) {
+      logError("Branch name must include version (e.g., release/v1.2.0)")
+      process.exit(1)
+    }
+    const version = versionMatch[1]
+
+    // Set required options for git-flow operations
+    opts.name = version
+    opts.tag = `v${version}`
+    opts.message = `Release version ${version}`
+
+    // Map to git-flow.js operation
+    const action = "finish"
+
+    if (detectedType === "hotfix") {
+      await handleHotfix(action, opts)
+    } else {
+      await handleRelease(action, opts)
+    }
+
+    logSuccess("Release/hotfix finalized.")
+    operations.push({type: "success", message: "Release/hotfix finalized."})
+    console.log(`\n${"\x1b[1m"}Version:${"\x1b[0m"} ${version}`)
+    console.log(`${"\x1b[1m"}Branch:${"\x1b[0m"} ${targetBranch}`)
+
+    if (opts.json) {
+      console.log(generateJsonSummary("ok", targetBranch, version))
+    }
+
+    // Close stdin to prevent hanging
+    process.stdin.pause()
+  } catch (error) {
+    logError(`Unexpected error: ${error.message}`)
+    operations.push({type: "error", message: `Unexpected error: ${error.message}`})
+    if (opts.json) {
+      console.log(generateJsonSummary("error", "", ""))
+    }
     process.exit(1)
   }
-  const version = versionMatch[1]
-
-  // Set required options for git-flow operations
-  opts.name = version
-  opts.tag = `v${version}`
-  opts.message = `Release version ${version}`
-
-  // Map to git-flow.js operation
-  const action = "finish"
-
-  if (detectedType === "hotfix") {
-    await handleHotfix(action, opts)
-  } else {
-    await handleRelease(action, opts)
-  }
-
-  logSuccess("Release/hotfix finalized.")
-  console.log(`\n${"\x1b[1m"}Version:${"\x1b[0m"} ${version}`)
-  console.log(`${"\x1b[1m"}Branch:${"\x1b[0m"} ${targetBranch}`)
-
-  if (opts.json) {
-    console.log(generateJsonSummary("ok", targetBranch, version))
-  }
-
-  // Close stdin to prevent hanging
-  process.stdin.pause()
 }
 
-main().catch(error => {
-  logError(`Unexpected error: ${error.message}`)
-  if (defaults.json) {
-    console.log(generateJsonSummary("error", "", ""))
-  }
-  process.exit(1)
-})
+main()

@@ -1,3 +1,7 @@
+## v1.10.0 - 2026-06-09
+- fix: strip default 'nextRelease' name in versioned release/hotfix start
+- Merge branch 'main' into develop
+- refactor: consolidate, deduplicate, and fix 20 quality issues
 # Changelog
 
 All notable changes to this project will be documented in this file.

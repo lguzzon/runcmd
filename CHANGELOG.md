@@ -1,3 +1,6 @@
+## v1.10.1 - 2026-06-09
+- ci: opt Node.js 24 for GitHub Actions runner
+- Merge branch 'main' into develop
 ## v1.10.0 - 2026-06-09
 - fix: strip default 'nextRelease' name in versioned release/hotfix start
 - Merge branch 'main' into develop

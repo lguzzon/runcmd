@@ -5,8 +5,8 @@ import {
   ensureGitFlowAvailable,
   logInfo,
   logSuccess,
-  runGitFlow,
-} from "../git-flow.js";
+  runGitFlow
+} from '../git-flow.js'
 
 export function printHelp() {
   console.log(`
@@ -23,23 +23,23 @@ Options:
 Examples:
   bun scripts/git-flow.js init
   bun scripts/git-flow.js init --dry-run
-`);
+`)
 }
 
 export async function handleInit(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
-    logError("git-flow is required for init");
-    process.exit(1);
+    logError('git-flow is required for init')
+    process.exit(1)
   }
 
-  logInfo("Initializing git-flow with default settings...");
-  runGitFlow("init -d", { dryRun: opts.dryRun });
-  logSuccess("git-flow initialized");
+  logInfo('Initializing git-flow with default settings...')
+  runGitFlow('init -d', { dryRun: opts.dryRun })
+  logSuccess('git-flow initialized')
 
-  const config = runGitFlow("config", { allowFail: true, dryRun: false });
+  const config = runGitFlow('config', { allowFail: true, dryRun: false })
   if (config) {
-    logInfo("Git Flow configuration:");
-    console.log(config);
+    logInfo('Git Flow configuration:')
+    console.log(config)
   }
 }

@@ -77,26 +77,30 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ```typescript
 // Main entry point exports
-export function logError(msg: string): void;
-export function logInfo(msg: string): void;
-export function logSuccess(msg: string): void;
-export function logWarn(msg: string): void;
-export function runGit(args: string[]): Promise<{ code: number; stdout: string; stderr: string }>;
+export function logError(msg: string): void
+export function logInfo(msg: string): void
+export function logSuccess(msg: string): void
+export function logWarn(msg: string): void
+export function runGit(
+  args: string[]
+): Promise<{ code: number; stdout: string; stderr: string }>
 export function runGitFlow(
-  args: string[],
-): Promise<{ code: number; stdout: string; stderr: string }>;
-export function ensureGitFlowAvailable(opts?: { autoInstall?: boolean }): Promise<void>;
-export function ensureGitFlowInitialized(): Promise<void>;
-export function ensureBranchExists(branch: string): Promise<void>;
-export function ensureBranchMissing(branch: string): Promise<void>;
-export function ensureCleanTree(): Promise<void>;
-export function getGitFlowConfig(): Promise<Record<string, string>>;
-export function stashPush(msg: string): Promise<void>;
-export function stashPop(): Promise<void>;
+  args: string[]
+): Promise<{ code: number; stdout: string; stderr: string }>
+export function ensureGitFlowAvailable(opts?: {
+  autoInstall?: boolean
+}): Promise<void>
+export function ensureGitFlowInitialized(): Promise<void>
+export function ensureBranchExists(branch: string): Promise<void>
+export function ensureBranchMissing(branch: string): Promise<void>
+export function ensureCleanTree(): Promise<void>
+export function getGitFlowConfig(): Promise<Record<string, string>>
+export function stashPush(msg: string): Promise<void>
+export function stashPop(): Promise<void>
 
 // Color constants
-export const COLOR_BOLD: string;
-export const COLOR_RESET: string;
+export const COLOR_BOLD: string
+export const COLOR_RESET: string
 ```
 
 ### Release Operations (scripts/release-init.js)
@@ -104,74 +108,99 @@ export const COLOR_RESET: string;
 ```typescript
 // CLI flags
 interface ReleaseInitOpts {
-  help?: boolean;
-  type?: "release" | "hotfix";
-  bump?: "major" | "minor" | "patch";
-  version?: string;
-  push?: boolean;
-  dryRun?: boolean;
-  yes?: boolean;
-  noChangelog?: boolean;
-  offline?: boolean;
+  help?: boolean
+  type?: 'release' | 'hotfix'
+  bump?: 'major' | 'minor' | 'patch'
+  version?: string
+  push?: boolean
+  dryRun?: boolean
+  yes?: boolean
+  noChangelog?: boolean
+  offline?: boolean
 }
 
-export async function handleReleaseInit(opts: ReleaseInitOpts): Promise<void>;
-export function printReleaseInitHelp(): void;
+export async function handleReleaseInit(opts: ReleaseInitOpts): Promise<void>
+export function printReleaseInitHelp(): void
 ```
 
 ### Release Finalize (scripts/release-finalize.js)
 
 ```typescript
 interface ReleaseFinalizeOpts {
-  help?: boolean;
-  type?: "release" | "hotfix";
-  branch?: string;
-  push?: boolean;
-  dryRun?: boolean;
-  yes?: boolean;
-  noChangelog?: boolean;
-  keepBranch?: boolean;
-  json?: boolean;
-  offline?: boolean;
+  help?: boolean
+  type?: 'release' | 'hotfix'
+  branch?: string
+  push?: boolean
+  dryRun?: boolean
+  yes?: boolean
+  noChangelog?: boolean
+  keepBranch?: boolean
+  json?: boolean
+  offline?: boolean
 }
 
-export async function handleReleaseFinalize(opts: ReleaseFinalizeOpts): Promise<void>;
-export function printReleaseFinalizeHelp(): void;
+export async function handleReleaseFinalize(
+  opts: ReleaseFinalizeOpts
+): Promise<void>
+export function printReleaseFinalizeHelp(): void
 ```
 
 ### Version Library (scripts/lib/version.js)
 
 ```typescript
 export function parseVersion(
+  version: string
+): { major: number; minor: number; patch: number } | null
+export function compareVersions(a: string, b: string): 1 | 0 | -1
+export function bumpVersion(
   version: string,
-): { major: number; minor: number; patch: number } | null;
-export function compareVersions(a: string, b: string): 1 | 0 | -1;
-export function bumpVersion(version: string, type: "major" | "minor" | "patch"): string;
-export function isValidVersion(version: string): boolean;
-export function validateVersion(version: string): void;
-export function incrementVersion(version: string, type: "major" | "minor" | "patch"): string;
-export function readVersion(): string;
+  type: 'major' | 'minor' | 'patch'
+): string
+export function isValidVersion(version: string): boolean
+export function validateVersion(version: string): void
+export function incrementVersion(
+  version: string,
+  type: 'major' | 'minor' | 'patch'
+): string
+export function readVersion(): string
 ```
 
 ### Changelog Library (scripts/lib/changelog.js)
 
 ```typescript
-export function generateChangelog(since: string): Promise<string>;
-export function updateChangelog(version: string, content: string): Promise<void>;
-export function parseCommitMessage(msg: string): { type: string; scope: string; subject: string };
-export function formatChangelogEntry(version: string, date: string, commits: string[]): string;
-export function appendChangelog(version: string, content: string): Promise<void>;
-export function commitChangelog(version: string): Promise<void>;
+export function generateChangelog(since: string): Promise<string>
+export function updateChangelog(version: string, content: string): Promise<void>
+export function parseCommitMessage(msg: string): {
+  type: string
+  scope: string
+  subject: string
+}
+export function formatChangelogEntry(
+  version: string,
+  date: string,
+  commits: string[]
+): string
+export function appendChangelog(version: string, content: string): Promise<void>
+export function commitChangelog(version: string): Promise<void>
 ```
 
 ### Prompts Library (scripts/lib/prompts.js)
 
 ```typescript
-export async function promptYesNo(question: string, defaultYes?: boolean): Promise<boolean>;
-export async function promptText(question: string, defaultValue?: string): Promise<string>;
-export async function promptChoice<T>(question: string, options: T[]): Promise<T>;
-export async function confirmAction(action: string): Promise<boolean>;
-export function promptTextSync(question: string, defaultValue?: string): string;
+export async function promptYesNo(
+  question: string,
+  defaultYes?: boolean
+): Promise<boolean>
+export async function promptText(
+  question: string,
+  defaultValue?: string
+): Promise<string>
+export async function promptChoice<T>(
+  question: string,
+  options: T[]
+): Promise<T>
+export async function confirmAction(action: string): Promise<boolean>
+export function promptTextSync(question: string, defaultValue?: string): string
 ```
 
 ### Commands Module (scripts/commands/\*.js)
@@ -179,8 +208,8 @@ export function promptTextSync(question: string, defaultValue?: string): string;
 Each command exports:
 
 ```typescript
-export async function handleXxx(opts: XxxOpts): Promise<void>;
-export function printHelp(): void;
+export async function handleXxx(opts: XxxOpts): Promise<void>
+export function printHelp(): void
 ```
 
 Commands: config, delete, finish, init, list, publish, start, track
@@ -190,8 +219,8 @@ Commands: config, delete, finish, init, list, publish, start, track
 Each operation exports:
 
 ```typescript
-export async function handleXxx(action: string, opts: XxxOpts): Promise<void>;
-export function printHelp(): void;
+export async function handleXxx(action: string, opts: XxxOpts): Promise<void>
+export function printHelp(): void
 ```
 
 Operations: clone, hotfix, release, sync
@@ -206,13 +235,13 @@ Operations: clone, hotfix, release, sync
 
 ```typescript
 interface GitFlowConfig {
-  master: string; // default: "main"
-  develop: string; // default: "develop"
-  featurePrefix: string; // default: "feature/"
-  releasePrefix: string; // default: "release/"
-  hotfixPrefix: string; // default: "hotfix/"
-  supportPrefix: string; // default: "support/"
-  versionTagPrefix: string; // default: "v"
+  master: string // default: "main"
+  develop: string // default: "develop"
+  featurePrefix: string // default: "feature/"
+  releasePrefix: string // default: "release/"
+  hotfixPrefix: string // default: "hotfix/"
+  supportPrefix: string // default: "support/"
+  versionTagPrefix: string // default: "v"
 }
 ```
 
@@ -220,8 +249,8 @@ interface GitFlowConfig {
 
 ```typescript
 interface RunCmdState {
-  lastCheck: number; // Unix timestamp
-  currentVersion: string; // Semantic version from version.txt
+  lastCheck: number // Unix timestamp
+  currentVersion: string // Semantic version from version.txt
 }
 ```
 
@@ -238,37 +267,37 @@ interface RunCmdState {
 
 ```typescript
 interface StartOpts {
-  help?: boolean;
-  type: "feature" | "release" | "hotfix" | "support";
-  name: string;
-  push?: boolean;
-  force?: boolean;
-  dryRun?: boolean;
+  help?: boolean
+  type: 'feature' | 'release' | 'hotfix' | 'support'
+  name: string
+  push?: boolean
+  force?: boolean
+  dryRun?: boolean
 }
 
 interface FinishOpts {
-  help?: boolean;
-  type: "feature" | "release" | "hotfix" | "support";
-  name: string;
-  push?: boolean;
-  squash?: boolean;
-  tag?: string;
-  dryRun?: boolean;
+  help?: boolean
+  type: 'feature' | 'release' | 'hotfix' | 'support'
+  name: string
+  push?: boolean
+  squash?: boolean
+  tag?: string
+  dryRun?: boolean
 }
 
 interface DeleteOpts {
-  help?: boolean;
-  type: "feature" | "release" | "hotfix" | "support";
-  name: string;
-  force?: boolean;
-  dryRun?: boolean;
+  help?: boolean
+  type: 'feature' | 'release' | 'hotfix' | 'support'
+  name: string
+  force?: boolean
+  dryRun?: boolean
 }
 
 interface PublishOpts {
-  help?: boolean;
-  type: "feature" | "release" | "hotfix" | "support";
-  name: string;
-  dryRun?: boolean;
+  help?: boolean
+  type: 'feature' | 'release' | 'hotfix' | 'support'
+  name: string
+  dryRun?: boolean
 }
 ```
 

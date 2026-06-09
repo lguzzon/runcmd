@@ -7,8 +7,8 @@ import {
   listBranchesByType,
   logError,
   logInfo,
-  logSuccess,
-} from "../git-flow.js";
+  logSuccess
+} from '../git-flow.js'
 
 export function printHelp() {
   console.log(`
@@ -28,56 +28,56 @@ Examples:
   bun scripts/git-flow.js list
   bun scripts/git-flow.js list feature
   bun scripts/git-flow.js list release
-`);
+`)
 }
 
 export async function handleList(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
-    logError("git-flow is required to list branches");
-    process.exit(1);
+    logError('git-flow is required to list branches')
+    process.exit(1)
   }
 
-  ensureGitFlowInitialized();
+  ensureGitFlowInitialized()
 
   // Check for help flag before processing
   if (opts.help) {
-    printHelp();
-    return;
+    printHelp()
+    return
   }
 
-  const { type } = opts;
+  const { type } = opts
 
   if (type) {
-    const branches = listBranchesByType(type);
+    const branches = listBranchesByType(type)
     if (branches.length === 0) {
-      logInfo(`No ${type} branches found.`);
+      logInfo(`No ${type} branches found.`)
     } else {
-      logSuccess(`${type} branches:`);
+      logSuccess(`${type} branches:`)
       branches.forEach((branch) => {
-        console.log(`  - ${branch}`);
-      });
+        console.log(`  - ${branch}`)
+      })
     }
   } else {
-    const types = ["feature", "release", "hotfix", "support"];
-    let foundAny = false;
+    const types = ['feature', 'release', 'hotfix', 'support']
+    let foundAny = false
 
     types.forEach((t) => {
-      const branches = listBranchesByType(t);
+      const branches = listBranchesByType(t)
       if (branches.length > 0) {
         if (!foundAny) {
-          foundAny = true;
-          console.log();
+          foundAny = true
+          console.log()
         }
-        logSuccess(`${t} branches:`);
+        logSuccess(`${t} branches:`)
         branches.forEach((branch) => {
-          console.log(`  - ${branch}`);
-        });
+          console.log(`  - ${branch}`)
+        })
       }
-    });
+    })
 
     if (!foundAny) {
-      logInfo("No Git Flow branches found.");
+      logInfo('No Git Flow branches found.')
     }
   }
 }

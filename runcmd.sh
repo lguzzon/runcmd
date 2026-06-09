@@ -13,7 +13,7 @@
 # KEY FEATURES:
 #   - Automatic Bun installation and environment setup
 #   - Smart script resolution with fallback search paths
-#   - Integrated Biome code formatting and linting
+#   - Integrated code formatting and linting
 #   - Shell script formatting with shfmt (safe self-formatting support)
 #   - JSON file sorting and validation
 #   - Environment variable loading from .env files
@@ -36,7 +36,6 @@
 #
 # DEPENDENCIES (auto-installed):
 #   - bun: JavaScript runtime
-#   - @biomejs/biome: Code formatter and linter
 #   - shfmt: Shell script formatter
 #   - json-sort-cli: JSON file sorting utility
 
@@ -124,7 +123,7 @@ A comprehensive script runner with integrated development tooling that ensures
 FEATURES:
   - Automatic Bun installation from official source
   - Smart script path resolution with multiple fallback locations
-  - Integrated code formatting (Biome) and shell script formatting (shfmt)
+  - Integrated code formatting and shell script formatting (shfmt)
   - JSON file sorting and validation
   - Environment variable loading from .env files
   - Debug logging with execution timing
@@ -148,7 +147,7 @@ OPTIONS:
       Run comprehensive check mode including:
         - Format all .sh shell scripts in target and current directories
         - Sort and validate .json files recursively  
-        - Run Biome migration and check on target script
+        - Run linting and formatting checks on target script
         - Safe formatting of currently executing script
       Exits after completing all checks and formatting
 
@@ -471,56 +470,6 @@ resolve_script_path() {
   exit 1
 }
 
-# Find the Biome configuration file in common locations
-# Searches for biome.json in target directory, current directory, and script directory
-# Args:
-#   $1: Target file path to find Biome config for
-# Returns:
-#   Path to biome.json on stdout if found, empty string otherwise
-find_biome_config() {
-  local target_file="$1"
-  local target_dir
-  target_dir=$(dirname "$target_file")
-
-  local candidate
-  local configs=("$target_dir/biome.json" "$current_dir/biome.json" "$script_dir/biome.json")
-
-  for candidate in "${configs[@]}"; do
-    if [[ -f $candidate ]]; then
-      printf '%s\n' "$candidate"
-      return
-    fi
-  done
-
-  printf '\n'
-}
-
-# Run Biome migration on the codebase
-# Executes the Biome migrate command with appropriate configuration
-# Args:
-#   $1: Path to Biome configuration file (optional)
-# Returns:
-#   None
-# Exits:
-#   1 if migration fails
-run_migration() {
-  local biome_config_path="$1"
-  log_info "Running Biome migration..."
-
-  local args=(migrate --write)
-  if [[ -n $biome_config_path ]]; then
-    args+=(--config-path "$biome_config_path")
-  fi
-
-  if bunx --silent @biomejs/biome "${args[@]}"; then
-    log_info "Migration completed successfully."
-    return
-  fi
-
-  log_error "Migration failed."
-  exit 1
-}
-
 # Safely format a shell script using shfmt with atomic updates and rollback protection
 # Creates backups, validates syntax, and only replaces originals on successful formatting.
 # Designed to handle the edge case of formatting the currently executing script.
@@ -718,34 +667,22 @@ format_shell_scripts() {
   return 0
 }
 
-# Run Biome check on a target file
-# Executes the Biome check command with appropriate configuration and runs migration first
+# Run oxlint on a target file
+# Executes oxlint with fix-dangerously mode
 # Args:
-#   $1: Path to target file to check
-#   $2: Path to Biome configuration file (optional)
+#   $1: Path to target file to lint (kept for interface compatibility)
 # Returns:
 #   None
 # Exits:
-#   1 if checking fails
-run_check() {
+#   1 if linting fails
+run_lint() {
   local target_file="$1"
-  local biome_config_path="$2"
-  log_info "Running Biome check on '$target_file'..."
-
-  local args=(check --unsafe --write)
-  if [[ -n $biome_config_path ]]; then
-    args+=(--config-path "$biome_config_path")
-  fi
-  args+=("$target_file")
-
-  run_migration "$biome_config_path"
-
-  if bunx --silent @biomejs/biome "${args[@]}"; then
-    log_info "Checking completed successfully."
+  log_info "Running oxlint on '$target_file'..."
+  if bunx --silent oxlint --fix-dangerously . 2>/dev/null; then
+    log_info "oxlint passed."
     return
   fi
-
-  log_error "Checking failed."
+  log_error "oxlint failed."
   exit 1
 }
 
@@ -926,10 +863,10 @@ execute_script() {
   return $result
 }
 
-# Run check mode operations including shell script formatting, JSON sorting, and Biome check
-# Formats shell scripts in target and current directories, sorts JSON files, then runs Biome check
+# Run check mode operations including shell script formatting, JSON sorting, and linting
+# Formats shell scripts in target and current directories, sorts JSON files, then runs linting
 # Args:
-#   $1: Path to target file for Biome check
+#   $1: Path to target file for linting
 # Returns:
 #   None
 run_check_mode() {
@@ -938,17 +875,6 @@ run_check_mode() {
   target_dir=$(dirname "$target")
 
   ensure_bun_installed
-
-  local biome_config
-  biome_config=$(find_biome_config "$target")
-
-  if [[ -n $DEBUG ]] && [[ $DEBUG != "0" ]] && [[ $DEBUG != "false" ]]; then
-    if [[ -n $biome_config ]]; then
-      log_info "Using Biome config: '$biome_config'"
-    else
-      log_info "No Biome config found, using default configuration."
-    fi
-  fi
 
   # Step 1: Format and lint shell scripts
   log_info "Starting shell script formatting in check mode..."
@@ -998,8 +924,8 @@ run_check_mode() {
     exit 1
   fi
 
-  # Step 6: Run Biome check (existing, kept for compatibility)
-  run_check "$target" "$biome_config"
+  # Step 6: Run linting
+  run_lint "$target"
 
   log_info "Check mode completed successfully."
 }
@@ -1121,7 +1047,7 @@ load_env_files() {
 #   2. Parse command line arguments and set global flags
 #   3. Resolve target script path using intelligent search algorithm
 #   4. Execute appropriate mode based on CHECK_MODE flag:
-#      - Check mode: formatting, validation, Biome checks
+#      - Check mode: formatting, validation, and linting checks
 #      - Normal mode: script execution with Bun
 #
 # GLOBAL VARIABLES AFFECTED:

@@ -9,8 +9,8 @@ import {
   logInfo,
   logSuccess,
   logWarn,
-  runGitFlow,
-} from "../git-flow.js";
+  runGitFlow
+} from '../git-flow.js'
 
 export function printHelp() {
   console.log(`
@@ -32,42 +32,42 @@ Options:
 Examples:
   bun scripts/git-flow.js delete feature new-auth
   bun scripts/git-flow.js delete release v1.2.0 --force
-`);
+`)
 }
 
 export async function handleDelete(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
-    logError("git-flow is required to delete branches");
-    process.exit(1);
+    logError('git-flow is required to delete branches')
+    process.exit(1)
   }
 
-  ensureGitFlowInitialized();
+  ensureGitFlowInitialized()
 
   // Check for help flag before requiring arguments
   if (opts.help) {
-    printHelp();
-    return;
+    printHelp()
+    return
   }
 
-  const { type, name, force, dryRun } = opts;
+  const { type, name, force, dryRun } = opts
 
   if (!type || !name) {
-    logError("Both <type> and <name> are required");
-    process.exit(1);
+    logError('Both <type> and <name> are required')
+    process.exit(1)
   }
 
-  const branchName = `${type}/${name}`;
-  ensureBranchExists(branchName);
+  const branchName = `${type}/${name}`
+  ensureBranchExists(branchName)
 
-  const _flag = force ? "-D" : "-d";
+  const _flag = force ? '-D' : '-d'
 
-  logInfo(`Deleting ${type} branch: ${branchName}`);
-  runGitFlow(`${type} delete ${name}`, { dryRun });
+  logInfo(`Deleting ${type} branch: ${branchName}`)
+  runGitFlow(`${type} delete ${name}`, { dryRun })
 
   if (force) {
-    logWarn("Force delete: branch may not be merged");
+    logWarn('Force delete: branch may not be merged')
   }
 
-  logSuccess(`${type} branch deleted: ${branchName}`);
+  logSuccess(`${type} branch deleted: ${branchName}`)
 }

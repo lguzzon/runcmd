@@ -1,5 +1,5 @@
 export const releaseInitDefaults = {
-  type: "release",
+  type: 'release',
   bump: undefined,
   version: undefined,
   push: false,
@@ -7,8 +7,8 @@ export const releaseInitDefaults = {
   yes: false,
   noChangelog: false,
   offline: false,
-  help: false,
-};
+  help: false
+}
 
 export const releaseFinalizeDefaults = {
   type: undefined,
@@ -20,5 +20,5 @@ export const releaseFinalizeDefaults = {
   keepBranch: false,
   json: false,
   offline: false,
-  help: false,
-};
+  help: false
+}

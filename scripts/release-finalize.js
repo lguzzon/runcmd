@@ -4,18 +4,18 @@ import {
   ensureCleanTree,
   listBranchesByType,
   logError,
-  logSuccess,
-} from "./git-flow.js";
-import { releaseFinalizeDefaults } from "./lib/options.js";
-import { promptTextSync } from "./lib/prompts.js";
-import { handleHotfix } from "./operations/hotfix.js";
-import { handleRelease } from "./operations/release.js";
+  logSuccess
+} from './git-flow.js'
+import { releaseFinalizeDefaults } from './lib/options.js'
+import { promptTextSync } from './lib/prompts.js'
+import { handleHotfix } from './operations/hotfix.js'
+import { handleRelease } from './operations/release.js'
 
-const operations = [];
+const operations = []
 
 function printHelp() {
   console.log(`
-${"\x1b[1m"}Git Flow Release/Hotfix Finalizer${"\x1b[0m"}
+${'\x1b[1m'}Git Flow Release/Hotfix Finalizer${'\x1b[0m'}
 
 Usage: bun scripts/release-finalize.js [options]
 
@@ -34,172 +34,175 @@ Options:
 Examples:
   bun scripts/release-finalize.js --type release --branch release/v1.2.0
   bun scripts/release-finalize.js --push --yes
-`);
+`)
 }
 
 function parseArgs() {
-  const args = process.argv.slice(2);
-  const opts = { ...releaseFinalizeDefaults };
+  const args = process.argv.slice(2)
+  const opts = { ...releaseFinalizeDefaults }
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+    const arg = args[i]
     switch (arg) {
-      case "--type":
-        opts.type = args[++i];
-        break;
-      case "--branch":
-        opts.branch = args[++i];
-        break;
-      case "--push":
-        opts.push = true;
-        break;
-      case "--dry-run":
-        opts.dryRun = true;
-        break;
-      case "--yes":
-        opts.yes = true;
-        break;
-      case "--no-changelog":
-        opts.noChangelog = true;
-        break;
-      case "--keep-branch":
-        opts.keepBranch = true;
-        break;
-      case "--json":
-        opts.json = true;
-        break;
-      case "--offline":
-        opts.offline = true;
-        break;
-      case "--help":
-      case "-h":
-        opts.help = true;
-        break;
+      case '--type':
+        opts.type = args[++i]
+        break
+      case '--branch':
+        opts.branch = args[++i]
+        break
+      case '--push':
+        opts.push = true
+        break
+      case '--dry-run':
+        opts.dryRun = true
+        break
+      case '--yes':
+        opts.yes = true
+        break
+      case '--no-changelog':
+        opts.noChangelog = true
+        break
+      case '--keep-branch':
+        opts.keepBranch = true
+        break
+      case '--json':
+        opts.json = true
+        break
+      case '--offline':
+        opts.offline = true
+        break
+      case '--help':
+      case '-h':
+        opts.help = true
+        break
       default:
         // Ignore unknown arguments for backward compatibility
-        break;
+        break
     }
   }
-  if (process.env.CI === "true") {
-    opts.yes = true;
+  if (process.env.CI === 'true') {
+    opts.yes = true
   }
-  return opts;
+  return opts
 }
 
 function detectBranch(opts) {
-  if (opts.branch) return opts.branch;
+  if (opts.branch) return opts.branch
 
-  const releases = listBranchesByType("release");
-  const hotfixes = listBranchesByType("hotfix");
+  const releases = listBranchesByType('release')
+  const hotfixes = listBranchesByType('hotfix')
 
-  const candidates = [];
-  if (!opts.type || opts.type === "release") candidates.push(...releases);
-  if (!opts.type || opts.type === "hotfix") candidates.push(...hotfixes);
+  const candidates = []
+  if (!opts.type || opts.type === 'release') candidates.push(...releases)
+  if (!opts.type || opts.type === 'hotfix') candidates.push(...hotfixes)
 
   if (candidates.length === 0) {
-    logError("No release/hotfix branches found.");
-    process.exit(1);
+    logError('No release/hotfix branches found.')
+    process.exit(1)
   }
 
-  if (candidates.length === 1) return candidates[0];
+  if (candidates.length === 1) return candidates[0]
 
-  if (opts.yes || process.env.CI === "true") {
-    logError("Multiple branches found; specify --branch.");
-    process.exit(1);
+  if (opts.yes || process.env.CI === 'true') {
+    logError('Multiple branches found; specify --branch.')
+    process.exit(1)
   }
 
-  console.log("\nSelect branch to finalize:");
+  console.log('\nSelect branch to finalize:')
   candidates.forEach((b, idx) => {
-    console.log(`  ${idx + 1}. ${b}`);
-  });
-  const answer = promptTextSync("Enter choice: ");
-  const index = Number(answer) - 1;
+    console.log(`  ${idx + 1}. ${b}`)
+  })
+  const answer = promptTextSync('Enter choice: ')
+  const index = Number(answer) - 1
   if (Number.isNaN(index) || index < 0 || index >= candidates.length) {
-    logError("Invalid selection");
-    process.exit(1);
+    logError('Invalid selection')
+    process.exit(1)
   }
-  return candidates[index];
+  return candidates[index]
 }
 
 function branchType(branch) {
-  if (branch.startsWith("release/")) return "release";
-  if (branch.startsWith("hotfix/")) return "hotfix";
-  return "unknown";
+  if (branch.startsWith('release/')) return 'release'
+  if (branch.startsWith('hotfix/')) return 'hotfix'
+  return 'unknown'
 }
 
 function ensureBranchMatchesType(branch, requested) {
-  const detected = branchType(branch);
+  const detected = branchType(branch)
   if (requested && requested !== detected) {
-    logError(`Branch '${branch}' does not match type '${requested}'.`);
-    process.exit(1);
+    logError(`Branch '${branch}' does not match type '${requested}'.`)
+    process.exit(1)
   }
-  if (detected === "unknown") {
-    logError("Branch must be release/* or hotfix/*");
-    process.exit(1);
+  if (detected === 'unknown') {
+    logError('Branch must be release/* or hotfix/*')
+    process.exit(1)
   }
-  return detected;
+  return detected
 }
 
 function generateJsonSummary(status, branch, version) {
-  return JSON.stringify({ status, branch, version, operations });
+  return JSON.stringify({ status, branch, version, operations })
 }
 
 async function main() {
-  const opts = parseArgs();
+  const opts = parseArgs()
 
   try {
     if (opts.help) {
-      printHelp();
-      process.exit(0);
+      printHelp()
+      process.exit(0)
     }
 
-    ensureCleanTree();
-    ensureBranchExists("main");
-    ensureBranchExists("develop");
+    ensureCleanTree()
+    ensureBranchExists('main')
+    ensureBranchExists('develop')
 
-    const targetBranch = detectBranch(opts);
-    const detectedType = ensureBranchMatchesType(targetBranch, opts.type);
+    const targetBranch = detectBranch(opts)
+    const detectedType = ensureBranchMatchesType(targetBranch, opts.type)
 
     // Extract version from branch name for tag and message
-    const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/);
+    const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/)
     if (!versionMatch) {
-      logError("Branch name must include version (e.g., release/v1.2.0)");
-      process.exit(1);
+      logError('Branch name must include version (e.g., release/v1.2.0)')
+      process.exit(1)
     }
-    const version = versionMatch[1];
+    const version = versionMatch[1]
 
     // Set required options for git-flow operations
-    opts.name = version;
-    opts.tag = `v${version}`;
-    opts.message = `Release version ${version}`;
+    opts.name = version
+    opts.tag = `v${version}`
+    opts.message = `Release version ${version}`
 
     // Map to git-flow.js operation
-    const action = "finish";
+    const action = 'finish'
 
-    if (detectedType === "hotfix") {
-      await handleHotfix(action, opts);
+    if (detectedType === 'hotfix') {
+      await handleHotfix(action, opts)
     } else {
-      await handleRelease(action, opts);
+      await handleRelease(action, opts)
     }
 
-    logSuccess("Release/hotfix finalized.");
-    operations.push({ type: "success", message: "Release/hotfix finalized." });
-    console.log(`\n${"\x1b[1m"}Version:${"\x1b[0m"} ${version}`);
-    console.log(`${"\x1b[1m"}Branch:${"\x1b[0m"} ${targetBranch}`);
+    logSuccess('Release/hotfix finalized.')
+    operations.push({ type: 'success', message: 'Release/hotfix finalized.' })
+    console.log(`\n${'\x1b[1m'}Version:${'\x1b[0m'} ${version}`)
+    console.log(`${'\x1b[1m'}Branch:${'\x1b[0m'} ${targetBranch}`)
 
     if (opts.json) {
-      console.log(generateJsonSummary("ok", targetBranch, version));
+      console.log(generateJsonSummary('ok', targetBranch, version))
     }
 
     // Close stdin to prevent hanging
-    process.stdin.pause();
+    process.stdin.pause()
   } catch (error) {
-    logError(`Unexpected error: ${error.message}`);
-    operations.push({ type: "error", message: `Unexpected error: ${error.message}` });
+    logError(`Unexpected error: ${error.message}`)
+    operations.push({
+      type: 'error',
+      message: `Unexpected error: ${error.message}`
+    })
     if (opts.json) {
-      console.log(generateJsonSummary("error", "", ""));
+      console.log(generateJsonSummary('error', '', ''))
     }
-    process.exit(1);
+    process.exit(1)
   }
 }
 
-main();
+main()

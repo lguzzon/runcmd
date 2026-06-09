@@ -13,8 +13,8 @@ import {
   logWarn,
   pullBranch,
   runGitFlow,
-  validateBranchName,
-} from "../git-flow.js";
+  validateBranchName
+} from '../git-flow.js'
 
 export function printHelp() {
   console.log(`
@@ -41,64 +41,67 @@ Examples:
   bun scripts/git-flow.js start release v1.2.0 --base develop
   bun scripts/git-flow.js start hotfix v1.1.1 --base main
   bun scripts/git-flow.js start support v1.0.x --base v1.0.0
-`);
+`)
 }
 
 export async function handleStart(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
-    logError("git-flow is required to start branches");
-    process.exit(1);
+    logError('git-flow is required to start branches')
+    process.exit(1)
   }
 
-  ensureGitFlowInitialized();
+  ensureGitFlowInitialized()
 
   // Check for help flag before requiring clean tree
   if (opts.help) {
-    printHelp();
-    return;
+    printHelp()
+    return
   }
 
-  ensureCleanTree();
+  ensureCleanTree()
 
-  const { type, name, base, fetch, force, dryRun, offline } = opts;
+  const { type, name, base, fetch, force, dryRun, offline } = opts
 
   if (!type || !name) {
-    logError("Both <type> and <name> are required");
-    process.exit(1);
+    logError('Both <type> and <name> are required')
+    process.exit(1)
   }
 
   if (!validateBranchName(name, type)) {
-    process.exit(1);
+    process.exit(1)
   }
 
-  const _config = runGitFlow("config", { allowFail: true, dryRun: false });
-  const baseBranch = base || (type === "hotfix" || type === "support" ? "main" : "develop");
+  const _config = runGitFlow('config', { allowFail: true, dryRun: false })
+  const baseBranch =
+    base || (type === 'hotfix' || type === 'support' ? 'main' : 'develop')
 
-  ensureBranchExists(baseBranch);
+  ensureBranchExists(baseBranch)
 
   if (fetch && !offline) {
-    logInfo(`Fetching ${baseBranch}...`);
-    pullBranch(baseBranch, { dryRun, offline });
+    logInfo(`Fetching ${baseBranch}...`)
+    pullBranch(baseBranch, { dryRun, offline })
   }
 
-  const branchName = `${type}/${name}`;
+  const branchName = `${type}/${name}`
 
   if (force) {
-    logWarn(`Force mode: will delete existing branch ${branchName} if it exists`);
-    runGit(`branch -D ${branchName}`, { allowFail: true, dryRun });
+    logWarn(
+      `Force mode: will delete existing branch ${branchName} if it exists`
+    )
+    runGit(`branch -D ${branchName}`, { allowFail: true, dryRun })
   } else {
-    ensureBranchMissing(branchName);
+    ensureBranchMissing(branchName)
   }
 
-  const baseArg = base ? ` ${base}` : "";
-  const cmd = `${type} start ${name}${baseArg}`;
-  logInfo(`Starting ${type} branch: ${branchName}`);
-  runGitFlow(cmd, { dryRun });
+  const baseArg = base ? ` ${base}` : ''
+  const cmd = `${type} start ${name}${baseArg}`
+  logInfo(`Starting ${type} branch: ${branchName}`)
+  runGitFlow(cmd, { dryRun })
 
-  logSuccess(`${type} branch started: ${branchName}`);
+  logSuccess(`${type} branch started: ${branchName}`)
 
   if (!dryRun) {
-    logInfo(`Switched to branch: ${branchName}`);
+    logInfo(`Switched to branch: ${branchName}`)
   }
 }

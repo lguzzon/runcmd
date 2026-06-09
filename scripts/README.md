@@ -241,10 +241,10 @@ Version management utilities for semantic versioning.
 **Usage:**
 
 ```javascript
-import { bumpVersion, compareVersions } from "./lib/version.js";
+import { bumpVersion, compareVersions } from './lib/version.js'
 
-const newVersion = bumpVersion("1.2.3", "minor"); // '1.3.0'
-const isGreater = compareVersions("1.3.0", "1.2.0"); // true
+const newVersion = bumpVersion('1.2.3', 'minor') // '1.3.0'
+const isGreater = compareVersions('1.3.0', '1.2.0') // true
 ```
 
 ### [`lib/changelog.js`](lib/changelog.js)
@@ -261,12 +261,12 @@ Changelog generation and management utilities.
 **Usage:**
 
 ```javascript
-import { generateChangelog } from "./lib/changelog.js";
+import { generateChangelog } from './lib/changelog.js'
 
 const changelog = generateChangelog([
-  { type: "feat", scope: "auth", message: "Add OAuth2 support" },
-  { type: "fix", scope: "api", message: "Fix authentication bug" },
-]);
+  { type: 'feat', scope: 'auth', message: 'Add OAuth2 support' },
+  { type: 'fix', scope: 'api', message: 'Fix authentication bug' }
+])
 ```
 
 ### [`lib/prompts.js`](lib/prompts.js)
@@ -283,10 +283,10 @@ User interaction utilities for CLI prompts.
 **Usage:**
 
 ```javascript
-import { promptYesNo, promptText } from "./lib/prompts.js";
+import { promptYesNo, promptText } from './lib/prompts.js'
 
-const shouldContinue = await promptYesNo("Continue with release?");
-const version = await promptText("Enter version number:");
+const shouldContinue = await promptYesNo('Continue with release?')
+const version = await promptText('Enter version number:')
 ```
 
 ## 🚀 High-Level Operations

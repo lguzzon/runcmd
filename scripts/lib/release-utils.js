@@ -151,8 +151,11 @@ export async function handleFinish(config, opts) {
   ensureBranchExists("main")
   ensureBranchExists("develop")
 
-  const {name, tag, message, push, keepBranch, dryRun, offline, noChangelog} =
+  let {name, tag, message, push, keepBranch, dryRun, offline, noChangelog} =
     opts
+
+  // The default "nextRelease" from parseArgs should not be used for versioned releases
+  if (name === "nextRelease") name = undefined
 
   if (!tag || !message) {
     logError(`--tag and --message are required for ${typeLabel} finish`)

@@ -4,9 +4,9 @@ import {
   COLOR_RESET,
   ensureGitFlowAvailable,
   ensureGitFlowInitialized,
-  logError
-} from "../git-flow.js"
-import {handleFinish, handleStart} from "../lib/release-utils.js"
+  logError,
+} from "../git-flow.js";
+import { handleFinish, handleStart } from "../lib/release-utils.js";
 
 export function printHelp() {
   console.log(`
@@ -45,22 +45,22 @@ Examples:
   bun scripts/git-flow.js hotfix start --bump patch
   bun scripts/git-flow.js hotfix start --version 1.1.1
   bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix 1.1.1" --push
-`)
+`);
 }
 
 export async function handleHotfix(action, opts) {
-  const available = ensureGitFlowAvailable({...opts, autoInstall: false})
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
   if (!available) {
-    logError("git-flow is required for hotfix operations")
-    process.exit(1)
+    logError("git-flow is required for hotfix operations");
+    process.exit(1);
   }
 
-  ensureGitFlowInitialized()
+  ensureGitFlowInitialized();
 
   // Check for help flag before processing
   if (opts.help) {
-    printHelp()
-    return
+    printHelp();
+    return;
   }
 
   if (action === "start") {
@@ -69,18 +69,15 @@ export async function handleHotfix(action, opts) {
         defaultBump: "patch",
         defaultBase: "main",
         prefix: "hotfix/",
-        typeLabel: "hotfix"
+        typeLabel: "hotfix",
       },
-      opts
-    )
+      opts,
+    );
   } else if (action === "finish") {
-    await handleFinish(
-      {prefix: "hotfix/", typeLabel: "hotfix"},
-      opts
-    )
+    await handleFinish({ prefix: "hotfix/", typeLabel: "hotfix" }, opts);
   } else {
-    logError(`Unknown hotfix action: ${action}`)
-    printHelp()
-    process.exit(1)
+    logError(`Unknown hotfix action: ${action}`);
+    printHelp();
+    process.exit(1);
   }
 }

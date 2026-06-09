@@ -47,14 +47,31 @@ runcmd.bat --env custom.env          # Load custom .env file
 ### Code Quality Checks
 
 ```bash
-# Unix/macOS only - Comprehensive check mode
-./runcmd.sh +check                   # Format .sh scripts, JSON files, run Biome check
+# Comprehensive check mode (shell format, shellcheck, JSON sort, oxlint, oxfmt, Biome)
+./runcmd.sh +check
 
 # Manually run tools
-bunx @biomejs/biome check --unsafe --write .
-bunx @biomejs/biome migrate --write .
-bunx shfmt -w -bn -ci -i 2 -s *.sh
-bunx json-sort-cli "**/*.json"
+bunx oxlint --fix-dangerously .     # Lint JS/TS files
+bunx oxfmt --write .                 # Format JS/TS files
+bunx shfmt -w -bn -ci -i 2 -s *.sh   # Format shell scripts
+shellcheck -s bash *.sh               # Check shell scripts
+bunx @biomejs/biome check --unsafe --write .   # Legacy Biome check
+bunx json-sort-cli "**/*.json"       # Sort JSON files
+```
+
+### Lint/Format Requirements
+
+Every file edit MUST pass format and lint rules before commit. The pre-commit hook (.githooks/pre-commit) runs:
+
+- **shellcheck** on .sh files
+- **oxlint --fix-dangerously** on JS/TS files
+- Auto-re-adds fixed files
+
+Run manually after any edit:
+
+```bash
+bunx oxfmt --write . && bunx oxlint --fix-dangerously .
+shellcheck -s bash runcmd.sh
 ```
 
 ### Environment Variables
@@ -162,6 +179,15 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 1. Copy `runcmd.sh` to your desired name (e.g., `build.sh`)
 2. Create corresponding `.mjs` file (e.g., `build.mjs`) with your script logic
 3. The `.mjs` file will be auto-discovered and executed
+
+### Code Quality Enforcement
+
+- **oxlint** — JS/TS linting (replaces Biome for lint)
+- **oxfmt** — JS/TS formatting (replaces Biome for format)
+- **shellcheck** — shell script validation
+- **shfmt** — shell script formatting
+- Pre-commit hook at `.githooks/pre-commit` runs all checks automatically
+- Run manually: `./runcmd.sh +check`
 
 ## Important Notes
 

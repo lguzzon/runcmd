@@ -1,14 +1,20 @@
 ## v1.10.2 - 2026-06-09
+
 - ci: bump actions to latest major versions
 - ci: upgrade actions to latest major versions
 - Merge branch 'main' into develop
+
 ## v1.10.1 - 2026-06-09
+
 - ci: opt Node.js 24 for GitHub Actions runner
 - Merge branch 'main' into develop
+
 ## v1.10.0 - 2026-06-09
+
 - fix: strip default 'nextRelease' name in versioned release/hotfix start
 - Merge branch 'main' into develop
 - refactor: consolidate, deduplicate, and fix 20 quality issues
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -25,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: bump version to 1.9.1
 - chore: integrate agents-reverse-engineer and reformat config files
 - style(scripts): reformat JS files to 2-space indent and no semicolons
+
 ## v1.9.0 - 2026-01-07
 
 - chore(operations): remove commented-out changelog generation code

@@ -46,6 +46,7 @@ UNAME_S=$(uname -s)
 readonly UNAME_S
 
 readonly COLOR_INFO="\033[32m"
+readonly COLOR_WARN="\033[33m"
 readonly COLOR_ERROR="\033[31m"
 readonly COLOR_RESET="\033[0m"
 
@@ -70,6 +71,10 @@ log_info() {
   if is_debug_enabled; then
     printf '%b[INFO]%b %s\n' "$COLOR_INFO" "$COLOR_RESET" "$1"
   fi
+}
+
+log_warn() {
+  printf '%b[WARN]%b %s\n' "$COLOR_WARN" "$COLOR_RESET" "$1" >&2
 }
 
 log_error() {
@@ -945,31 +950,58 @@ run_check_mode() {
     fi
   fi
 
-  # Format shell scripts in the target directory first
+  # Step 1: Format and lint shell scripts
   log_info "Starting shell script formatting in check mode..."
   if ! format_shell_scripts "$target_dir"; then
-    log_error "Shell script formatting failed, but continuing with Biome check..."
+    log_error "Shell script formatting failed, but continuing..."
   fi
 
-  # Also check scripts in the current directory
   if [[ $target_dir != "$current_dir" ]]; then
     if ! format_shell_scripts "$current_dir"; then
-      log_error "Shell script formatting in current directory failed, but continuing with Biome check..."
+      log_error "Shell script formatting in current directory failed, but continuing..."
     fi
   fi
 
-  # Sort JSON files in the target directory
+  # Step 2: Shellcheck all shell scripts
+  log_info "Running shellcheck..."
+  local shellcheck_failed=0
+  while IFS= read -r -d '' sh_file; do
+    if ! shellcheck -s bash "$sh_file" 2>/dev/null; then
+      log_warn "shellcheck warnings in: $sh_file"
+      shellcheck_failed=1
+    fi
+  done < <(find "$target_dir" -maxdepth 1 -name "*.sh" -type f -print0 2>/dev/null)
+  if ((shellcheck_failed)); then
+    log_warn "shellcheck completed with warnings (not blocking)."
+  else
+    log_info "shellcheck passed."
+  fi
+
+  # Step 3: Sort JSON files
   run_json_sort "$target_dir"
 
-  # Run the original Biome check
+  # Step 4: Run oxlint
+  log_info "Running oxlint --fix-dangerously..."
+  if bunx --silent oxlint --fix-dangerously . 2>/dev/null; then
+    log_info "oxlint passed."
+  else
+    log_error "oxlint found issues that could not be auto-fixed."
+    exit 1
+  fi
+
+  # Step 5: Run oxfmt
+  log_info "Running oxfmt --write..."
+  if bunx --silent oxfmt --write . 2>/dev/null; then
+    log_info "oxfmt passed."
+  else
+    log_error "oxfmt formatting failed."
+    exit 1
+  fi
+
+  # Step 6: Run Biome check (existing, kept for compatibility)
   run_check "$target" "$biome_config"
 
-  local shell_result=$?
-  if ((shell_result == 0)); then
-    log_info "Check mode completed successfully with shell formatting."
-  else
-    log_info "Check mode completed, but some shell formatting issues occurred."
-  fi
+  log_info "Check mode completed successfully."
 }
 
 # Parse command line arguments and set appropriate global variables

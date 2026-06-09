@@ -66,7 +66,7 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ## Behavioral Contracts
 
-- **Update URL:** `https://lguzzondata.github.io/runcmd/version.txt`
+- **Update URL:** `https://lguzzon.github.io/runcmd/version.txt`
 - **State file:** `$HOME/.runcmd/state.json`
 - **Check interval:** `7 * 24 * 3600` seconds
 - **Bun install:** `$HOME/.bun` via `https://bun.sh/install`

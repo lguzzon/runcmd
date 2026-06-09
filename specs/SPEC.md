@@ -1,4 +1,3 @@
-
 # runcmd Specification
 
 ## 1. Project Overview
@@ -78,24 +77,26 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ```typescript
 // Main entry point exports
-export function logError(msg: string): void
-export function logInfo(msg: string): void
-export function logSuccess(msg: string): void
-export function logWarn(msg: string): void
-export function runGit(args: string[]): Promise<{ code: number, stdout: string, stderr: string }>
-export function runGitFlow(args: string[]): Promise<{ code: number, stdout: string, stderr: string }>
-export function ensureGitFlowAvailable(opts?: { autoInstall?: boolean }): Promise<void>
-export function ensureGitFlowInitialized(): Promise<void>
-export function ensureBranchExists(branch: string): Promise<void>
-export function ensureBranchMissing(branch: string): Promise<void>
-export function ensureCleanTree(): Promise<void>
-export function getGitFlowConfig(): Promise<Record<string, string>>
-export function stashPush(msg: string): Promise<void>
-export function stashPop(): Promise<void>
+export function logError(msg: string): void;
+export function logInfo(msg: string): void;
+export function logSuccess(msg: string): void;
+export function logWarn(msg: string): void;
+export function runGit(args: string[]): Promise<{ code: number; stdout: string; stderr: string }>;
+export function runGitFlow(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }>;
+export function ensureGitFlowAvailable(opts?: { autoInstall?: boolean }): Promise<void>;
+export function ensureGitFlowInitialized(): Promise<void>;
+export function ensureBranchExists(branch: string): Promise<void>;
+export function ensureBranchMissing(branch: string): Promise<void>;
+export function ensureCleanTree(): Promise<void>;
+export function getGitFlowConfig(): Promise<Record<string, string>>;
+export function stashPush(msg: string): Promise<void>;
+export function stashPop(): Promise<void>;
 
 // Color constants
-export const COLOR_BOLD: string
-export const COLOR_RESET: string
+export const COLOR_BOLD: string;
+export const COLOR_RESET: string;
 ```
 
 ### Release Operations (scripts/release-init.js)
@@ -103,92 +104,94 @@ export const COLOR_RESET: string
 ```typescript
 // CLI flags
 interface ReleaseInitOpts {
-  help?: boolean
-  type?: 'release' | 'hotfix'
-  bump?: 'major' | 'minor' | 'patch'
-  version?: string
-  push?: boolean
-  dryRun?: boolean
-  yes?: boolean
-  noChangelog?: boolean
-  offline?: boolean
+  help?: boolean;
+  type?: "release" | "hotfix";
+  bump?: "major" | "minor" | "patch";
+  version?: string;
+  push?: boolean;
+  dryRun?: boolean;
+  yes?: boolean;
+  noChangelog?: boolean;
+  offline?: boolean;
 }
 
-export async function handleReleaseInit(opts: ReleaseInitOpts): Promise<void>
-export function printReleaseInitHelp(): void
+export async function handleReleaseInit(opts: ReleaseInitOpts): Promise<void>;
+export function printReleaseInitHelp(): void;
 ```
 
 ### Release Finalize (scripts/release-finalize.js)
 
 ```typescript
 interface ReleaseFinalizeOpts {
-  help?: boolean
-  type?: 'release' | 'hotfix'
-  branch?: string
-  push?: boolean
-  dryRun?: boolean
-  yes?: boolean
-  noChangelog?: boolean
-  keepBranch?: boolean
-  json?: boolean
-  offline?: boolean
+  help?: boolean;
+  type?: "release" | "hotfix";
+  branch?: string;
+  push?: boolean;
+  dryRun?: boolean;
+  yes?: boolean;
+  noChangelog?: boolean;
+  keepBranch?: boolean;
+  json?: boolean;
+  offline?: boolean;
 }
 
-export async function handleReleaseFinalize(opts: ReleaseFinalizeOpts): Promise<void>
-export function printReleaseFinalizeHelp(): void
+export async function handleReleaseFinalize(opts: ReleaseFinalizeOpts): Promise<void>;
+export function printReleaseFinalizeHelp(): void;
 ```
 
 ### Version Library (scripts/lib/version.js)
 
 ```typescript
-export function parseVersion(version: string): { major: number, minor: number, patch: number } | null
-export function compareVersions(a: string, b: string): 1 | 0 | -1
-export function bumpVersion(version: string, type: 'major' | 'minor' | 'patch'): string
-export function isValidVersion(version: string): boolean
-export function validateVersion(version: string): void
-export function incrementVersion(version: string, type: 'major' | 'minor' | 'patch'): string
-export function readVersion(): string
+export function parseVersion(
+  version: string,
+): { major: number; minor: number; patch: number } | null;
+export function compareVersions(a: string, b: string): 1 | 0 | -1;
+export function bumpVersion(version: string, type: "major" | "minor" | "patch"): string;
+export function isValidVersion(version: string): boolean;
+export function validateVersion(version: string): void;
+export function incrementVersion(version: string, type: "major" | "minor" | "patch"): string;
+export function readVersion(): string;
 ```
 
 ### Changelog Library (scripts/lib/changelog.js)
 
 ```typescript
-export function generateChangelog(since: string): Promise<string>
-export function updateChangelog(version: string, content: string): Promise<void>
-export function parseCommitMessage(msg: string): { type: string, scope: string, subject: string }
-export function formatChangelogEntry(version: string, date: string, commits: string[]): string
-export function appendChangelog(version: string, content: string): Promise<void>
-export function commitChangelog(version: string): Promise<void>
+export function generateChangelog(since: string): Promise<string>;
+export function updateChangelog(version: string, content: string): Promise<void>;
+export function parseCommitMessage(msg: string): { type: string; scope: string; subject: string };
+export function formatChangelogEntry(version: string, date: string, commits: string[]): string;
+export function appendChangelog(version: string, content: string): Promise<void>;
+export function commitChangelog(version: string): Promise<void>;
 ```
 
 ### Prompts Library (scripts/lib/prompts.js)
 
 ```typescript
-export async function promptYesNo(question: string, defaultYes?: boolean): Promise<boolean>
-export async function promptText(question: string, defaultValue?: string): Promise<string>
-export async function promptChoice<T>(question: string, options: T[]): Promise<T>
-export async function confirmAction(action: string): Promise<boolean>
-export function promptTextSync(question: string, defaultValue?: string): string
+export async function promptYesNo(question: string, defaultYes?: boolean): Promise<boolean>;
+export async function promptText(question: string, defaultValue?: string): Promise<string>;
+export async function promptChoice<T>(question: string, options: T[]): Promise<T>;
+export async function confirmAction(action: string): Promise<boolean>;
+export function promptTextSync(question: string, defaultValue?: string): string;
 ```
 
-### Commands Module (scripts/commands/*.js)
+### Commands Module (scripts/commands/\*.js)
 
 Each command exports:
 
 ```typescript
-export async function handleXxx(opts: XxxOpts): Promise<void>
-export function printHelp(): void
+export async function handleXxx(opts: XxxOpts): Promise<void>;
+export function printHelp(): void;
 ```
 
 Commands: config, delete, finish, init, list, publish, start, track
 
-### Operations Module (scripts/operations/*.js)
+### Operations Module (scripts/operations/\*.js)
 
 Each operation exports:
 
 ```typescript
-export async function handleXxx(action: string, opts: XxxOpts): Promise<void>
-export function printHelp(): void
+export async function handleXxx(action: string, opts: XxxOpts): Promise<void>;
+export function printHelp(): void;
 ```
 
 Operations: clone, hotfix, release, sync
@@ -203,13 +206,13 @@ Operations: clone, hotfix, release, sync
 
 ```typescript
 interface GitFlowConfig {
-  master: string      // default: "main"
-  develop: string     // default: "develop"
-  featurePrefix: string   // default: "feature/"
-  releasePrefix: string   // default: "release/"
-  hotfixPrefix: string    // default: "hotfix/"
-  supportPrefix: string   // default: "support/"
-  versionTagPrefix: string // default: "v"
+  master: string; // default: "main"
+  develop: string; // default: "develop"
+  featurePrefix: string; // default: "feature/"
+  releasePrefix: string; // default: "release/"
+  hotfixPrefix: string; // default: "hotfix/"
+  supportPrefix: string; // default: "support/"
+  versionTagPrefix: string; // default: "v"
 }
 ```
 
@@ -217,8 +220,8 @@ interface GitFlowConfig {
 
 ```typescript
 interface RunCmdState {
-  lastCheck: number       // Unix timestamp
-  currentVersion: string  // Semantic version from version.txt
+  lastCheck: number; // Unix timestamp
+  currentVersion: string; // Semantic version from version.txt
 }
 ```
 
@@ -235,37 +238,37 @@ interface RunCmdState {
 
 ```typescript
 interface StartOpts {
-  help?: boolean
-  type: 'feature' | 'release' | 'hotfix' | 'support'
-  name: string
-  push?: boolean
-  force?: boolean
-  dryRun?: boolean
+  help?: boolean;
+  type: "feature" | "release" | "hotfix" | "support";
+  name: string;
+  push?: boolean;
+  force?: boolean;
+  dryRun?: boolean;
 }
 
 interface FinishOpts {
-  help?: boolean
-  type: 'feature' | 'release' | 'hotfix' | 'support'
-  name: string
-  push?: boolean
-  squash?: boolean
-  tag?: string
-  dryRun?: boolean
+  help?: boolean;
+  type: "feature" | "release" | "hotfix" | "support";
+  name: string;
+  push?: boolean;
+  squash?: boolean;
+  tag?: string;
+  dryRun?: boolean;
 }
 
 interface DeleteOpts {
-  help?: boolean
-  type: 'feature' | 'release' | 'hotfix' | 'support'
-  name: string
-  force?: boolean
-  dryRun?: boolean
+  help?: boolean;
+  type: "feature" | "release" | "hotfix" | "support";
+  name: string;
+  force?: boolean;
+  dryRun?: boolean;
 }
 
 interface PublishOpts {
-  help?: boolean
-  type: 'feature' | 'release' | 'hotfix' | 'support'
-  name: string
-  dryRun?: boolean
+  help?: boolean;
+  type: "feature" | "release" | "hotfix" | "support";
+  name: string;
+  dryRun?: boolean;
 }
 ```
 
@@ -277,10 +280,10 @@ interface PublishOpts {
 
 **Environment Variables:**
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `RUNCMD_DEBUG` | Enable debug output (1/0) | No |
-| `RUNCMD_NO_UPDATE` | Disable update checking | No |
+| Variable           | Description               | Required |
+| ------------------ | ------------------------- | -------- |
+| `RUNCMD_DEBUG`     | Enable debug output (1/0) | No       |
+| `RUNCMD_NO_UPDATE` | Disable update checking   | No       |
 
 **Update Check Configuration:**
 
@@ -681,74 +684,74 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 
 ### Root Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `runcmd.sh` | Runner | Shell script with DEBUG flags, environment loading, Bun auto-install |
-| `runcmd.bat` | Runner | Windows batch script with equivalent functionality |
-| `runcmd.mjs` | Runner | Default target script, logs CWD and CLI args |
-| `biome.json` | Configuration | Biome formatter/linter config (2-space indent, 80-char width, single quotes) |
-| `version.txt` | Configuration | Version file (1.9.1) |
-| `README.md` | Documentation | Project overview and usage |
-| `CHANGELOG.md` | Documentation | Keep a Changelog format |
-| `LICENSE` | Documentation | MIT license |
+| File           | Module        | Exports                                                                      |
+| -------------- | ------------- | ---------------------------------------------------------------------------- |
+| `runcmd.sh`    | Runner        | Shell script with DEBUG flags, environment loading, Bun auto-install         |
+| `runcmd.bat`   | Runner        | Windows batch script with equivalent functionality                           |
+| `runcmd.mjs`   | Runner        | Default target script, logs CWD and CLI args                                 |
+| `biome.json`   | Configuration | Biome formatter/linter config (2-space indent, 80-char width, single quotes) |
+| `version.txt`  | Configuration | Version file (1.9.1)                                                         |
+| `README.md`    | Documentation | Project overview and usage                                                   |
+| `CHANGELOG.md` | Documentation | Keep a Changelog format                                                      |
+| `LICENSE`      | Documentation | MIT license                                                                  |
 
 ### scripts/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `git-flow.js` | Core | `logError`, `logInfo`, `logSuccess`, `logWarn`, `runGit`, `runGitFlow`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `getGitFlowConfig`, `stashPush`, `stashPop`, `COLOR_BOLD`, `COLOR_RESET` |
-| `release-init.js` | Release | `handleReleaseInit`, `printReleaseInitHelp` |
-| `release-finalize.js` | Release | `handleReleaseFinalize`, `printReleaseFinalizeHelp` |
-| `README.md` | Documentation | Command interface table, library exports |
+| File                  | Module        | Exports                                                                                                                                                                                                                                                                |
+| --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `git-flow.js`         | Core          | `logError`, `logInfo`, `logSuccess`, `logWarn`, `runGit`, `runGitFlow`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `getGitFlowConfig`, `stashPush`, `stashPop`, `COLOR_BOLD`, `COLOR_RESET` |
+| `release-init.js`     | Release       | `handleReleaseInit`, `printReleaseInitHelp`                                                                                                                                                                                                                            |
+| `release-finalize.js` | Release       | `handleReleaseFinalize`, `printReleaseFinalizeHelp`                                                                                                                                                                                                                    |
+| `README.md`           | Documentation | Command interface table, library exports                                                                                                                                                                                                                               |
 
 ### scripts/commands/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `config.js` | Commands | `handleConfig`, `printHelp` |
-| `delete.js` | Commands | `handleDelete`, `printHelp` |
-| `finish.js` | Commands | `handleFinish`, `printHelp` |
-| `init.js` | Commands | `handleInit`, `printHelp` |
-| `list.js` | Commands | `handleList`, `printHelp` |
+| File         | Module   | Exports                      |
+| ------------ | -------- | ---------------------------- |
+| `config.js`  | Commands | `handleConfig`, `printHelp`  |
+| `delete.js`  | Commands | `handleDelete`, `printHelp`  |
+| `finish.js`  | Commands | `handleFinish`, `printHelp`  |
+| `init.js`    | Commands | `handleInit`, `printHelp`    |
+| `list.js`    | Commands | `handleList`, `printHelp`    |
 | `publish.js` | Commands | `handlePublish`, `printHelp` |
-| `start.js` | Commands | `handleStart`, `printHelp` |
-| `track.js` | Commands | `handleTrack`, `printHelp` |
+| `start.js`   | Commands | `handleStart`, `printHelp`   |
+| `track.js`   | Commands | `handleTrack`, `printHelp`   |
 
 ### scripts/lib/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `version.js` | Utilities | `parseVersion`, `compareVersions`, `bumpVersion`, `isValidVersion`, `validateVersion`, `incrementVersion`, `readVersion` |
+| File           | Module    | Exports                                                                                                                    |
+| -------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `version.js`   | Utilities | `parseVersion`, `compareVersions`, `bumpVersion`, `isValidVersion`, `validateVersion`, `incrementVersion`, `readVersion`   |
 | `changelog.js` | Utilities | `generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`, `appendChangelog`, `commitChangelog` |
-| `prompts.js` | Utilities | `promptYesNo`, `promptText`, `promptChoice`, `confirmAction`, `promptTextSync` |
+| `prompts.js`   | Utilities | `promptYesNo`, `promptText`, `promptChoice`, `confirmAction`, `promptTextSync`                                             |
 
 ### scripts/operations/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `clone.js` | Operations | `handleClone`, `printHelp` |
-| `hotfix.js` | Operations | `handleHotfix`, `printHelp` |
+| File         | Module     | Exports                      |
+| ------------ | ---------- | ---------------------------- |
+| `clone.js`   | Operations | `handleClone`, `printHelp`   |
+| `hotfix.js`  | Operations | `handleHotfix`, `printHelp`  |
 | `release.js` | Operations | `handleRelease`, `printHelp` |
-| `sync.js` | Operations | `handleSync`, `printHelp` |
+| `sync.js`    | Operations | `handleSync`, `printHelp`    |
 
 ### website/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `package.json` | Configuration | Dependencies and scripts |
-| `astro.config.mjs` | Configuration | Astro config with Tailwind |
-| `tailwind.config.js` | Configuration | Tailwind content config |
-| `tsconfig.json` | Configuration | TypeScript config |
-| `eslint.config.js` | Configuration | ESLint rules |
-| `postcss.config.js` | Configuration | PostCSS setup |
-| `README.md` | Documentation | Setup and deployment |
+| File                 | Module        | Exports                    |
+| -------------------- | ------------- | -------------------------- |
+| `package.json`       | Configuration | Dependencies and scripts   |
+| `astro.config.mjs`   | Configuration | Astro config with Tailwind |
+| `tailwind.config.js` | Configuration | Tailwind content config    |
+| `tsconfig.json`      | Configuration | TypeScript config          |
+| `eslint.config.js`   | Configuration | ESLint rules               |
+| `postcss.config.js`  | Configuration | PostCSS setup              |
+| `README.md`          | Documentation | Setup and deployment       |
 
 ### website/src/ Directory
 
-| File | Module | Exports |
-|------|--------|---------|
-| `pages/index.astro` | Pages | Homepage |
-| `pages/docs.astro` | Pages | Documentation page |
-| `layouts/BaseLayout.astro` | Layouts | Root layout |
-| `components/Nav.astro` | Components | Navigation component |
-| `styles/global.css` | Styles | Global stylesheet |
+| File                       | Module     | Exports              |
+| -------------------------- | ---------- | -------------------- |
+| `pages/index.astro`        | Pages      | Homepage             |
+| `pages/docs.astro`         | Pages      | Documentation page   |
+| `layouts/BaseLayout.astro` | Layouts    | Root layout          |
+| `components/Nav.astro`     | Components | Navigation component |
+| `styles/global.css`        | Styles     | Global stylesheet    |

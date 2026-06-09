@@ -4,9 +4,9 @@ import {
   COLOR_RESET,
   ensureGitFlowAvailable,
   ensureGitFlowInitialized,
-  logError
-} from "../git-flow.js"
-import {handleFinish, handleStart} from "../lib/release-utils.js"
+  logError,
+} from "../git-flow.js";
+import { handleFinish, handleStart } from "../lib/release-utils.js";
 
 export function printHelp() {
   console.log(`
@@ -45,22 +45,22 @@ Examples:
   bun scripts/git-flow.js release start --bump minor
   bun scripts/git-flow.js release start --version 1.2.0
   bun scripts/git-flow.js release finish --tag v1.2.0 --message "Release 1.2.0" --push
-`)
+`);
 }
 
 export async function handleRelease(action, opts) {
-  const available = ensureGitFlowAvailable({...opts, autoInstall: false})
+  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false });
   if (!available) {
-    logError("git-flow is required for release operations")
-    process.exit(1)
+    logError("git-flow is required for release operations");
+    process.exit(1);
   }
 
-  ensureGitFlowInitialized()
+  ensureGitFlowInitialized();
 
   // Check for help flag before processing
   if (opts.help) {
-    printHelp()
-    return
+    printHelp();
+    return;
   }
 
   if (action === "start") {
@@ -69,18 +69,15 @@ export async function handleRelease(action, opts) {
         defaultBump: "minor",
         defaultBase: "develop",
         prefix: "release/",
-        typeLabel: "release"
+        typeLabel: "release",
       },
-      opts
-    )
+      opts,
+    );
   } else if (action === "finish") {
-    await handleFinish(
-      {prefix: "release/", typeLabel: "release"},
-      opts
-    )
+    await handleFinish({ prefix: "release/", typeLabel: "release" }, opts);
   } else {
-    logError(`Unknown release action: ${action}`)
-    printHelp()
-    process.exit(1)
+    logError(`Unknown release action: ${action}`);
+    printHelp();
+    process.exit(1);
   }
 }

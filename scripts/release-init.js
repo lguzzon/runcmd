@@ -1,59 +1,59 @@
 #!/usr/bin/env bun
-import {logError} from "./git-flow.js"
-import {releaseInitDefaults} from "./lib/options.js"
-import {handleHotfix} from "./operations/hotfix.js"
-import {handleRelease} from "./operations/release.js"
+import { logError } from "./git-flow.js";
+import { releaseInitDefaults } from "./lib/options.js";
+import { handleHotfix } from "./operations/hotfix.js";
+import { handleRelease } from "./operations/release.js";
 
 function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = {...releaseInitDefaults}
+  const args = process.argv.slice(2);
+  const opts = { ...releaseInitDefaults };
 
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
+    const arg = args[i];
     switch (arg) {
       case "--type":
-        opts.type = args[++i] || opts.type
-        break
+        opts.type = args[++i] || opts.type;
+        break;
       case "--bump":
-        opts.bump = args[++i]
-        break
+        opts.bump = args[++i];
+        break;
       case "--version":
-        opts.version = args[++i]
-        break
+        opts.version = args[++i];
+        break;
       case "--push":
-        opts.push = true
-        break
+        opts.push = true;
+        break;
       case "--dry-run":
-        opts.dryRun = true
-        break
+        opts.dryRun = true;
+        break;
       case "--yes":
-        opts.yes = true
-        break
+        opts.yes = true;
+        break;
       case "--no-changelog":
-        opts.noChangelog = true
-        break
+        opts.noChangelog = true;
+        break;
       case "--offline":
-        opts.offline = true
-        break
+        opts.offline = true;
+        break;
       case "--help":
       case "-h":
-        opts.help = true
-        break
+        opts.help = true;
+        break;
       default:
         // Ignore unknown arguments for backward compatibility
-        break
+        break;
     }
   }
 
   if (process.env.CI === "true") {
-    opts.yes = true
+    opts.yes = true;
   }
 
   if (!opts.bump && !opts.version) {
-    opts.bump = opts.type === "hotfix" ? "patch" : "minor"
+    opts.bump = opts.type === "hotfix" ? "patch" : "minor";
   }
 
-  return opts
+  return opts;
 }
 
 function printHelp() {
@@ -77,32 +77,32 @@ Examples:
   bun scripts/release-init.js --type release --bump minor
   bun scripts/release-init.js --type hotfix --version 1.2.3
   bun scripts/release-init.js --push --yes
-`)
+`);
 }
 
 async function main() {
-  const opts = parseArgs()
+  const opts = parseArgs();
 
   if (opts.help) {
-    printHelp()
-    process.exit(0)
+    printHelp();
+    process.exit(0);
   }
 
   // Map to git-flow.js operation
-  const action = "start"
-  const type = opts.type
+  const action = "start";
+  const type = opts.type;
 
   if (type === "hotfix") {
-    await handleHotfix(action, opts)
+    await handleHotfix(action, opts);
   } else {
-    await handleRelease(action, opts)
+    await handleRelease(action, opts);
   }
 
   // Close stdin to prevent hanging
-  process.stdin.pause()
+  process.stdin.pause();
 }
 
-main().catch(error => {
-  logError(`Unexpected error: ${error.message}`)
-  process.exit(1)
-})
+main().catch((error) => {
+  logError(`Unexpected error: ${error.message}`);
+  process.exit(1);
+});

@@ -171,19 +171,19 @@ bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
 
 ### Commands Reference
 
-| Command | Description | Example |
-| --------- | ------------- | --------- |
-| `init` | Initialize git-flow in repository | `git-flow.js init` |
-| `start <type> <name>` | Start new branch | `start feature new-auth` |
-| `finish <type> <name>` | Finish and merge branch | `finish feature new-auth` |
-| `publish <type> <name>` | Publish branch to remote | `publish feature new-auth` |
-| `track <type> <name>` | Track remote branch locally | `track feature new-auth` |
-| `delete <type> <name>` | Delete branch | `delete feature old-feature` |
-| `list [type]` | List branches by type | `list feature` |
-| `release <action>` | Manage release branches | `release start --bump minor` |
-| `hotfix <action>` | Manage hotfix branches | `hotfix finish --tag v1.1.1` |
-| `sync` | Sync main/master & develop | `sync --dry-run` |
-| `clone <url> [dir]` | Clone and initialize git-flow | `clone https://github.com/user/repo` |
+| Command                 | Description                       | Example                              |
+| ----------------------- | --------------------------------- | ------------------------------------ |
+| `init`                  | Initialize git-flow in repository | `git-flow.js init`                   |
+| `start <type> <name>`   | Start new branch                  | `start feature new-auth`             |
+| `finish <type> <name>`  | Finish and merge branch           | `finish feature new-auth`            |
+| `publish <type> <name>` | Publish branch to remote          | `publish feature new-auth`           |
+| `track <type> <name>`   | Track remote branch locally       | `track feature new-auth`             |
+| `delete <type> <name>`  | Delete branch                     | `delete feature old-feature`         |
+| `list [type]`           | List branches by type             | `list feature`                       |
+| `release <action>`      | Manage release branches           | `release start --bump minor`         |
+| `hotfix <action>`       | Manage hotfix branches            | `hotfix finish --tag v1.1.1`         |
+| `sync`                  | Sync main/master & develop        | `sync --dry-run`                     |
+| `clone <url> [dir]`     | Clone and initialize git-flow     | `clone https://github.com/user/repo` |
 
 ## 🏗️ Project Structure
 
@@ -254,11 +254,11 @@ The project uses Biome for formatting and linting with these defaults:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-| ---------- | ------------- | --------- |
-| `DEBUG` | Enable debug logging | `0` |
-| `RUNCMD_NO_UPDATE` | Disable auto-updates | `0` |
-| `RUNCMD_HOME` | State directory | `~/.runcmd` |
+| Variable           | Description          | Default     |
+| ------------------ | -------------------- | ----------- |
+| `DEBUG`            | Enable debug logging | `0`         |
+| `RUNCMD_NO_UPDATE` | Disable auto-updates | `0`         |
+| `RUNCMD_HOME`      | State directory      | `~/.runcmd` |
 
 ## 🚀 Development
 
@@ -293,12 +293,12 @@ GitHub Pages is built from the `website` folder using Bun in `.github/workflows/
 
 ## 📋 Requirements
 
-| Component | Unix/macOS | Windows |
-| ----------- | ------------ | --------- |
-| Bash | 4.0+ | - |
-| Python 3 | For path resolution and timing | - |
-| curl | For Bun installation | - |
-| Internet | Initial Bun and tool installation | Same |
+| Component | Unix/macOS                        | Windows |
+| --------- | --------------------------------- | ------- |
+| Bash      | 4.0+                              | -       |
+| Python 3  | For path resolution and timing    | -       |
+| curl      | For Bun installation              | -       |
+| Internet  | Initial Bun and tool installation | Same    |
 
 All tools (Bun, Biome, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
 

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Pre-commit hook: run linting and formatting
+set -euo pipefail
+
+echo "[pre-commit] Running check mode..."
+
+# Find runcmd.sh path (repo root)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+# Check if we're in a runcmd project (has runcmd.sh)
+if [[ ! -f "$REPO_ROOT/runcmd.sh" ]]; then
+  echo "[pre-commit] Not a runcmd project, skipping checks."
+  exit 0
+fi
+
+# Only check staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [[ -z "$STAGED_FILES" ]]; then
+  echo "[pre-commit] No staged files to check."
+  exit 0
+fi
+
+# Run shellcheck on staged .sh files
+SH_FILES=$(echo "$STAGED_FILES" | grep '\.sh$' || true)
+if [[ -n "$SH_FILES" ]]; then
+  echo "[pre-commit] Running shellcheck..."
+  while IFS= read -r sh_file; do
+    if [[ -f "$sh_file" ]]; then
+      if ! shellcheck -s bash "$sh_file" 2>/dev/null; then
+        echo "[pre-commit] shellcheck warnings in $sh_file (not blocking)"
+      fi
+    fi
+  done <<< "$SH_FILES"
+fi
+
+# Run oxlint on staged JS/TS files
+JS_FILES=$(echo "$STAGED_FILES" | grep -E '\.(js|mjs|ts|tsx)$' || true)
+if [[ -n "$JS_FILES" ]]; then
+  echo "[pre-commit] Running oxlint on staged JS/TS files..."
+  while IFS= read -r js_file; do
+    if [[ -f "$js_file" ]]; then
+      bunx --silent oxlint --fix-dangerously "$js_file" 2>/dev/null || true
+    fi
+  done <<< "$JS_FILES"
+fi
+
+# Re-add files that may have been auto-fixed
+git diff --name-only --diff-filter=ACM | xargs git add 2>/dev/null || true
+
+echo "[pre-commit] Checks complete."

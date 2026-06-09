@@ -1,6 +1,12 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
-  "assist": {"actions": {"source": {"organizeImports": "on"}}},
+  "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "formatter": {
     "attributePosition": "auto",
     "enabled": true,
@@ -23,8 +29,21 @@
       "trailingCommas": "none"
     }
   },
-  "json": {"formatter": {"trailingCommas": "none"}},
-  "linter": {"enabled": true, "rules": {"recommended": true}},
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
   "root": true,
-  "vcs": {"clientKind": "git", "enabled": true, "useIgnoreFile": false}
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": false
+  }
 }

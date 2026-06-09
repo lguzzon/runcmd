@@ -16,13 +16,13 @@ Marketing website for RunCmd, built with Astro and Tailwind CSS, deployed to Git
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start dev server at <http://localhost:4321> |
-| `bun run build` | Build static files to `../public` |
-| `bun run preview` | Preview production build |
-| `bun run lint` | Run ESLint |
-| `bun run check` | Run Astro type checks |
+| Command           | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `bun run dev`     | Start dev server at <http://localhost:4321> |
+| `bun run build`   | Build static files to `../public`           |
+| `bun run preview` | Preview production build                    |
+| `bun run lint`    | Run ESLint                                  |
+| `bun run check`   | Run Astro type checks                       |
 
 ## Contents
 

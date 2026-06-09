@@ -58,22 +58,22 @@ bun scripts/git-flow.js finish feature new-auth
 
 #### Available Commands
 
-| Command | Description | Example |
-| --------- | ------------- | --------- |
-| `help` | Show help message | `git-flow.js help` |
-| `install` | Ensure git-flow is available | `git-flow.js install` |
-| `init` | Initialize git-flow | `git-flow.js init` |
-| `start <type> <name>` | Start new branch | `start feature new-auth` |
-| `finish <type> <name>` | Finish branch | `finish feature new-auth` |
-| `publish <type> <name>` | Publish to remote | `publish feature new-auth` |
-| `track <type> <name>` | Track remote branch | `track feature new-auth` |
-| `delete <type> <name>` | Delete branch | `delete feature old-feature` |
-| `list [type]` | List branches | `list feature` |
-| `config` | Manage configuration | `config --get gitflow.branch.master` |
-| `sync` | Sync main branches | `sync --dry-run` |
-| `clone <url> [dir]` | Clone with git-flow | `clone https://github.com/user/repo` |
-| `release <action>` | Release management | `release start --bump minor` |
-| `hotfix <action>` | Hotfix management | `hotfix finish --tag v1.1.1` |
+| Command                 | Description                  | Example                              |
+| ----------------------- | ---------------------------- | ------------------------------------ |
+| `help`                  | Show help message            | `git-flow.js help`                   |
+| `install`               | Ensure git-flow is available | `git-flow.js install`                |
+| `init`                  | Initialize git-flow          | `git-flow.js init`                   |
+| `start <type> <name>`   | Start new branch             | `start feature new-auth`             |
+| `finish <type> <name>`  | Finish branch                | `finish feature new-auth`            |
+| `publish <type> <name>` | Publish to remote            | `publish feature new-auth`           |
+| `track <type> <name>`   | Track remote branch          | `track feature new-auth`             |
+| `delete <type> <name>`  | Delete branch                | `delete feature old-feature`         |
+| `list [type]`           | List branches                | `list feature`                       |
+| `config`                | Manage configuration         | `config --get gitflow.branch.master` |
+| `sync`                  | Sync main branches           | `sync --dry-run`                     |
+| `clone <url> [dir]`     | Clone with git-flow          | `clone https://github.com/user/repo` |
+| `release <action>`      | Release management           | `release start --bump minor`         |
+| `hotfix <action>`       | Hotfix management            | `hotfix finish --tag v1.1.1`         |
 
 ## 🛠️ Command Implementations
 
@@ -241,10 +241,10 @@ Version management utilities for semantic versioning.
 **Usage:**
 
 ```javascript
-import { bumpVersion, compareVersions } from './lib/version.js';
+import { bumpVersion, compareVersions } from "./lib/version.js";
 
-const newVersion = bumpVersion('1.2.3', 'minor'); // '1.3.0'
-const isGreater = compareVersions('1.3.0', '1.2.0'); // true
+const newVersion = bumpVersion("1.2.3", "minor"); // '1.3.0'
+const isGreater = compareVersions("1.3.0", "1.2.0"); // true
 ```
 
 ### [`lib/changelog.js`](lib/changelog.js)
@@ -261,11 +261,11 @@ Changelog generation and management utilities.
 **Usage:**
 
 ```javascript
-import { generateChangelog } from './lib/changelog.js';
+import { generateChangelog } from "./lib/changelog.js";
 
 const changelog = generateChangelog([
-  { type: 'feat', scope: 'auth', message: 'Add OAuth2 support' },
-  { type: 'fix', scope: 'api', message: 'Fix authentication bug' }
+  { type: "feat", scope: "auth", message: "Add OAuth2 support" },
+  { type: "fix", scope: "api", message: "Fix authentication bug" },
 ]);
 ```
 
@@ -283,10 +283,10 @@ User interaction utilities for CLI prompts.
 **Usage:**
 
 ```javascript
-import { promptYesNo, promptText } from './lib/prompts.js';
+import { promptYesNo, promptText } from "./lib/prompts.js";
 
-const shouldContinue = await promptYesNo('Continue with release?');
-const version = await promptText('Enter version number:');
+const shouldContinue = await promptYesNo("Continue with release?");
+const version = await promptText("Enter version number:");
 ```
 
 ## 🚀 High-Level Operations

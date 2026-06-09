@@ -76,8 +76,11 @@ export async function handleStart(config, opts) {
   ensureBranchExists(defaultBase)
 
   const currentVersion = readVersion()
-  const {name, bump, version, base, push, noChangelog, dryRun, offline, yes} =
+  let {name, bump, version, base, push, noChangelog, dryRun, offline, yes} =
     opts
+
+  // The default "nextRelease" from parseArgs should not be used for versioned releases
+  if (name === "nextRelease") name = undefined
 
   const newVersion = await promptVersion(currentVersion, {
     version,

@@ -139,25 +139,6 @@ export function currentBranch() {
   return name || ""
 }
 
-export function promptYesNo(message, defaultYes = false) {
-  if (process.env.CI === "true") return Promise.resolve(defaultYes)
-  return promptText(`${message} ${defaultYes ? "[Y/n]" : "[y/N]"} `).then(
-    ans => {
-      if (!ans) return defaultYes
-      return ans.toLowerCase().startsWith("y")
-    }
-  )
-}
-
-export function promptText(question) {
-  return new Promise(resolve => {
-    process.stdout.write(question)
-    process.stdin.once("data", data => {
-      resolve(data.toString().trim())
-    })
-  })
-}
-
 export function ensureTagMissing(version) {
   const tagName = version.startsWith("v") ? version : `v${version}`
   const tags = runGit("tag -l", {allowFail: true}) || ""

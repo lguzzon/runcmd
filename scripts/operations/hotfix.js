@@ -1,34 +1,12 @@
 #!/usr/bin/env bun
-import {existsSync, readFileSync, writeFileSync} from "node:fs"
 import {
   COLOR_BOLD,
   COLOR_RESET,
-  ensureBranchExists,
-  ensureBranchMissing,
-  ensureCleanTree,
   ensureGitFlowAvailable,
   ensureGitFlowInitialized,
-  ensureTagMissing,
-  logError,
-  logInfo,
-  logSuccess,
-  logWarn,
-  pullBranch,
-  runGit,
-  runGitFlow
+  logError
 } from "../git-flow.js"
-import {appendChangelog} from "../lib/changelog.js"
-import {promptText} from "../lib/prompts.js"
-import {
-  compareVersions,
-  incrementVersion,
-  readVersion,
-  validateVersion
-} from "../lib/version.js"
-
-const PROJECT_ROOT = process.cwd()
-const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
-const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
+import {handleFinish, handleStart} from "../lib/release-utils.js"
 
 export function printHelp() {
   console.log(`
@@ -70,163 +48,6 @@ Examples:
 `)
 }
 
-function updateVersionFile(version, {dryRun}) {
-  if (!existsSync(VERSION_FILE)) {
-    logError(`version.txt not found at ${VERSION_FILE}`)
-    process.exit(1)
-  }
-  const lines = readFileSync(VERSION_FILE, "utf-8").split("\n")
-  lines[0] = version
-  const nextContent = lines.join("\n")
-  if (dryRun) {
-    logInfo(`[dry-run] would write version.txt => ${version}`)
-    return false
-  }
-  writeFileSync(VERSION_FILE, nextContent, "utf-8")
-  return true
-}
-
-function commitChanges(version, type, {dryRun}) {
-  const message = `chore: bump version to ${version} for ${type}`
-  runGit(
-    `add ${VERSION_FILE}${existsSync(CHANGELOG_FILE) ? ` ${CHANGELOG_FILE}` : ""}`,
-    {dryRun}
-  )
-  runGit(`commit -m "${message}"`, {dryRun})
-}
-
-async function promptVersion(currentVersion, opts) {
-  if (opts.version) {
-    if (!validateVersion(opts.version)) {
-      logError("--version must be semver x.y.z")
-      process.exit(1)
-    }
-    return opts.version
-  }
-  const bumped = incrementVersion(currentVersion, opts.bump)
-  if (opts.yes) return bumped
-  const answer = await promptText(`Use version ${bumped}? [Y/n] `)
-  if (!answer || answer.toLowerCase().startsWith("y")) return bumped
-  const custom = await promptText("Enter custom version (x.y.z): ")
-  if (!validateVersion(custom)) {
-    logError("Invalid version format")
-    process.exit(1)
-  }
-  return custom
-}
-
-async function handleHotfixStart(opts) {
-  ensureCleanTree()
-  ensureBranchExists("main")
-
-  const currentVersion = readVersion()
-  const {name, bump, version, base, push, noChangelog, dryRun, offline, yes} =
-    opts
-
-  const newVersion = await promptVersion(currentVersion, {
-    ...opts,
-    bump: bump || "patch",
-    version
-  })
-
-  if (!validateVersion(newVersion)) {
-    logError("Invalid version format")
-    process.exit(1)
-  }
-
-  if (compareVersions(newVersion, currentVersion) < 0) {
-    logError(
-      `New version ${newVersion} cannot be lower than current ${currentVersion}`
-    )
-    process.exit(1)
-  }
-
-  const branchName = `hotfix/${name ? (name.startsWith("v") ? name : `v${name}`) : `v${newVersion}`}`
-  ensureBranchMissing(branchName)
-
-  const baseBranch = base || "main"
-  if (!offline) {
-    pullBranch(baseBranch, {dryRun, offline})
-  }
-
-  logInfo(`Starting hotfix branch: ${branchName}`)
-  const hotfixName = name
-    ? name.startsWith("v")
-      ? name
-      : `v${name}`
-    : `v${newVersion}`
-  runGitFlow(`hotfix start ${hotfixName} ${baseBranch}`, {dryRun})
-  logSuccess(`Hotfix branch started: ${branchName}`)
-
-  const versionChanged = updateVersionFile(newVersion, opts)
-  let changelogChanged = false
-  if (!noChangelog) {
-    changelogChanged = appendChangelog(newVersion, opts)
-  }
-
-  commitChanges(newVersion, "hotfix", opts)
-
-  if (push) {
-    runGit(`push -u origin ${branchName}`, {dryRun})
-    logSuccess(`Pushed ${branchName}`)
-  }
-
-  logSuccess(`Hotfix initialized: ${branchName} (version ${newVersion})`)
-  if (opts.dryRun) {
-    logWarn("Dry-run completed. No changes were applied.")
-  } else {
-    if (!versionChanged && !changelogChanged) {
-      logWarn("No files were changed (version/changelog). Check your inputs.")
-    }
-  }
-}
-
-async function handleHotfixFinish(opts) {
-  ensureCleanTree()
-  ensureBranchExists("main")
-  ensureBranchExists("develop")
-
-  const {name, tag, message, push, keepBranch, dryRun, offline, noChangelog} =
-    opts
-
-  if (!tag || !message) {
-    logError("--tag and --message are required for hotfix finish")
-    process.exit(1)
-  }
-
-  ensureTagMissing(tag.replace(/^v/, ""))
-
-  const branchName = `hotfix/${name ? (name.startsWith("v") ? name : `v${name}`) : tag}`
-  ensureBranchExists(branchName)
-
-  if (!offline) {
-    pullBranch(branchName, {dryRun, offline})
-    pullBranch("develop", {dryRun, offline})
-    pullBranch("main", {dryRun, offline})
-  }
-
-  const flags = []
-  if (push && !offline) flags.push("-p")
-  if (tag) flags.push(`-T ${tag}`)
-  if (message) flags.push(`-m "${message}"`)
-
-  const hotfixName = name ? (name.startsWith("v") ? name : `v${name}`) : tag
-  const cmd = `hotfix finish ${flags.join(" ")} ${hotfixName}`
-  logInfo(`Finishing hotfix branch: ${branchName}`)
-  runGitFlow(cmd, {dryRun})
-  logSuccess(`Hotfix branch finalized: ${branchName}`)
-
-  if (push && offline) {
-    logWarn("--push ignored in offline mode")
-  }
-
-  if (!keepBranch && !dryRun) {
-    runGit(`branch -D ${branchName}`, {allowFail: true})
-  }
-
-  logSuccess(`Hotfix completed: ${tag}`)
-}
-
 export async function handleHotfix(action, opts) {
   const available = ensureGitFlowAvailable({...opts, autoInstall: false})
   if (!available) {
@@ -243,9 +64,20 @@ export async function handleHotfix(action, opts) {
   }
 
   if (action === "start") {
-    await handleHotfixStart(opts)
+    await handleStart(
+      {
+        defaultBump: "patch",
+        defaultBase: "main",
+        prefix: "hotfix/",
+        typeLabel: "hotfix"
+      },
+      opts
+    )
   } else if (action === "finish") {
-    await handleHotfixFinish(opts)
+    await handleFinish(
+      {prefix: "hotfix/", typeLabel: "hotfix"},
+      opts
+    )
   } else {
     logError(`Unknown hotfix action: ${action}`)
     printHelp()

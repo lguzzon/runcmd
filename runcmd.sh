@@ -48,7 +48,9 @@ readonly UNAME_S
 readonly COLOR_INFO="\033[32m"
 readonly COLOR_ERROR="\033[31m"
 readonly COLOR_RESET="\033[0m"
-readonly RUNCMD_VERSION="1.0.0"
+
+# Fallback version - will be updated after script_dir is defined
+RUNCMD_VERSION="1.0.0"
 
 DEBUG=0
 CHECK_MODE=0
@@ -231,6 +233,10 @@ script_file=$(basename "$script_path")
 readonly script_file
 script_name="${script_file%.*}"
 readonly script_name
+
+# Now that script_dir is defined, read version from version.txt for single source of truth
+RUNCMD_VERSION=$(cat "$script_dir/version.txt" 2>/dev/null || echo "$RUNCMD_VERSION")
+readonly RUNCMD_VERSION
 
 readonly BUN_INSTALL="$HOME/.bun"
 readonly BUN_INSTALL_SCRIPT="https://bun.sh/install"

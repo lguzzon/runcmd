@@ -19,7 +19,7 @@ Git Flow automation CLI and library for branch management, release/hotfix handli
 
 [commands/](./commands/) — CLI command handlers for git-flow operations: init, start, finish, publish, track, delete, list, config.
 
-[lib/](./lib/) — Shared utilities: version.js (semver), changelog.js, prompts.js (CLI interaction).
+[lib/](./lib/) — Shared utilities: version.js (semver), changelog.js, prompts.js (CLI interaction), release-utils.js (release/hotfix lifecycle), options.js (option defaults).
 
 [operations/](./operations/) — High-level workflows: clone, sync, release, hotfix.
 
@@ -61,7 +61,9 @@ Branch validation regex from `git-flow.js`: `^[\w-]+$` for feature/release/hotfi
 
 | Module | Exports |
 |--------|---------|
-| `./git-flow.js` | `logError`, `logInfo`, `logSuccess`, `logWarn`, `runGit`, `runGitFlow`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `getGitFlowConfig`, `stashPush`, `stashPop` |
-| `./lib/version.js` | `parseVersion`, `compareVersions`, `bumpVersion`, `isValidVersion`, `validateVersion`, `incrementVersion`, `readVersion` |
-| `./lib/changelog.js` | `generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`, `appendChangelog`, `commitChangelog` |
-| `./lib/prompts.js` | `promptYesNo`, `promptText`, `promptChoice`, `confirmAction`, `promptTextSync` |
+| `./git-flow.js` | `checkout`, `COLOR_ERROR`, `COLOR_INFO`, `currentBranch`, `detectMainBranch`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureTagMissing`, `getBranchType`, `getGitFlowConfig`, `logError`, `logInfo`, `logSuccess`, `logWarn`, `mergeBranch`, `promptText`, `promptTextSync`, `promptYesNo`, `pullBranch`, `pushBranch`, `runGit`, `runGitFlow`, `stashPop`, `stashPush`, `validateBranchName`, `withDryRunLabel` |
+| `./lib/version.js` | `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion` |
+| `./lib/changelog.js` | `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog` |
+| `./lib/prompts.js` | `promptText`, `promptTextSync`, `promptYesNo` |
+| `./lib/release-utils.js` | `updateVersionFile`, `commitChanges`, `promptVersion`, `handleStart`, `handleFinish` |
+| `./lib/options.js` | `releaseInitDefaults`, `releaseFinalizeDefaults` |

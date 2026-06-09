@@ -1,3 +1,16 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## v1.9.1 - 2026-06-09
+
+- chore: bump version to 1.9.1
+- chore: integrate agents-reverse-engineer and reformat config files
+- style(scripts): reformat JS files to 2-space indent and no semicolons
+
 ## v1.9.0 - 2026-01-07
 
 - chore(operations): remove commented-out changelog generation code
@@ -27,111 +40,24 @@
 - docs: update project documentation and add comprehensive scripts guide
 - Merge tag 'v1.4.0' into develop
 
-# Changelog
+## v1.4.0 - 2026-01-07
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.4.0] - 2026-01-07
-
-### Added
-
-- Merge branch 'release/1.3.0' into develop
 - feat(release): standardize version prefix handling in release and hotfix operations
-- chore: bump version to 1.3.0 for release
-- feat: prevent git-flow.js from executing when imported as module
+
+## v1.3.0 - 2026-01-07
+
+- fix: prevent git-flow.js from executing when imported as module
 - feat: modularize git-flow utilities and migrate commands to shared module
 - feat: modularize git-flow commands and operations
 - feat: migrate release scripts to use git-flow-utils module
 
-### Changed
-
-- Merge branch 'release/v1.2.0'
-- chore: bump version to 1.2.0 for release
-- feat(ci): add Bun caching to GitHub Pages workflow
-- feat(website): migrate from React/Vite to Astro with Tailwind CSS
-
-### Fixed
-
-- Merge branch 'release/v1.1.0'
-- fix(scripts): prevent stdin hanging in release scripts
-- chore: bump version to 1.1.0 for release
-- feat(scripts): update file permissions for release management scripts
-- feat(scripts): add comprehensive git flow release and hotfix management tools
-- feat(config): reorganize TypeScript configuration files with improved formatting and structure
-- feat: update dependencies and improve path resolution robustness
-- feat: reorganize package.json scripts and improve tsconfig.json formatting
-- feat: add .gitignore file for project configuration
-- feat: add version management and help system to runcmd
-- feat: implement enterprise-grade landing page and CI/CD pipeline
-- fix: add robust timeouts and offline checks to update mechanism
-- feat: implement self-update mechanism and GitHub Pages publishing
-- feat: initial implementation of cross-platform command runner
-- Initial commit
-
-## [1.3.0] - 2026-01-07
-
-### Added
-
-- feat: modularize git-flow utilities and migrate commands to shared module
-- feat: modularize git-flow commands and operations
-- feat: migrate release scripts to use git-flow-utils module
-
-### Changed
-
-- Merge branch 'release/v1.2.0'
-- chore: bump version to 1.2.0 for release
-- feat(ci): add Bun caching to GitHub Pages workflow
-- feat(website): migrate from React/Vite to Astro with Tailwind CSS
-
-### Fixed
-
-- Merge branch 'release/v1.1.0'
-- fix(scripts): prevent stdin hanging in release scripts
-- chore: bump version to 1.1.0 for release
-- feat(scripts): update file permissions for release management scripts
-- feat(scripts): add comprehensive git flow release and hotfix management tools
-- feat(config): reorganize TypeScript configuration files with improved formatting and structure
-- feat: update dependencies and improve path resolution robustness
-- feat: reorganize package.json scripts and improve tsconfig.json formatting
-- feat: add .gitignore file for project configuration
-- feat: add version management and help system to runcmd
-- feat: implement enterprise-grade landing page and CI/CD pipeline
-- fix: add robust timeouts and offline checks to update mechanism
-- feat: implement self-update mechanism and GitHub Pages publishing
-- feat: initial implementation of cross-platform command runner
-- Initial commit
-
-## [1.2.0] - 2026-01-07
-
-### Added
+## v1.2.0 - 2026-01-07
 
 - feat(ci): add Bun caching to GitHub Pages workflow
 - feat(website): migrate from React/Vite to Astro with Tailwind CSS
-
-### Changed
-
-- Merge branch 'release/v1.1.0'
 - fix(scripts): prevent stdin hanging in release scripts
-- chore: bump version to 1.1.0 for release
-- feat(scripts): update file permissions for release management scripts
-- feat(scripts): add comprehensive git flow release and hotfix management tools
-- feat(config): reorganize TypeScript configuration files with improved formatting and structure
-- feat: update dependencies and improve path resolution robustness
-- feat: reorganize package.json scripts and improve tsconfig.json formatting
-- feat: add .gitignore file for project configuration
-- feat: add version management and help system to runcmd
-- feat: implement enterprise-grade landing page and CI/CD pipeline
-- fix: add robust timeouts and offline checks to update mechanism
-- feat: implement self-update mechanism and GitHub Pages publishing
-- feat: initial implementation of cross-platform command runner
-- Initial commit
 
-## [1.1.0] - 2026-01-07
-
-### Added
+## v1.1.0 - 2026-01-07
 
 - feat(scripts): update file permissions for release management scripts
 - feat(scripts): add comprehensive git flow release and hotfix management tools
@@ -144,9 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: add robust timeouts and offline checks to update mechanism
 - feat: implement self-update mechanism and GitHub Pages publishing
 - feat: initial implementation of cross-platform command runner
-- Initial commit
 
-## [1.0.0] - 2025-12-01
+## v1.0.0 - 2025-12-01
 
 ### Added
 
@@ -186,8 +111,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced configuration options
 - Plugin system for custom tooling
 
-[1.4.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.4.0
-[1.3.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.3.0
-[1.2.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.2.0
-[1.1.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.1.0
-[1.0.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.0.0
+[v1.9.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.1
+[v1.9.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.0
+[v1.8.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.8.0
+[v1.7.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.7.0
+[v1.6.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.6.0
+[v1.5.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.5.0
+[v1.4.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.4.0
+[v1.3.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.3.0
+[v1.2.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.2.0
+[v1.1.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.1.0
+[v1.0.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.0.0

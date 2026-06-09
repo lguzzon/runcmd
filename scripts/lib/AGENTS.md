@@ -13,10 +13,16 @@ Utility library directory providing version management, changelog generation, an
 
 [version.js](./version.js) — Semver utilities: validate, parse, increment (major/minor/patch), compare versions, read from version.txt.
 
+[release-utils.js](./release-utils.js) — Shared release/hotfix lifecycle functions: version file update, git commit, version prompting, and parameterized start/finish handlers. Imports from `../git-flow.js` and sibling lib modules.
+
+[options.js](./options.js) — Shared option defaults for release-init and release-finalize standalone scripts.
+
 ## Dependencies
 
 - `../git-flow.js` — shared git operations (`logInfo`, `runGit`, `logError`)
 - `node:fs` — file system operations (readFileSync, writeFileSync, existsSync)
+- `./changelog.js` — changelog append operations (via release-utils.js)
+- `./version.js` — version read/increment/validate (via release-utils.js)
 
 ## Behavioral Contracts
 
@@ -37,6 +43,16 @@ Utility library directory providing version management, changelog generation, an
 - Yes detection: `ans.toLowerCase().startsWith("y")`
 - Prompt format: `[Y/n]` or `[y/N]` based on default
 - Sync read buffer: 1024 bytes
+
+**release-utils.js:**
+
+- Version file path: `process.cwd() + "/version.txt"`
+- Changelog file path: `process.cwd() + "/CHANGELOG.md"`
+- Commit message format: `chore: bump version to ${version} for ${type}`
+- `handleStart` config: `{ defaultBump, defaultBase, prefix, typeLabel }`; calls `ensureCleanTree()`, `ensureBranchExists(defaultBase)`
+- `handleFinish` config: `{ prefix, typeLabel }`; calls `ensureCleanTree()`, `ensureBranchExists("main")`, `ensureBranchExists("develop")`
+- `promptVersion` respects `--yes` flag (non-interactive skip), falls back to `promptText` for version confirmation
+- All exported functions delegate to `../git-flow.js` for git operations and `./lib/*` for utility functions
 
 ## Stack
 

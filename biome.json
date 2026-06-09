@@ -25,6 +25,6 @@
   },
   "json": {"formatter": {"trailingCommas": "none"}},
   "linter": {"enabled": true, "rules": {"recommended": true}},
-  "root": false,
+  "root": true,
   "vcs": {"clientKind": "git", "enabled": true, "useIgnoreFile": false}
 }

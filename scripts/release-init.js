@@ -1,22 +1,12 @@
 #!/usr/bin/env bun
+import {logError} from "./git-flow.js"
+import {releaseInitDefaults} from "./lib/options.js"
 import {handleHotfix} from "./operations/hotfix.js"
 import {handleRelease} from "./operations/release.js"
 
-const defaultOptions = {
-  type: "release", // release|hotfix
-  bump: undefined, // patch|minor|major
-  version: undefined,
-  push: false,
-  dryRun: false,
-  yes: false,
-  noChangelog: false,
-  offline: false,
-  help: false
-}
-
 function parseArgs() {
   const args = process.argv.slice(2)
-  const opts = {...defaultOptions}
+  const opts = {...releaseInitDefaults}
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
@@ -113,8 +103,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error(
-    `${"\x1b[31m"}[ERROR]${"\x1b[0m"} Unexpected error: ${error.message}`
-  )
+  logError(`Unexpected error: ${error.message}`)
   process.exit(1)
 })

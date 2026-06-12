@@ -1,10 +1,14 @@
 ## v1.10.4 - 2026-06-09
+
 - chore: update bun lockfile after eslint removal
 - Merge branch 'main' into develop
+
 ## v1.10.3 - 2026-06-09
+
 - refactor: migrate Biome to oxlint/oxfmt, remove old tools
 - feat: add oxlint, oxfmt, shellcheck linting and pre-commit hook
 - Merge branch 'main' into develop
+
 ## v1.10.2 - 2026-06-09
 
 - ci: bump actions to latest major versions

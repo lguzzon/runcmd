@@ -1,3 +1,22 @@
+## v1.11.0 - 2026-06-12
+- docs: accept ADR-1 error handling strategy and apply convention
+- Merge branch 'refactor/wf5-merge' into develop
+- refactor: deepRefactor-graphify pipeline — WF5-WF7
+- Merge commit '30286a8ded06477774182119bd31d7544baefbde' into refactor/wf5-merge
+- Merge commit '5867707754aa2a2a5c027f90a253225e2b901859' into refactor/wf5-merge
+- Merge commit '74df117475e3db78240e52835e0a0b36457074fe' into refactor/wf5-merge
+- Merge commit 'a80ba1f8313c7b7a60a68548585e3a5b7ae3e3f4' into refactor/wf5-merge
+- Merge commit 'b9b8b4f49ea450c808367df3f9255d280e4f243f' into refactor/wf5-merge
+- Merge commit 'd81d71defa22e704b4e1d4fb5b1c9baddd7409fd' into refactor/wf5-merge
+- Merge commit 'e6c2ad6be551990bfdbc52620158be79808e4005' into refactor/wf5-merge
+- chore: WF5 impl worktree 11
+- chore: WF5 impl worktree 7
+- chore: WF5 impl worktree 5
+- chore: WF5 impl worktree 4
+- chore: WF5 impl worktree 2
+- chore: WF5 impl worktree 1
+- chore: WF5 impl worktree 6
+- Merge branch 'main' into develop
 ## v1.10.4 - 2026-06-09
 
 - chore: update bun lockfile after eslint removal

@@ -94,7 +94,7 @@ import Nav from '../components/Nav.astro'
                 <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['runcmd.bat', 'runcmd.bat +d', 'runcmd.bat +r my-script.mjs --flag', 'runcmd.bat +check'].join('\n')}</pre>
               </div>
               <p><strong>Supported files:</strong> <code>.js</code>, <code>.mjs</code>, <code>.ts</code>, and <code>.py</code>. Bun and supporting tools auto-install as needed.</p>
-              <p class="mt-4 text-sm text-gray-500 dark:text-gray-400"><strong>v1.11.0:</strong> <code>+check</code> mode and <code>+r</code> path selection now available on Windows.</p>
+              <p class="mt-4 text-sm text-gray-500 dark:text-gray-400"><strong>v{version}:</strong> <code>+check</code> mode and <code>+r</code> path selection now available on Windows.</p>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ import Nav from '../components/Nav.astro'
             <h3>Checks & formatting</h3>
             <ul>
               <li><code>./runcmd.sh +check</code> — formats shell scripts, sorts JSON, runs oxlint and oxfmt.</li>
-              <li><code>runcmd.bat +check</code> — same check mode on Windows (v1.11.0+).</li>
+              <li><code>runcmd.bat +check</code> — same check mode on Windows (v{version}+).</li>
               <li>Manual: <code>bunx oxfmt --write .</code></li>
               <li>Manual: <code>bunx oxlint --fix-dangerously .</code></li>
               <li>Shell: <code>bunx shfmt -w -bn -ci -i 2 -s *.sh</code></li>

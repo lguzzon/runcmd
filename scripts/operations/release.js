@@ -6,7 +6,7 @@ import {
   ensureGitFlowInitialized,
   logError
 } from '../git-flow.js'
-import { handleFinish, handleStart } from '../lib/release-utils.js'
+import { handleFinish, handleStart } from './release-utils.js'
 
 export function printHelp() {
   console.log(`
@@ -48,10 +48,17 @@ Examples:
 `)
 }
 
-export async function handleRelease(action, opts) {
+export async function handleBranchOperation(action, opts, config) {
+  const {
+    defaultBump,
+    defaultBase,
+    prefix,
+    typeLabel,
+    printHelp: helpFn
+  } = config
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
-    logError('git-flow is required for release operations')
+    logError(`git-flow is required for ${typeLabel} operations`)
     process.exit(1)
   }
 
@@ -59,25 +66,27 @@ export async function handleRelease(action, opts) {
 
   // Check for help flag before processing
   if (opts.help) {
-    printHelp()
+    helpFn()
     return
   }
 
   if (action === 'start') {
-    await handleStart(
-      {
-        defaultBump: 'minor',
-        defaultBase: 'develop',
-        prefix: 'release/',
-        typeLabel: 'release'
-      },
-      opts
-    )
+    await handleStart({ defaultBump, defaultBase, prefix, typeLabel }, opts)
   } else if (action === 'finish') {
-    await handleFinish({ prefix: 'release/', typeLabel: 'release' }, opts)
+    await handleFinish({ prefix, typeLabel }, opts)
   } else {
-    logError(`Unknown release action: ${action}`)
-    printHelp()
+    logError(`Unknown ${typeLabel} action: ${action}`)
+    helpFn()
     process.exit(1)
   }
+}
+
+export async function handleRelease(action, opts) {
+  await handleBranchOperation(action, opts, {
+    defaultBump: 'minor',
+    defaultBase: 'develop',
+    prefix: 'release/',
+    typeLabel: 'release',
+    printHelp
+  })
 }

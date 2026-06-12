@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { logError } from './git-flow.js'
-import { releaseInitDefaults } from './lib/options.js'
+import { releaseInitDefaults } from './operations/options.js'
 import { handleHotfix } from './operations/hotfix.js'
 import { handleRelease } from './operations/release.js'
 

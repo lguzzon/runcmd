@@ -24,11 +24,11 @@ Universal Bun-based script runner with auto-installation, cross-platform support
 
 [README.md](./README.md) — Project overview, runner interface, git-flow commands table, configuration, development commands.
 
-[CHANGELOG.md](./CHANGELOG.md) — Keep a Changelog format, Semantic Versioning v2.0.0, documented versions v1.10.4 through v1.0.0.
+[CHANGELOG.md](./CHANGELOG.md) — Keep a Changelog format, Semantic Versioning v2.0.0, documented versions v1.11.0 through v1.0.0.
 
 [LICENSE](./LICENSE) — MIT license for Luca Guzzon 2026.
 
-[version.txt](./version.txt) — Declares version 1.10.4.
+[version.txt](./version.txt) — Declares version 1.11.0.
 
 ### Configuration
 

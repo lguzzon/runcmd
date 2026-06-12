@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { logInfo, runGit } from '../git-flow.js'
 
 const PROJECT_ROOT = process.cwd()
-const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
+export const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
 
 export function getLastTag() {
   const tag = runGit('describe --tags --abbrev=0', { allowFail: true })

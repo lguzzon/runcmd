@@ -6,7 +6,7 @@ import {
   logError,
   logSuccess
 } from './git-flow.js'
-import { releaseFinalizeDefaults } from './lib/options.js'
+import { releaseFinalizeDefaults } from './operations/options.js'
 import { promptTextSync } from './lib/prompts.js'
 import { handleHotfix } from './operations/hotfix.js'
 import { handleRelease } from './operations/release.js'

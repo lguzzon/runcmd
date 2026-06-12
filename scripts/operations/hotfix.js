@@ -1,12 +1,6 @@
 #!/usr/bin/env bun
-import {
-  COLOR_BOLD,
-  COLOR_RESET,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
-  logError
-} from '../git-flow.js'
-import { handleFinish, handleStart } from '../lib/release-utils.js'
+import { COLOR_BOLD, COLOR_RESET } from '../git-flow.js'
+import { handleBranchOperation } from './release.js'
 
 export function printHelp() {
   console.log(`
@@ -49,35 +43,11 @@ Examples:
 }
 
 export async function handleHotfix(action, opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError('git-flow is required for hotfix operations')
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before processing
-  if (opts.help) {
-    printHelp()
-    return
-  }
-
-  if (action === 'start') {
-    await handleStart(
-      {
-        defaultBump: 'patch',
-        defaultBase: 'main',
-        prefix: 'hotfix/',
-        typeLabel: 'hotfix'
-      },
-      opts
-    )
-  } else if (action === 'finish') {
-    await handleFinish({ prefix: 'hotfix/', typeLabel: 'hotfix' }, opts)
-  } else {
-    logError(`Unknown hotfix action: ${action}`)
-    printHelp()
-    process.exit(1)
-  }
+  await handleBranchOperation(action, opts, {
+    defaultBump: 'patch',
+    defaultBase: 'main',
+    prefix: 'hotfix/',
+    typeLabel: 'hotfix',
+    printHelp
+  })
 }

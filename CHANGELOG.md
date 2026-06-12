@@ -1,3 +1,9 @@
+## v1.11.1 - 2026-06-12
+
+- docs: update website for v1.11.0 (oxlint/oxfmt, Windows +check/+r, security messaging)
+- docs: use version.txt as golden source for version info
+- docs: sync AGENTS.md version claims to 1.11.0
+
 ## v1.11.0 - 2026-06-12
 
 - refactor: deepRefactor-graphify pipeline — structural map, adversarial verification, security audit, implementation, review

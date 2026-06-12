@@ -18,7 +18,7 @@ const features = [
   },
   {
     title: 'Robust & Safe',
-    description: 'Atomic updates with rollback, SHA256 integrity verification, and hardened path resolution for supply-chain defense.',
+    description: 'Atomic updates with rollback, auto-install integrity checks, and hardened path resolution for supply-chain defense.',
     icon: 'shield',
   },
   {
@@ -133,7 +133,7 @@ const features = [
             <div class="flex-1">
               <div class="not-prose bg-gray-900 rounded-xl p-6 mb-6 overflow-x-auto shadow-lg shadow-blue-900/20">
                 <div class="text-xs uppercase tracking-wide text-gray-400 mb-3">Install & Run</div>
-                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh', 'chmod +x runcmd.sh', './runcmd.sh my-script.mjs'].join('\n')}</pre>
+                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh', 'chmod +x runcmd.sh', './runcmd.sh +r my-script.mjs'].join('\n')}</pre>
               </div>
               <div class="grid gap-6 md:grid-cols-2">
                 <div class="p-5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm">

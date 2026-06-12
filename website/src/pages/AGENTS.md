@@ -18,17 +18,17 @@ Astro SSG pages with Tailwind CSS for styling. Build-time constants (`basePath`,
 
 ## Build-Time Configuration
 
-| Constant         | Source                                         |
-| ---------------- | ---------------------------------------------- |
-| `basePath`       | `Astro.site?.pathname ?? '/runcmd/'`           |
-| `normalizedBase` | `basePath.replace(/\/$/, '')`                  |
-| `version`        | `../../../version.txt` (defaults to `'1.0.0'`) |
-| `githubUrl`      | `'https://github.com/lguzzon/runcmd'`          |
-| `scriptHref`     | `${normalizedBase}/runcmd.sh`                  |
+| Constant         | Source                                |
+| ---------------- | ------------------------------------- |
+| `basePath`       | `import.meta.env.BASE_URL \|\| '/'`   |
+| `normalizedBase` | `basePath.replace(/\/$/, '')`         |
+| `version`        | `readFileSync('../version.txt', ...)` |
+| `githubUrl`      | `'https://github.com/lguzzon/runcmd'` |
+| `scriptHref`     | `${normalizedBase}/runcmd.sh`         |
 
 ## Patterns
 
-Both pages follow identical patterns: fs-promises for file reads at build time, dynamic year via `new Date().getFullYear()`, dark mode via `dark:` Tailwind classes, responsive grids with `md:grid-cols-*` breakpoints.
+Both pages follow identical patterns: fs for synchronous file reads at build time, dynamic year via `new Date().getFullYear()`, dark mode via `dark:` Tailwind classes, responsive grids with `md:grid-cols-*` breakpoints.
 
 ## Behavioral Contracts
 
@@ -37,7 +37,7 @@ Both files use identical regex for trailing slash normalization: `/\/$/` (replac
 ## Import Map
 
 ```text
-fs: node:fs/promises
+fs: node:fs
 BaseLayout: ../layouts/BaseLayout.astro
 Nav: ../components/Nav.astro
 ```

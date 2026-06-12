@@ -106,7 +106,7 @@ import Nav from '../components/Nav.astro'
             <h2>Usage & Script Resolution</h2>
             <p>Runner scripts locate your target script automatically. Priority:</p>
             <ol>
-              <li><strong>Explicit path:</strong> <code>+r &lt;path&gt;</code> (Unix/macOS) or first argument (Windows).</li>
+              <li><strong>Explicit path:</strong> <code>+r &lt;path&gt;</code> (both platforms).</li>
               <li><strong>Current directory:</strong> <code>&lt;runner_name&gt;.mjs</code>.</li>
               <li><strong>Runner directory:</strong> <code>&lt;runner_name&gt;.mjs</code> alongside the runner.</li>
             </ol>
@@ -129,7 +129,7 @@ import Nav from '../components/Nav.astro'
             <h3>Checks & formatting</h3>
             <ul>
               <li><code>./runcmd.sh +check</code> — formats shell scripts, sorts JSON, runs oxlint and oxfmt.</li>
-              <li><code>runcmd.bat +check</code> — same check mode on Windows (v{version}+).</li>
+              <li><code>runcmd.bat +check</code> — check mode on Windows: oxlint and oxfmt only (v{version}+).</li>
               <li>Manual: <code>bunx oxfmt --write .</code></li>
               <li>Manual: <code>bunx oxlint --fix-dangerously .</code></li>
               <li>Shell: <code>bunx shfmt -w -bn -ci -i 2 -s *.sh</code></li>
@@ -159,8 +159,8 @@ import Nav from '../components/Nav.astro'
               <ul>
                 <li>Installs Bun to <code>~/.bun</code> if missing.</li>
                 <li>Safe self-formatting with rollback protection.</li>
-                <li>Cross-platform path resolution with Python fallback.</li>
-                <li>Hardened security: SHA256 checksum for auto-install, no eval in .env loading.</li>
+                <li>Cross-platform path resolution with Bun fallback.</li>
+                <li>Hardened security: no eval in .env loading.</li>
                 <li>Timing and debug logging utilities.</li>
               </ul>
             </div>

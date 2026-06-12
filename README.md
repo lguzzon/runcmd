@@ -34,7 +34,7 @@ The result is a professional-grade script runner with zero configuration and cro
 - **Git Flow Integration** - Comprehensive git-flow management tools in [`scripts/`](scripts/)
 - **Version Management** - Automatic self-updates from GitHub Pages
 - **Comprehensive Help** - Built-in help system with examples
-- **Zero Dependencies** - Only requires basic system tools (curl, bash)
+- **Zero Configuration** - Auto-installs Bun and tooling; only requires bash, curl
 
 ## 📦 Quick Start
 
@@ -68,7 +68,8 @@ chmod +x runcmd.sh
 ```cmd
 runcmd.bat
 runcmd.bat +d
-runcmd.bat +e my-script.mjs
+runcmd.bat +r script.mjs
+runcmd.bat +check
 ```
 
 ## 🛠️ Usage Guide
@@ -77,7 +78,7 @@ runcmd.bat +e my-script.mjs
 
 The runner automatically looks for `<runner_name>.mjs` in this order:
 
-1. **Explicit path**: `+r <path>` flag (Unix/macOS) or first argument (Windows)
+1. **Explicit path**: `+r <path>` flag (both platforms)
 2. **Current directory**: `<runner>.mjs` in working directory
 3. **Script directory**: `<runner>.mjs` in runner's directory
 
@@ -189,8 +190,8 @@ bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
 
 ```text
 runcmd/
-├── runcmd.sh           # Unix/macOS runner (1106 lines)
-├── runcmd.bat          # Windows runner (468 lines)
+├── runcmd.sh           # Unix/macOS runner (1140 lines)
+├── runcmd.bat          # Windows runner (610 lines)
 ├── runcmd.mjs          # Default target script
 ├── version.txt         # Current version
 ├── CHANGELOG.md        # Version history
@@ -209,10 +210,13 @@ runcmd/
 │   ├── lib/            # Shared utilities
 │   │   ├── version.js  # Version utilities
 │   │   ├── changelog.js # Changelog utilities
-│   │   └── prompts.js  # User interaction utilities
+│   │   ├── prompts.js  # User interaction utilities
+│   │   └── core.js     # Core validation helpers
 │   └── operations/     # High-level operations
 │       ├── sync.js     # Sync branches
 │       ├── clone.js    # Clone with git-flow
+│       ├── options.js  # Release option defaults
+│       ├── release-utils.js # Release lifecycle helpers
 │       ├── release.js  # Release management
 │       └── hotfix.js   # Hotfix management
 ├── website/            # Astro-based documentation site
@@ -227,7 +231,7 @@ runcmd/
 
 ### Code Quality Tools (oxlint/oxfmt)
 
-The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.rs/) for formatting JavaScript/TypeScript code. These replace the previous Biome setup and are configured via command-line flags rather than a config file:
+The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.rs/) for formatting JavaScript/TypeScript code. Configuration via `.oxfmtrc.json` and `oxlint.json`:
 
 - **oxlint --fix-dangerously** — Lint and auto-fix JS/TS files
 - **oxfmt --write** — Format JS/TS files
@@ -251,7 +255,6 @@ The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.r
 cd website
 bun install
 bun run dev    # start dev server
-bun run lint   # eslint
 bun run check  # astro type checks
 bun run build  # outputs to ../public for GitHub Pages
 ```
@@ -279,7 +282,6 @@ GitHub Pages is built from the `website` folder using Bun in `.github/workflows/
 | Component | Unix/macOS                        | Windows |
 | --------- | --------------------------------- | ------- |
 | Bash      | 4.0+                              | -       |
-| Python 3  | For path resolution and timing    | -       |
 | curl      | For Bun installation              | -       |
 | Internet  | Initial Bun and tool installation | Same    |
 

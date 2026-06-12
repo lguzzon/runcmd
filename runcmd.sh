@@ -374,8 +374,8 @@ check_for_updates() {
     temp_script=$(mktemp)
 
     if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
-      # Verify it looks like a script
-      if grep -q "runcmd.sh" "$temp_script"; then
+      # Verify it looks like a script and passes syntax check
+      if grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
         chmod +x "$temp_script"
 
         # Atomic replacement

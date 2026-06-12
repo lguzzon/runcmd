@@ -1,29 +1,23 @@
 ## v1.10.4 - 2026-06-09
 
 - chore: update bun lockfile after eslint removal
-- Merge branch 'main' into develop
 
 ## v1.10.3 - 2026-06-09
 
 - refactor: migrate Biome to oxlint/oxfmt, remove old tools
 - feat: add oxlint, oxfmt, shellcheck linting and pre-commit hook
-- Merge branch 'main' into develop
 
 ## v1.10.2 - 2026-06-09
 
 - ci: bump actions to latest major versions
-- ci: upgrade actions to latest major versions
-- Merge branch 'main' into develop
 
 ## v1.10.1 - 2026-06-09
 
 - ci: opt Node.js 24 for GitHub Actions runner
-- Merge branch 'main' into develop
 
 ## v1.10.0 - 2026-06-09
 
 - fix: strip default 'nextRelease' name in versioned release/hotfix start
-- Merge branch 'main' into develop
 - refactor: consolidate, deduplicate, and fix 20 quality issues
 
 # Changelog
@@ -37,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - feat(version): read version from version.txt for single source of truth
 
-## v1.9.1 - 2026-06-09
+## v1.9.1 - 2026-02-19
 
 - chore: bump version to 1.9.1
 - chore: integrate agents-reverse-engineer and reformat config files
@@ -143,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced configuration options
 - Plugin system for custom tooling
 
+[v1.9.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.2
 [v1.9.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.1
 [v1.9.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.0
 [v1.8.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.8.0
@@ -154,3 +149,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v1.2.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.0.0
+[v1.10.4]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.4
+[v1.10.3]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.3
+[v1.10.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.2
+[v1.10.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.1
+[v1.10.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.0

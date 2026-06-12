@@ -480,6 +480,11 @@ resolve_script_path() {
   exit 1
 }
 
+# ============================================================================
+# SHARED SHFMT DISPATCH
+# ============================================================================
+
+# Run shfmt with the given arguments, falling back to bunx shfmt if not installed
 # Safely format a shell script using shfmt with atomic updates and rollback protection
 # Creates backups, validates syntax, and only replaces originals on successful formatting.
 # Designed to handle the edge case of formatting the currently executing script.
@@ -605,7 +610,6 @@ format_shell_scripts() {
   local search_dir="$1"
   local formatted_count=0
   local failed_count=0
-  local skipped_count=0
   local self_format_attempted=0
 
   log_info "Scanning for shell scripts in '$search_dir'..."
@@ -667,7 +671,6 @@ format_shell_scripts() {
   # Report summary
   log_info "Shell formatting summary:"
   log_info "  - Formatted: $formatted_count scripts"
-  log_info "  - Skipped: $skipped_count scripts"
   log_info "  - Failed: $failed_count scripts"
   if ((self_format_attempted > 0)); then
     log_info "  - Self-format attempts: $self_format_attempted script(s)"

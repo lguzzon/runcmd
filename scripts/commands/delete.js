@@ -48,8 +48,6 @@ export async function handleDelete(opts) {
   const branchName = `${type}/${name}`
   ensureBranchExists(branchName)
 
-  const _flag = force ? '-D' : '-d'
-
   logInfo(`Deleting ${type} branch: ${branchName}`)
   runGitFlow(`${type} delete ${name}`, { dryRun })
 

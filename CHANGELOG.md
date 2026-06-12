@@ -1,22 +1,27 @@
 ## v1.11.0 - 2026-06-12
-- docs: accept ADR-1 error handling strategy and apply convention
-- Merge branch 'refactor/wf5-merge' into develop
-- refactor: deepRefactor-graphify pipeline — WF5-WF7
-- Merge commit '30286a8ded06477774182119bd31d7544baefbde' into refactor/wf5-merge
-- Merge commit '5867707754aa2a2a5c027f90a253225e2b901859' into refactor/wf5-merge
-- Merge commit '74df117475e3db78240e52835e0a0b36457074fe' into refactor/wf5-merge
-- Merge commit 'a80ba1f8313c7b7a60a68548585e3a5b7ae3e3f4' into refactor/wf5-merge
-- Merge commit 'b9b8b4f49ea450c808367df3f9255d280e4f243f' into refactor/wf5-merge
-- Merge commit 'd81d71defa22e704b4e1d4fb5b1c9baddd7409fd' into refactor/wf5-merge
-- Merge commit 'e6c2ad6be551990bfdbc52620158be79808e4005' into refactor/wf5-merge
-- chore: WF5 impl worktree 11
-- chore: WF5 impl worktree 7
-- chore: WF5 impl worktree 5
-- chore: WF5 impl worktree 4
-- chore: WF5 impl worktree 2
-- chore: WF5 impl worktree 1
-- chore: WF5 impl worktree 6
-- Merge branch 'main' into develop
+
+- refactor: deepRefactor-graphify pipeline — structural map, adversarial verification, security audit, implementation, review
+- fix: version_lt equality bug causing perpetual update loop
+- fix: .env eval injection (arbitrary code via VAR=$(id))
+- fix: runGit command injection (array args instead of string interpolation)
+- fix: ENDLOCAL exit code capture in runcmd.bat (delayed expansion)
+- fix: --env SHIFT scope bug in runcmd.bat
+- fix: auto-install SHA256 checksum verification, pinned release, no sudo
+- fix: self-update integrity (bash -n validation, state write timing)
+- fix: resolve_path bun -e injection
+- feat: +check mode and +r flag for runcmd.bat
+- feat: core.js with shared requireValidCommand helper
+- refactor: release/hotfix consolidated into parameterized handler
+- refactor: release-utils.js and options.js moved from lib/ to operations/
+- refactor: release-init.js and release-finalize.js thin wrappers
+- docs: migrate all Biome references to oxlint/oxfmt
+- docs: fix line counts, function names, version claims across 5 doc files
+- docs: accept ADR-1 error handling strategy (two-tier convention)
+- polish: remove dead code (_config, _flag, withDryRunLabel, skipped_count, dead SHIFT)
+- polish: extract shared run_shfmt dispatch helper
+- polish: remove auto-generation headers from all CLAUDE.md/AGENTS.md files
+- polish: remove tautological function headers and thinking-out-loud comments
+
 ## v1.10.4 - 2026-06-09
 
 - chore: update bun lockfile after eslint removal

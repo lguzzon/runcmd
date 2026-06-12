@@ -1,11 +1,9 @@
 #!/usr/bin/env bun
+import { requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
   listBranchesByType,
-  logError,
   logInfo,
   logSuccess
 } from '../git-flow.js'
@@ -32,19 +30,8 @@ Examples:
 }
 
 export async function handleList(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError('git-flow is required to list branches')
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before processing
-  if (opts.help) {
-    printHelp()
+  if (!requireValidCommand(opts, { commandName: 'list', helpFn: printHelp }))
     return
-  }
 
   const { type } = opts
 

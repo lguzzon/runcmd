@@ -12,18 +12,15 @@ import {
   runGit,
   runGitFlow
 } from '../git-flow.js'
-import { appendChangelog } from './changelog.js'
-import { promptText } from './prompts.js'
+import { CHANGELOG_FILE, appendChangelog } from '../lib/changelog.js'
+import { promptText } from '../lib/prompts.js'
 import {
+  VERSION_FILE,
   compareVersions,
   incrementVersion,
   readVersion,
   validateVersion
-} from './version.js'
-
-const PROJECT_ROOT = process.cwd()
-const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
-const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
+} from '../lib/version.js'
 
 export function updateVersionFile(version, { dryRun }) {
   if (!existsSync(VERSION_FILE)) {

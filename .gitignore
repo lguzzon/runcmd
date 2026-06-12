@@ -16,3 +16,14 @@ Thumbs.db
 
 .opencode/
 .agents-reverse-engineer/
+
+# Graphify
+graphify-out/
+.graphifyignore
+
+# Generated githooks
+.githooks/post-checkout
+.githooks/post-commit
+
+# Claude Code worktrees
+.claude/worktrees/

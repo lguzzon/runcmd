@@ -55,12 +55,12 @@ async function main() {
     // Signal the batch script to update
     console.log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
 
-    // Update state (assuming success)
-    state.current_version = remoteVersion
+    // Update state - only update last_check, not current_version
+    // (the version is recorded by the new script after a successful move)
     state.last_check = now
     fs.writeFileSync(STATE_FILE, JSON.stringify(state))
-  } catch {
-    // console.error('Update check failed:', e.message);
+  } catch (e) {
+    console.error('[WARN] Update check failed:', e.message)
   }
 }
 

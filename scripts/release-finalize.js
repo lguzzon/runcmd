@@ -2,11 +2,12 @@
 import {
   ensureBranchExists,
   ensureCleanTree,
+  getBranchType,
   listBranchesByType,
   logError,
   logSuccess
 } from './git-flow.js'
-import { releaseFinalizeDefaults } from './lib/options.js'
+import { releaseFinalizeDefaults } from './operations/options.js'
 import { promptTextSync } from './lib/prompts.js'
 import { handleHotfix } from './operations/hotfix.js'
 import { handleRelease } from './operations/release.js'
@@ -120,14 +121,8 @@ function detectBranch(opts) {
   return candidates[index]
 }
 
-function branchType(branch) {
-  if (branch.startsWith('release/')) return 'release'
-  if (branch.startsWith('hotfix/')) return 'hotfix'
-  return 'unknown'
-}
-
 function ensureBranchMatchesType(branch, requested) {
-  const detected = branchType(branch)
+  const detected = getBranchType(branch)
   if (requested && requested !== detected) {
     logError(`Branch '${branch}' does not match type '${requested}'.`)
     process.exit(1)

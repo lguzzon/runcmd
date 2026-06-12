@@ -10,6 +10,8 @@
 ::   - Flexible script discovery (current directory, script directory, explicit paths)
 ::   - Environment variable listing (+e option)
 ::   - Custom environment file support (--env option)
+::   - Explicit script path selection (+r flag)
+::   - Code quality check mode (+check)
 :: ===================================================================================
 
 :: ===================================================================================
@@ -35,14 +37,13 @@ CALL :main !args_after_debug!
 ECHO ... finished!!! %ECHO_TO_NUL%
 
 :: Restore original DEBUG state and exit
-ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
+ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 
 :: ===================================================================================
 :: INITIALIZATION FUNCTIONS
 :: ===================================================================================
 
 :initialize_environment
-    :: Initialize environment variables and output redirection
     SET "OLD_DEBUG=%DEBUG%"
     
     :: Read version from version.txt for single source of truth
@@ -59,7 +60,15 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :parse_debug_mode_and_collect
     :: Parse debug mode arguments and collect remaining arguments
     :: Arguments: +d (basic), +dd (with file), +ddd (full echo), +d0 (disable)
-    :debug_parse_loop
+    SET "_guard_debug_parse=1"
+    REM Fall through to debug_parse_loop
+
+:debug_parse_loop
+    :: Guard against accidental CALL to internal loop label
+    IF NOT defined _guard_debug_parse (
+        CALL :show_error "Internal error: accidental CALL to :debug_parse_loop"
+        EXIT /B 1
+    )
         IF "%~1" == "" GOTO :debug_parse_done
         IF /I "%~1" == "+d" (
             SET "DEBUG=1"
@@ -82,17 +91,33 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
             SHIFT
             GOTO :debug_parse_loop
         )
+        IF /I "%~1" == "+r" (
+            SHIFT
+            SET "SCRIPT_OVERRIDE=%~1"
+            SHIFT
+            GOTO :debug_parse_loop
+        )
         :: Not a debug flag, collect remaining arguments
         GOTO :debug_parse_done
     :debug_parse_done
-        :: Now collect all remaining arguments
+        :: Guard for args_collect_loop - set before fall-through
+        SET "_guard_args_collect=1"
+        REM Fall through to args_collect_loop
+
     :args_collect_loop
+        :: Guard against accidental CALL to internal loop label
+        IF NOT defined _guard_args_collect (
+            CALL :show_error "Internal error: accidental CALL to :args_collect_loop"
+            EXIT /B 1
+        )
         IF "%~1" == "" GOTO :args_collect_done
         SET "args_after_debug=!args_after_debug! %1"
         SHIFT
         GOTO :args_collect_loop
     :args_collect_done
-    EXIT /B 0
+        SET "_guard_debug_parse="
+        SET "_guard_args_collect="
+        EXIT /B 0
 
 :configure_output_redirection
     :: Configure output redirection based on debug level
@@ -100,6 +125,11 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Level 2: No redirection for file operations
     :: Level 1: No redirection for echo output
     :: Level 0/empty: Full redirection for quiet operation
+    ::
+    :: NOTE: DEBUG semantics differ between platforms:
+    ::   runcmd.bat uses 4 levels (+d, +dd, +ddd, +d0) with granular
+    ::   control over ECHO and redirection behavior.
+    ::   runcmd.sh uses a simpler on/off model (+debug or DEBUG=1).
     IF "%DEBUG%" == "3" (
         ECHO ON
         SET "TO_NUL="
@@ -124,11 +154,33 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     CALL :load_default_env_files
     CALL :ensure_bun
 
+    :: Handle --env/-e at main level for proper SHIFT scope
+    IF /I "%~1" == "--env" (
+        IF "%~2" == "" (
+            CALL :show_error "--env option requires a file path"
+            ECHO Usage: runcmd.bat --env /path/to/custom.env
+            EXIT /B 1
+        )
+        CALL :load_env "%~2"
+        SHIFT
+        SHIFT
+    ) ELSE IF /I "%~1" == "-e" (
+        IF "%~2" == "" (
+            CALL :show_error "--env option requires a file path"
+            ECHO Usage: runcmd.bat --env /path/to/custom.env
+            EXIT /B 1
+        )
+        CALL :load_env "%~2"
+        SHIFT
+        SHIFT
+    )
+
     CALL :handle_special_options %*
     IF !ERRORLEVEL! EQU 99 EXIT /B 0
     IF !ERRORLEVEL! NEQ 0 EXIT /B !ERRORLEVEL!
 
     CALL :process_main_arguments %*
+    IF !ERRORLEVEL! EQU 99 EXIT /B 0
 
     CALL :attempt_script_execution
     EXIT /B !ERRORLEVEL!
@@ -176,9 +228,8 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :: ===================================================================================
 
 :handle_special_options
-    :: Handle special command line options (+e, --env)
+    :: Handle special command line options (+e, +help, +version)
     SET "first_arg=%~1"
-    SET "needs_custom_env=0"
     SET "exit_please=0"
 
     :: Handle environment variable listing
@@ -207,29 +258,46 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
         EXIT /B 99
     )
 
-    :: Handle custom environment file
-    IF /I "%first_arg%" == "-e" SET "needs_custom_env=1"
-    IF /I "%first_arg%" == "--env" SET "needs_custom_env=1"
-
-    IF "!needs_custom_env!" == "1" (
-        SET "custom_env=%~2"
-        IF "!custom_env!" == "" (
-            CALL :show_error "--env option requires a file path"
-            ECHO Usage: runcmd.bat --env /path/to/custom.env
-            EXIT /B 1
-        )
-        CALL :load_env "!custom_env!"
-        SHIFT
-        SHIFT
+    :: Handle check mode
+    IF /I "%first_arg%" == "+check" (
+        CALL :check_mode
+        EXIT /B 99
     )
+    IF /I "%first_arg%" == "+c" (
+        CALL :check_mode
+        EXIT /B 99
+    )
+
     EXIT /B 0
 
 :process_main_arguments
     :: Process and collect main arguments for script execution
-    SET "first_arg=%~1"
-    CALL :collect_args %*
+    :: Skips --env/-e (handled at main level with proper SHIFT scope)
+    SET "_guard_process_args=1"
+    SET "first_arg="
+    SET "collected="
+:process_args_loop
+    :: Guard against accidental CALL
+    IF NOT defined _guard_process_args (
+        CALL :show_error "Internal error: accidental CALL to :process_args_loop"
+        EXIT /B 1
+    )
+    IF "%~1" == "" GOTO :process_args_done
+    IF /I "%~1" == "--env" SHIFT & SHIFT & GOTO :process_args_loop
+    IF /I "%~1" == "-e" SHIFT & SHIFT & GOTO :process_args_loop
+    IF NOT defined first_arg SET "first_arg=%~1"
+    SET "collected=!collected! %1"
+    SHIFT
+    GOTO :process_args_loop
+:process_args_done
+    SET "_guard_process_args="
     SET "main_args=%collected%"
     EXIT /B 0
+
+:arg_check
+    :: Handle +check flag - run code quality checks and exit
+    CALL :check_mode
+    EXIT /B 99
 
 :: ===================================================================================
 :: SCRIPT EXECUTION FUNCTIONS
@@ -237,6 +305,18 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 
 :attempt_script_execution
     :: Attempt to find and execute script in various locations
+
+    :: Check for explicit script path override (+r flag)
+    IF defined SCRIPT_OVERRIDE (
+        IF EXIST "!SCRIPT_OVERRIDE!" (
+            CALL :execute_file "!SCRIPT_OVERRIDE!" !main_args!
+        ) ELSE (
+            CALL :show_error "Script not found: !SCRIPT_OVERRIDE!"
+            EXIT /B 1
+        )
+        EXIT /B !ERRORLEVEL!
+    )
+
     :: Try current working directory first
     CALL :find_and_execute "%CWD%\!DEFAULT_SCRIPT_NAME!" !main_args!
     IF "!exit_please!" == "1" EXIT /B !ERRORLEVEL!
@@ -248,7 +328,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Check if first argument is a file path
     CALL :is_file "!first_arg!"
     IF !ERRORLEVEL! EQU 0 (
-        SHIFT
         CALL :execute_file !main_args!
         EXIT /B !ERRORLEVEL!
     )
@@ -374,12 +453,21 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Collect all arguments into %collected%
     :: Usage: CALL :collect_args [args...]
     SET "collected="
-    :collect_args_loop
-        IF "%~1" == "" GOTO :collect_args_done
-        SET "collected=!collected! %1"
-        SHIFT
-        GOTO :collect_args_loop
+    SET "_guard_collect_args=1"
+    REM Fall through to collect_args_loop
+
+:collect_args_loop
+    :: Guard against accidental CALL to internal loop label
+    IF NOT defined _guard_collect_args (
+        CALL :show_error "Internal error: accidental CALL to :collect_args_loop"
+        EXIT /B 1
+    )
+    IF "%~1" == "" GOTO :collect_args_done
+    SET "collected=!collected! %1"
+    SHIFT
+    GOTO :collect_args_loop
     :collect_args_done
+    SET "_guard_collect_args="
     EXIT /B 0
 
 :: ===================================================================================
@@ -387,7 +475,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :: ===================================================================================
 
 :check_for_updates
-    :: Check for updates from GitHub Pages
     :: Uses Bun for logic since it's cleaner than batch/powershell
     :: Stores state in %USERPROFILE%\.runcmd\state.json
     
@@ -423,9 +510,56 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     )
 
     :: Cleanup old backup if exists
-    IF EXIST "%~f0.old" DEL "%~f0.old" >nul 2>&1
+    IF EXIST "%~f0.old" DEL "%~f0.old" %TO_NUL%
 
     EXIT /B 0
+
+:check_mode
+    :: Run code quality checks using available tools
+    SETLOCAL ENABLEDELAYEDEXPANSION
+    SET "exit_code=0"
+
+    ECHO [CHECK] Running code quality checks...
+    ECHO.
+
+    :: Verify bunx availability
+    >nul 2>&1 WHERE bunx
+    IF ERRORLEVEL 1 (
+        ECHO [SKIP] bunx not available, skipping all checks
+        ECHO.
+        ENDLOCAL & EXIT /B 0
+    )
+
+    :: Check oxlint
+    ECHO [CHECK] Running oxlint...
+    CALL bunx oxlint --fix-dangerously .
+    IF ERRORLEVEL 1 (
+        SET "exit_code=1"
+        ECHO [FAIL] oxlint reported issues
+    ) ELSE (
+        ECHO [PASS] oxlint passed
+    )
+    ECHO.
+
+    :: Check oxfmt
+    ECHO [CHECK] Running oxfmt --check...
+    CALL bunx oxfmt --check .
+    IF ERRORLEVEL 1 (
+        SET "exit_code=1"
+        ECHO [FAIL] oxfmt --check reported issues
+    ) ELSE (
+        ECHO [PASS] oxfmt --check passed
+    )
+    ECHO.
+
+    IF "!exit_code!" == "0" (
+        ECHO [CHECK] All checks passed!
+    ) ELSE (
+        ECHO [CHECK] Some checks failed.
+    )
+    ECHO.
+
+    ENDLOCAL & EXIT /B 0
 
 :show_help
     :: Display help message
@@ -442,8 +576,14 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO   +e
     ECHO       List all environment variables
     ECHO.
+    ECHO   +check
+    ECHO       Run code quality checks (oxlint, oxfmt)
+    ECHO.
     ECHO   +h, +help
     ECHO       Display this help message and exit
+    ECHO.
+    ECHO   +r ^<path^>
+    ECHO       Explicit script path, skips automatic script discovery
     ECHO.
     ECHO   +v, +version
     ECHO       Display version information and exit
@@ -459,6 +599,8 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     ECHO   runcmd.bat +e                    # List environment variables
     ECHO   runcmd.bat --env custom.env      # Load custom environment file
     ECHO   runcmd.bat +v                    # Show version
+    ECHO   runcmd.bat +check                # Run code quality checks
+    ECHO   runcmd.bat +r myscript.mjs       # Run with explicit script path
     ECHO.
     EXIT /B 0
 

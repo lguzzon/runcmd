@@ -41,6 +41,14 @@
 
 set -euo pipefail
 
+# ==============================================================================
+# CONVENTION NOTES
+# ==============================================================================
+# Helper functions return status codes (0 for success/true, 1 for failure/false).
+# Callers decide whether to exit or continue based on the return code.
+# Functions that exit directly document this with "Exits:" in their header.
+# ==============================================================================
+
 UNAME_S=$(uname -s)
 readonly UNAME_S
 
@@ -221,7 +229,7 @@ resolve_path() {
   fi
 
   if command_exists bun; then
-    bun -e "console.log(require('path').resolve('$target'))"
+    _RESOLVE_PATH="$target" bun -e "console.log(require('path').resolve(process.env._RESOLVE_PATH || ''))"
     return
   fi
 
@@ -283,15 +291,17 @@ resolve_default_script() {
 #   $1: Version A (local)
 #   $2: Version B (remote)
 # Returns:
-#   0 if A >= B
-#   1 if A < B (update needed)
+#   0 if A < B
+#   1 if A >= B (update needed)
 version_lt() {
   # Trivial case: equal versions
-  [[ $1 == "$2" ]] && return 0
+  [[ $1 == "$2" ]] && return 1
 
   # Parse versions into arrays
-  local ver1=(${1//./ })
-  local ver2=(${2//./ })
+  local ver1
+  IFS='.' read -ra ver1 <<<"$1"
+  local ver2
+  IFS='.' read -ra ver2 <<<"$2"
 
   # Fill missing parts with 0
   for ((i = ${#ver1[@]}; i < 3; i++)); do ver1[i]=0; done
@@ -374,8 +384,8 @@ check_for_updates() {
     temp_script=$(mktemp)
 
     if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
-      # Verify it looks like a script
-      if grep -q "runcmd.sh" "$temp_script"; then
+      # Verify it looks like a script and passes syntax check
+      if grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
         chmod +x "$temp_script"
 
         # Atomic replacement
@@ -470,6 +480,11 @@ resolve_script_path() {
   exit 1
 }
 
+# ============================================================================
+# SHARED SHFMT DISPATCH
+# ============================================================================
+
+# Run shfmt with the given arguments, falling back to bunx shfmt if not installed
 # Safely format a shell script using shfmt with atomic updates and rollback protection
 # Creates backups, validates syntax, and only replaces originals on successful formatting.
 # Designed to handle the edge case of formatting the currently executing script.
@@ -505,6 +520,22 @@ resolve_script_path() {
 # EXAMPLES:
 #   safe_format_file "./script.sh"          # Format regular script
 #   safe_format_file "$script_path"         # Format currently executing script
+# Run shfmt with consistent options on a target file
+# Uses system shfmt first, then falls back to bunx shfmt
+# Args:
+#   All: Arguments passed through to shfmt (flags + file path)
+# Returns:
+#   0 if formatting succeeded, 1 on failure or if neither shfmt nor bunx is available
+run_shfmt() {
+  if command_exists shfmt; then
+    shfmt "$@"
+  elif command_exists bunx; then
+    bunx --silent shfmt "$@"
+  else
+    return 1
+  fi
+}
+
 safe_format_file() {
   local file_path="$1"
   local temp_file
@@ -534,14 +565,8 @@ safe_format_file() {
   fi
 
   # Try to format to temporary file
-  if command_exists shfmt; then
-    if shfmt -bn -ci -i 2 -s "$file_path" >"$temp_file" 2>/dev/null; then
-      format_success=1
-    fi
-  else
-    if bunx --silent shfmt -bn -ci -i 2 -s "$file_path" >"$temp_file" 2>/dev/null; then
-      format_success=1
-    fi
+  if run_shfmt -bn -ci -i 2 -s "$file_path" >"$temp_file" 2>/dev/null; then
+    format_success=1
   fi
 
   if ((format_success)); then
@@ -585,7 +610,6 @@ format_shell_scripts() {
   local search_dir="$1"
   local formatted_count=0
   local failed_count=0
-  local skipped_count=0
   local self_format_attempted=0
 
   log_info "Scanning for shell scripts in '$search_dir'..."
@@ -631,14 +655,8 @@ format_shell_scripts() {
     log_info "Formatting shell script: $rel_path"
 
     local format_success=0
-    if command_exists shfmt; then
-      if shfmt -w -bn -ci -i 2 -s "$shell_file" 2>/dev/null; then
-        format_success=1
-      fi
-    else
-      if bunx --silent shfmt -w -bn -ci -i 2 -s "$shell_file" 2>/dev/null; then
-        format_success=1
-      fi
+    if run_shfmt -w -bn -ci -i 2 -s "$shell_file" 2>/dev/null; then
+      format_success=1
     fi
 
     if ((format_success)); then
@@ -653,7 +671,6 @@ format_shell_scripts() {
   # Report summary
   log_info "Shell formatting summary:"
   log_info "  - Formatted: $formatted_count scripts"
-  log_info "  - Skipped: $skipped_count scripts"
   log_info "  - Failed: $failed_count scripts"
   if ((self_format_attempted > 0)); then
     log_info "  - Self-format attempts: $self_format_attempted script(s)"
@@ -678,11 +695,30 @@ format_shell_scripts() {
 run_lint() {
   local target_file="$1"
   log_info "Running oxlint on '$target_file'..."
-  if bunx --silent oxlint --fix-dangerously . 2>/dev/null; then
+  if bunx --silent oxlint --fix-dangerously "$target_file" 2>/dev/null; then
     log_info "oxlint passed."
     return
   fi
   log_error "oxlint failed."
+  exit 1
+}
+
+# Run oxfmt formatting on a target directory
+# Executes oxfmt with write mode on the specified directory
+# Args:
+#   $1: Target directory path to format
+# Returns:
+#   None
+# Exits:
+#   1 if formatting fails
+run_oxfmt() {
+  local target_dir="$1"
+  log_info "Running oxfmt --write on '$target_dir'..."
+  if bunx --silent oxfmt --write "$target_dir" 2>/dev/null; then
+    log_info "oxfmt passed."
+    return
+  fi
+  log_error "oxfmt formatting failed."
   exit 1
 }
 
@@ -859,7 +895,11 @@ execute_script() {
     result=$?
   fi
   end_timer
-  ((result == 0)) && log_info "Script execution completed successfully." || log_info "Failed to execute '$target' [$result]."
+  if ((result == 0)); then
+    log_info "Script execution completed successfully."
+  else
+    log_info "Failed to execute '$target' [$result]."
+  fi
   return $result
 }
 
@@ -906,25 +946,10 @@ run_check_mode() {
   # Step 3: Sort JSON files
   run_json_sort "$target_dir"
 
-  # Step 4: Run oxlint
-  log_info "Running oxlint --fix-dangerously..."
-  if bunx --silent oxlint --fix-dangerously . 2>/dev/null; then
-    log_info "oxlint passed."
-  else
-    log_error "oxlint found issues that could not be auto-fixed."
-    exit 1
-  fi
+  # Step 4: Run oxfmt
+  run_oxfmt "$target_dir"
 
-  # Step 5: Run oxfmt
-  log_info "Running oxfmt --write..."
-  if bunx --silent oxfmt --write . 2>/dev/null; then
-    log_info "oxfmt passed."
-  else
-    log_error "oxfmt formatting failed."
-    exit 1
-  fi
-
-  # Step 6: Run linting
+  # Step 5: Run linting
   run_lint "$target"
 
   log_info "Check mode completed successfully."
@@ -1005,8 +1030,9 @@ load_env_file() {
     [[ -z ${line// /} ]] && continue
 
     if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      # Use eval to properly set and export the variable
-      eval "export \"$line\""
+      # Export the variable directly (Bash handles KEY=VALUE natively)
+      # shellcheck disable=SC2163
+      export "$line"
       log_info "${export_prefix}${line%%=*}"
     fi
   done <"$env_file"

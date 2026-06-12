@@ -1,3 +1,27 @@
+## v1.11.0 - 2026-06-12
+
+- refactor: deepRefactor-graphify pipeline — structural map, adversarial verification, security audit, implementation, review
+- fix: version_lt equality bug causing perpetual update loop
+- fix: .env eval injection (arbitrary code via VAR=$(id))
+- fix: runGit command injection (array args instead of string interpolation)
+- fix: ENDLOCAL exit code capture in runcmd.bat (delayed expansion)
+- fix: --env SHIFT scope bug in runcmd.bat
+- fix: auto-install SHA256 checksum verification, pinned release, no sudo
+- fix: self-update integrity (bash -n validation, state write timing)
+- fix: resolve_path bun -e injection
+- feat: +check mode and +r flag for runcmd.bat
+- feat: core.js with shared requireValidCommand helper
+- refactor: release/hotfix consolidated into parameterized handler
+- refactor: release-utils.js and options.js moved from lib/ to operations/
+- refactor: release-init.js and release-finalize.js thin wrappers
+- docs: migrate all Biome references to oxlint/oxfmt
+- docs: fix line counts, function names, version claims across 5 doc files
+- docs: accept ADR-1 error handling strategy (two-tier convention)
+- polish: remove dead code (_config, _flag, withDryRunLabel, skipped_count, dead SHIFT)
+- polish: extract shared run_shfmt dispatch helper
+- polish: remove auto-generation headers from all CLAUDE.md/AGENTS.md files
+- polish: remove tautological function headers and thinking-out-loud comments
+
 ## v1.10.4 - 2026-06-09
 
 - chore: update bun lockfile after eslint removal

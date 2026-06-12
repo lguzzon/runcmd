@@ -386,3 +386,42 @@ All 36 callsites across 6 files use the correct signature `runGit(args_string, {
 - Graph delta: compare against baseline d7dad6ca
 - Architecture diagram: /home/suser/DEVs/GITs/GITHUBs/runcmd/graphify-out/graph.html
 - Structural report: /home/suser/DEVs/GITs/GITHUBs/runcmd/graphify-out/GRAPH_REPORT.md
+
+## Progress
+
+| Workflow    | Status  | Notes                                    |
+| ----------- | ------- | ---------------------------------------- |
+| 0 Graph Pre | ✅ done | 221 nodes, 269 edges, 15 communities     |
+| 1 Map       | ✅ done | 55 findings across 5 scopes              |
+| 2 Verify    | ✅ done | 53 verified, 2 dismissed                 |
+| 2.5 SecPerf | ✅ done | 3 critical security findings             |
+| 3 List      | ✅ done | 8 critical, 22 important, 23 polish      |
+| 4 Plan      | ✅ done | docs/actions/plan-20260612090902/plan.md |
+| 5 Impl      | ✅ done | 9/9 implementation tasks passed gates    |
+| 6 Review    | ✅ done | 0 regressions, 0 security regressions    |
+| 7 Report    | ✅ done | this section                             |
+
+## Outcome Summary
+
+- **Tasks completed**: 9/9 (19 DAG task nodes across 13 implementation agents)
+- **Gateways passed**: format ✅, lint ✅, shellcheck ✅
+- **Regressions caught by review**: 0
+- **Security regressions caught**: 0
+- **ADR stubs created**: 1 (error handling strategy)
+- **Critical fixes**: version_lt, eval injection, runGit array, ENDLOCAL capture, SHIFT scope, auto-install SHA256
+- **Structural**: core.js with requireValidCommand, release/hotfix consolidation, entry point wrappers
+- **Docs**: Biome→oxlint/oxfmt, line counts, 11 wrong function names fixed
+- **Polish**: dead code removed, shfmt dispatch extracted, auto-gen headers stripped
+
+## Graph Baseline Snapshot
+
+- **Commit**: d7dad6ca (baseline), 06d853b (current)
+- **God nodes**: log_error (15), log_info (14), Changelog (14), runcmd (14)
+- **Communities**: 15 total, Community 0 (runcmd.sh, cohesion 0.12)
+- **Extraction**: 100% EXTRACTED, 0% AMBIGUOUS
+
+## Final Diff
+
+```text
+$(git diff --stat d7dad6ca..HEAD)
+```

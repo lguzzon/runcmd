@@ -18,6 +18,13 @@
 #   - JSON file sorting and validation
 #   - Environment variable loading from .env files
 #   - Debug logging with execution timing
+#
+# ERROR HANDLING CONVENTION:
+#   Two-tier model:
+#   - Fatal (exit 1): Pre-execution setup failures (path resolution, dependency
+#     availability). Process cannot meaningfully continue.
+#   - Delegate (return 1): Operational failures (format, lint, sort). Caller
+#     decides severity via if ! patterns. See ADR-1 for full rationale.
 #   - Cross-platform path resolution
 #
 # PREREQUISITES:
@@ -689,18 +696,16 @@ format_shell_scripts() {
 # Args:
 #   $1: Path to target file to lint (kept for interface compatibility)
 # Returns:
-#   None
-# Exits:
-#   1 if linting fails
+#   0 on success, 1 on failure
 run_lint() {
   local target_file="$1"
   log_info "Running oxlint on '$target_file'..."
   if bunx --silent oxlint --fix-dangerously "$target_file" 2>/dev/null; then
     log_info "oxlint passed."
-    return
+    return 0
   fi
   log_error "oxlint failed."
-  exit 1
+  return 1
 }
 
 # Run oxfmt formatting on a target directory
@@ -708,18 +713,16 @@ run_lint() {
 # Args:
 #   $1: Target directory path to format
 # Returns:
-#   None
-# Exits:
-#   1 if formatting fails
+#   0 on success, 1 on failure
 run_oxfmt() {
   local target_dir="$1"
   log_info "Running oxfmt --write on '$target_dir'..."
   if bunx --silent oxfmt --write "$target_dir" 2>/dev/null; then
     log_info "oxfmt passed."
-    return
+    return 0
   fi
   log_error "oxfmt formatting failed."
-  exit 1
+  return 1
 }
 
 # Run JSON sort check on files in target directory
@@ -728,8 +731,6 @@ run_oxfmt() {
 #   $1: Target directory path to search for JSON files
 # Returns:
 #   0 on success, 1 on failure
-# Exits:
-#   1 if JSON sorting fails
 run_json_sort() {
   local target_dir="$1"
   log_info "Running Json Sort check on '$target_dir'..."
@@ -742,7 +743,7 @@ run_json_sort() {
   fi
 
   log_error "Json Sort failed."
-  exit 1
+  return 1
 }
 
 # Start timing execution if debug mode is enabled
@@ -943,14 +944,21 @@ run_check_mode() {
     log_info "shellcheck passed."
   fi
 
-  # Step 3: Sort JSON files
-  run_json_sort "$target_dir"
+  # Step 3: Sort JSON files (non-fatal)
+  if ! run_json_sort "$target_dir"; then
+    log_warn "JSON sort failed, but continuing..."
+  fi
 
-  # Step 4: Run oxfmt
-  run_oxfmt "$target_dir"
+  # Step 4: Run oxfmt (non-fatal)
+  if ! run_oxfmt "$target_dir"; then
+    log_error "oxfmt failed, but continuing..."
+  fi
 
-  # Step 5: Run linting
-  run_lint "$target"
+  # Step 5: Run linting (non-fatal)
+  if ! run_lint "$target"; then
+    log_error "oxlint failed."
+    exit 1
+  fi
 
   log_info "Check mode completed successfully."
 }

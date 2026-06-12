@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { execSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 
 export * from './lib/changelog.js'
 export * from './lib/prompts.js'
@@ -32,26 +32,48 @@ export function logSuccess(message) {
   console.log(`${COLOR_INFO}[OK]${COLOR_RESET} ${message}`)
 }
 
+/** Split a command string into an array of arguments, handling double-quoted tokens. */
+function splitArgs(str) {
+  const args = []
+  let current = ''
+  let inQuote = false
+  for (const char of str) {
+    if (char === '"') {
+      inQuote = !inQuote
+    } else if (char === ' ' && !inQuote) {
+      if (current) {
+        args.push(current)
+        current = ''
+      }
+    } else {
+      current += char
+    }
+  }
+  if (current) args.push(current)
+  return args
+}
+
 export function runGit(
   args,
   { allowFail = false, dryRun = false, pipeStdout = false } = {}
 ) {
-  const cmd = `git ${args}`
+  const argArray = typeof args === 'string' ? splitArgs(args) : args
+  const cmd = `git ${argArray.join(' ')}`
   if (dryRun) {
     logInfo(`[dry-run] ${cmd}`)
     return ''
   }
-  try {
-    return execSync(cmd, {
-      encoding: 'utf-8',
-      stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-    }).trim()
-  } catch (error) {
+  const result = spawnSync('git', argArray, {
+    encoding: 'utf-8',
+    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
+  })
+  if (result.error || result.status !== 0) {
     if (allowFail) return null
     logError(`${cmd} failed`)
-    if (error.stderr) console.error(error.stderr.toString())
+    if (result.stderr) console.error(result.stderr)
     process.exit(1)
   }
+  return (result.stdout || '').trim()
 }
 
 export function ensureCleanTree() {
@@ -156,22 +178,23 @@ export function runGitFlow(
   args,
   { allowFail = false, dryRun = false, pipeStdout = false } = {}
 ) {
-  const cmd = `git flow ${args}`
+  const argArray = typeof args === 'string' ? splitArgs(args) : args
+  const cmd = `git flow ${argArray.join(' ')}`
   if (dryRun) {
     logInfo(`[dry-run] ${cmd}`)
     return ''
   }
-  try {
-    return execSync(cmd, {
-      encoding: 'utf-8',
-      stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-    }).trim()
-  } catch (error) {
+  const result = spawnSync('git', ['flow', ...argArray], {
+    encoding: 'utf-8',
+    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
+  })
+  if (result.error || result.status !== 0) {
     if (allowFail) return null
     logError(`${cmd} failed`)
-    if (error.stderr) console.error(error.stderr.toString())
+    if (result.stderr) console.error(result.stderr)
     process.exit(1)
   }
+  return (result.stdout || '').trim()
 }
 
 export function getBranchType(branch) {

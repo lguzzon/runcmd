@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
+import { requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
   ensureBranchExists,
   ensureCleanTree,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
   ensureTagMissing,
   logError,
   logInfo,
@@ -46,19 +45,8 @@ Examples:
 }
 
 export async function handleFinish(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError('git-flow is required to finish branches')
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before requiring clean tree
-  if (opts.help) {
-    printHelp()
+  if (!requireValidCommand(opts, { commandName: 'finish', helpFn: printHelp }))
     return
-  }
 
   ensureCleanTree()
 

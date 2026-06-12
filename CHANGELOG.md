@@ -1,3 +1,6 @@
+## v1.11.2 - 2026-06-12
+
+- docs: fix doc/code coherence audit findings across 10 files (line counts, dep claims, examples, AGENTS.md exports, CHANGELOG refs)
 # Changelog
 
 All notable changes to this project will be documented in this file.

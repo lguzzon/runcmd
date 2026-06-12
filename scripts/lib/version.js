@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { logError } from '../git-flow.js'
 
 const PROJECT_ROOT = process.cwd()
-const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
+export const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
 
 export function validateVersion(version) {
   return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)

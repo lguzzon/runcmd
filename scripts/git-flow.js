@@ -1,14 +1,13 @@
 #!/usr/bin/env bun
-import { execSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 
 export * from './lib/changelog.js'
 export * from './lib/prompts.js'
 // Re-export shared utilities for use by release scripts
 export * from './lib/version.js'
-
-// ============================================================================
-// Utility Functions (moved from git-flow-utils.js)
-// ============================================================================
 
 export const COLOR_INFO = '\x1b[32m'
 export const COLOR_WARN = '\x1b[33m'
@@ -32,26 +31,48 @@ export function logSuccess(message) {
   console.log(`${COLOR_INFO}[OK]${COLOR_RESET} ${message}`)
 }
 
+/** Split a command string into an array of arguments, handling double-quoted tokens. */
+function splitArgs(str) {
+  const args = []
+  let current = ''
+  let inQuote = false
+  for (const char of str) {
+    if (char === '"') {
+      inQuote = !inQuote
+    } else if (char === ' ' && !inQuote) {
+      if (current) {
+        args.push(current)
+        current = ''
+      }
+    } else {
+      current += char
+    }
+  }
+  if (current) args.push(current)
+  return args
+}
+
 export function runGit(
   args,
   { allowFail = false, dryRun = false, pipeStdout = false } = {}
 ) {
-  const cmd = `git ${args}`
+  const argArray = typeof args === 'string' ? splitArgs(args) : args
+  const cmd = `git ${argArray.join(' ')}`
   if (dryRun) {
     logInfo(`[dry-run] ${cmd}`)
     return ''
   }
-  try {
-    return execSync(cmd, {
-      encoding: 'utf-8',
-      stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-    }).trim()
-  } catch (error) {
+  const result = spawnSync('git', argArray, {
+    encoding: 'utf-8',
+    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
+  })
+  if (result.error || result.status !== 0) {
     if (allowFail) return null
     logError(`${cmd} failed`)
-    if (error.stderr) console.error(error.stderr.toString())
+    if (result.stderr) console.error(result.stderr)
     process.exit(1)
   }
+  return (result.stdout || '').trim()
 }
 
 export function ensureCleanTree() {
@@ -148,30 +169,27 @@ export function ensureTagMissing(version) {
   }
 }
 
-export function withDryRunLabel(dryRun) {
-  return dryRun ? `${COLOR_WARN}[dry-run]${COLOR_RESET} ` : ''
-}
-
 export function runGitFlow(
   args,
   { allowFail = false, dryRun = false, pipeStdout = false } = {}
 ) {
-  const cmd = `git flow ${args}`
+  const argArray = typeof args === 'string' ? splitArgs(args) : args
+  const cmd = `git flow ${argArray.join(' ')}`
   if (dryRun) {
     logInfo(`[dry-run] ${cmd}`)
     return ''
   }
-  try {
-    return execSync(cmd, {
-      encoding: 'utf-8',
-      stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-    }).trim()
-  } catch (error) {
+  const result = spawnSync('git', ['flow', ...argArray], {
+    encoding: 'utf-8',
+    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
+  })
+  if (result.error || result.status !== 0) {
     if (allowFail) return null
     logError(`${cmd} failed`)
-    if (error.stderr) console.error(error.stderr.toString())
+    if (result.stderr) console.error(result.stderr)
     process.exit(1)
   }
+  return (result.stdout || '').trim()
 }
 
 export function getBranchType(branch) {
@@ -263,6 +281,17 @@ export function listBranchesByType(type) {
     .filter(Boolean)
 }
 
+// ============================================================================
+// git-flow auto-install configuration
+// ============================================================================
+
+const GITFLOW_INSTALLER_URL =
+  'https://raw.githubusercontent.com/CJ-Systems/gitflow-cjs/v2.2.1/contrib/gitflow-installer.sh'
+const GITFLOW_INSTALLER_SHA256 =
+  '5bc020a856d79e4fb0961f48259614bb8abede22c9c815a9662e0fcd923d221c'
+const GITFLOW_VERSION = 'v2.2.1'
+const GITFLOW_PREFIX = `${homedir()}/.local`
+
 export function ensureGitFlowAvailable({ autoInstall, offline, dryRun }) {
   const available = runGit('flow version', { allowFail: true, dryRun })
   if (available !== null) return true
@@ -271,30 +300,59 @@ export function ensureGitFlowAvailable({ autoInstall, offline, dryRun }) {
     process.exit(1)
   }
   if (!autoInstall) {
-    logWarn(
-      'git-flow not found. Re-run with --auto-install to install it (may require sudo).'
-    )
+    logWarn('git-flow not found. Re-run with --auto-install to install it.')
     return false
   }
   if (dryRun) {
-    logInfo('[dry-run] would install git-flow using upstream installer')
+    logInfo('[dry-run] would install git-flow')
     return false
   }
-  logInfo('Installing git-flow (requires curl and sudo)...')
+  logInfo('Installing git-flow...')
+  const tmpDir = execSync('mktemp -d 2>/dev/null || mktemp -d -t gitflow', {
+    encoding: 'utf-8'
+  }).trim()
+  const tmpInstaller = `${tmpDir}/gitflow-installer.sh`
   try {
+    // Download installer script from pinned release tag with --fail on HTTP errors
+    execSync(`curl -fsSL '${GITFLOW_INSTALLER_URL}' -o '${tmpInstaller}'`, {
+      stdio: ['pipe', 'inherit', 'inherit']
+    })
+    // Verify SHA256 checksum of the downloaded script
+    const actual = createHash('sha256')
+      .update(readFileSync(tmpInstaller))
+      .digest('hex')
+    if (actual !== GITFLOW_INSTALLER_SHA256) {
+      logError(
+        `Installer checksum mismatch (expected ${GITFLOW_INSTALLER_SHA256}, got ${actual}). ` +
+          'Download may be corrupted or tampered. Aborting.'
+      )
+      execSync(`rm -rf '${tmpDir}'`)
+      process.exit(1)
+    }
+    // Install as current user (no sudo) by targeting a user-writable prefix
     execSync(
-      'cd /tmp && curl --silent --location https://raw.githubusercontent.com/CJ-Systems/gitflow-cjs/develop/contrib/gitflow-installer.sh --output gitflow-installer.sh && sudo bash gitflow-installer.sh install develop && rm gitflow-installer.sh && sudo rm -rf gitflow',
+      `cd '${tmpDir}' && PREFIX='${GITFLOW_PREFIX}' bash '${tmpInstaller}' install version ${GITFLOW_VERSION}`,
       { stdio: 'inherit' }
     )
   } catch (error) {
     logError('git-flow installation failed')
     if (error.stderr) console.error(error.stderr.toString())
     process.exit(1)
+  } finally {
+    execSync(`rm -rf '${tmpDir}' 2>/dev/null || true`, { stdio: 'pipe' })
+  }
+  // Warn if install bin dir is not in PATH
+  const installBin = `${GITFLOW_PREFIX}/bin`
+  const pathDirs = (process.env.PATH || '').split(':')
+  if (!pathDirs.includes(installBin)) {
+    logWarn(
+      `git-flow installed to ${installBin}, which is not in your PATH. ` +
+        `Add it with: export PATH="${installBin}:$PATH"`
+    )
   }
   logSuccess('git-flow installed')
   return true
 }
-
 import {
   handleConfig as handleConfigCommand,
   printHelp as printConfigHelp
@@ -385,7 +443,7 @@ ${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
 `)
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = [...argv]
   const next = () => args.shift()
   const takeValue = (flag) => {

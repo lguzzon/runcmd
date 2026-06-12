@@ -1,60 +1,7 @@
 #!/usr/bin/env bun
-import { logError } from './git-flow.js'
-import { releaseInitDefaults } from './lib/options.js'
+import { parseArgs, logError } from './git-flow.js'
 import { handleHotfix } from './operations/hotfix.js'
 import { handleRelease } from './operations/release.js'
-
-function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = { ...releaseInitDefaults }
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    switch (arg) {
-      case '--type':
-        opts.type = args[++i] || opts.type
-        break
-      case '--bump':
-        opts.bump = args[++i]
-        break
-      case '--version':
-        opts.version = args[++i]
-        break
-      case '--push':
-        opts.push = true
-        break
-      case '--dry-run':
-        opts.dryRun = true
-        break
-      case '--yes':
-        opts.yes = true
-        break
-      case '--no-changelog':
-        opts.noChangelog = true
-        break
-      case '--offline':
-        opts.offline = true
-        break
-      case '--help':
-      case '-h':
-        opts.help = true
-        break
-      default:
-        // Ignore unknown arguments for backward compatibility
-        break
-    }
-  }
-
-  if (process.env.CI === 'true') {
-    opts.yes = true
-  }
-
-  if (!opts.bump && !opts.version) {
-    opts.bump = opts.type === 'hotfix' ? 'patch' : 'minor'
-  }
-
-  return opts
-}
 
 function printHelp() {
   console.log(`
@@ -81,21 +28,46 @@ Examples:
 }
 
 async function main() {
-  const opts = parseArgs()
+  const rawArgs = process.argv.slice(2)
 
-  if (opts.help) {
+  if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
     printHelp()
     process.exit(0)
   }
 
-  // Map to git-flow.js operation
-  const action = 'start'
-  const type = opts.type
+  // Detect --type from raw args to determine git-flow command routing
+  const typeIdx = rawArgs.indexOf('--type')
+  const type =
+    typeIdx !== -1 && typeIdx + 1 < rawArgs.length
+      ? rawArgs[typeIdx + 1]
+      : 'release'
+
+  // Strip --type and its value from args before passing to git-flow.js parseArgs
+  const strippedArgs = []
+  for (let i = 0; i < rawArgs.length; i++) {
+    if (rawArgs[i] === '--type') {
+      i += 1 // skip value
+      continue
+    }
+    strippedArgs.push(rawArgs[i])
+  }
+
+  // Prepend command and subcommand, then delegate parsing to git-flow.js
+  const mappedArgs = [type, 'start', ...strippedArgs]
+  const opts = parseArgs(mappedArgs)
+
+  if (process.env.CI === 'true') {
+    opts.yes = true
+  }
+
+  if (!opts.bump && !opts.version) {
+    opts.bump = type === 'hotfix' ? 'patch' : 'minor'
+  }
 
   if (type === 'hotfix') {
-    await handleHotfix(action, opts)
+    await handleHotfix('start', opts)
   } else {
-    await handleRelease(action, opts)
+    await handleRelease('start', opts)
   }
 
   // Close stdin to prevent hanging

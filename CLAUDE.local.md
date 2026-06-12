@@ -10,8 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The project has three core runner files:
 
-1. **runcmd.sh** (1142 lines): Unix/macOS bash script with comprehensive features
-2. **runcmd.bat** (364 lines): Windows batch equivalent
+1. **runcmd.sh** (1106 lines): Unix/macOS bash script with comprehensive features
+2. **runcmd.bat** (468 lines): Windows batch equivalent
 3. **runcmd.mjs**: Target script that the runner executes (this is the user's actual script)
 
 The runners are designed to be copied and the `.mjs` file modified to contain your script logic. The runner scripts handle all boiler plate.
@@ -47,7 +47,7 @@ runcmd.bat --env custom.env          # Load custom .env file
 ### Code Quality Checks
 
 ```bash
-# Comprehensive check mode (shell format, shellcheck, JSON sort, oxlint, oxfmt, Biome)
+# Comprehensive check mode (shell format, shellcheck, JSON sort, oxlint, oxfmt)
 ./runcmd.sh +check
 
 # Manually run tools
@@ -55,7 +55,6 @@ bunx oxlint --fix-dangerously .     # Lint JS/TS files
 bunx oxfmt --write .                 # Format JS/TS files
 bunx shfmt -w -bn -ci -i 2 -s *.sh   # Format shell scripts
 shellcheck -s bash *.sh               # Check shell scripts
-bunx @biomejs/biome check --unsafe --write .   # Legacy Biome check
 bunx json-sort-cli "**/*.json"       # Sort JSON files
 ```
 
@@ -97,7 +96,7 @@ Key capabilities:
 - **Cross-Platform Path Resolution**: Uses `greadlink` (macOS), `readlink` (Linux), or Python fallback
 - **Multiple Search Paths**: Checks current directory, script directory, and explicit paths
 - **Timing Functionality**: Debug mode includes millisecond-precision execution timing with Python
-- **Tool Dependencies**: Auto-installs through `bunx`: `@biomejs/biome`, `shfmt`, `json-sort-cli`
+- **Tool Dependencies**: Auto-installs through `bunx`: `oxlint`, `oxfmt`, `shfmt`, `json-sort-cli`
 - **Exit Code Propagation**: Returns the exit code from the executed .mjs script
 
 Script resolution priority (`+r <path>` flag):
@@ -125,16 +124,15 @@ Script resolution priority:
 
 ## Code Organization
 
-### Biome Configuration
+### Code Quality Tools (oxlint/oxfmt)
 
-`biome.json` configures:
+The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.rs/) for formatting JavaScript/TypeScript code. These are run via `bunx` and configured through command-line flags:
 
-- Formatter: 2-space indent, single quotes, 80 char line width, semicolons as-needed
-- Linter: Recommended rules enabled
-- Import organization: Auto-enabled on save
-- VCS integration: Git enabled, ignore file disabled
+- **oxlint --fix-dangerously** — Lint and auto-fix JS/TS files
+- **oxfmt --write** — Format JS/TS files to standard style
+- VCS integration: Git enabled via pre-commit hook
 
-Modify this file to adjust formatting/linting rules for the project.
+No separate config file is needed — tools are invoked directly.
 
 ### Shell Script Functions
 
@@ -142,7 +140,7 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 
 - Path resolution utilities (lines 156-193): `resolve_path`, `resolve_script_path`
 - Script discovery (lines 219-303): `resolve_default_script`, `resolve_script_path`
-- Tooling integration (lines 305-603): Biome, shfmt, json-sort-cli
+- Tooling integration (lines 305-603): oxlint, oxfmt, shfmt, json-sort-cli
 - Safe file operations (lines 355-456): `safe_format_file` with atomic updates
 - Execution orchestration (lines 731-757): `execute_script`
 - Environment loading (lines 853-909): `load_env_file`, `load_env_files`
@@ -151,7 +149,8 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 ## Dependencies
 
 - **Bun**: JavaScript runtime and package manager (auto-installed)
-- **Biome**: Fast JavaScript/TypeScript linter and formatter (via bunx)
+- **oxlint**: Fast JavaScript/TypeScript linter (via bunx)
+- **oxfmt**: Fast JavaScript/TypeScript formatter (via bunx)
 - **shfmt**: Shell script parser and formatter (via bunx)
 - **json-sort-cli**: JSON file sorting utility (via bunx)
 - **Python 3**: For path resolution and timing on Unix

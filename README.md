@@ -23,7 +23,7 @@ The result is a professional-grade script runner with zero configuration and cro
 
 ### Development Tooling
 
-- **Integrated Code Formatting** - Biome for JavaScript/TypeScript, shfmt for shell scripts
+- **Integrated Code Formatting** - oxlint for linting, oxfmt for formatting JavaScript/TypeScript, shfmt for shell scripts
 - **JSON Validation** - Automatic JSON file sorting and validation
 - **Debug Mode** - Millisecond-precision timing and detailed execution logs
 - **Self-Healing** - Safe self-formatting for currently running scripts
@@ -120,11 +120,11 @@ runcmd.bat +d0      :: Disable debug
 Comprehensive check mode formats and validates your code:
 
 ```bash
-# Format shell scripts, sort JSON, run Biome checks
+# Format shell scripts, sort JSON, run oxlint/oxfmt checks
 ./runcmd.sh +check
 
 # Manual tool execution
-bunx @biomejs/biome check --unsafe --write .
+bunx oxlint --fix-dangerously . && bunx oxfmt --write .
 bunx shfmt -w -bn -ci -i 2 -s *.sh
 bunx json-sort-cli "**/*.json"
 ```
@@ -189,11 +189,10 @@ bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
 
 ```text
 runcmd/
-├── runcmd.sh           # Unix/macOS runner (1141 lines)
-├── runcmd.bat          # Windows runner (364 lines)
+├── runcmd.sh           # Unix/macOS runner (1106 lines)
+├── runcmd.bat          # Windows runner (468 lines)
 ├── runcmd.mjs          # Default target script
 ├── version.txt         # Current version
-├── biome.json          # Biome configuration
 ├── CHANGELOG.md        # Version history
 ├── LICENSE             # MIT License
 ├── scripts/            # Git-flow management tools
@@ -226,31 +225,15 @@ runcmd/
 
 ## ⚙️ Configuration
 
-### Biome Settings (`biome.json`)
+### Code Quality Tools (oxlint/oxfmt)
 
-The project uses Biome for formatting and linting with these defaults:
+The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.rs/) for formatting JavaScript/TypeScript code. These replace the previous Biome setup and are configured via command-line flags rather than a config file:
 
-```json
-{
-  "formatter": {
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 80
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "single",
-      "semicolons": "asNeeded",
-      "trailingCommas": "none"
-    }
-  },
-  "linter": {
-    "rules": {
-      "recommended": true
-    }
-  }
-}
-```
+- **oxlint --fix-dangerously** — Lint and auto-fix JS/TS files
+- **oxfmt --write** — Format JS/TS files
+- **shellcheck** — Validate shell scripts
+- **shfmt** — Format shell scripts
+- **json-sort-cli** — Sort JSON files
 
 ### Environment Variables
 
@@ -300,7 +283,7 @@ GitHub Pages is built from the `website` folder using Bun in `.github/workflows/
 | curl      | For Bun installation              | -       |
 | Internet  | Initial Bun and tool installation | Same    |
 
-All tools (Bun, Biome, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
+All tools (Bun, oxlint, oxfmt, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
 
 ## 📚 Documentation
 
@@ -324,7 +307,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - Built with [Bun](https://bun.sh/) for speed and simplicity
-- Uses [Biome](https://biomejs.dev/) for code formatting and linting
+- Uses [oxlint/oxfmt](https://oxc.rs/) for code formatting and linting
 - Integrates with [git-flow](https://github.com/nvie/gitflow) for Git workflow management
 
 ---

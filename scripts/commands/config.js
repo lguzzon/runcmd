@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
+import { requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
   getGitFlowConfig,
   logError,
   logInfo,
@@ -33,19 +32,8 @@ Examples:
 }
 
 export async function handleConfig(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError('git-flow is required to manage configuration')
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before processing
-  if (opts.help) {
-    printHelp()
+  if (!requireValidCommand(opts, { commandName: 'config', helpFn: printHelp }))
     return
-  }
 
   const { get: getKey, set: setKey, list } = opts
 

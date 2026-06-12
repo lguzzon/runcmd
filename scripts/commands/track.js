@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
+import { requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
   logError,
   logInfo,
   logSuccess,
@@ -33,19 +32,8 @@ Examples:
 }
 
 export async function handleTrack(opts) {
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError('git-flow is required to track branches')
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before requiring arguments
-  if (opts.help) {
-    printHelp()
+  if (!requireValidCommand(opts, { commandName: 'track', helpFn: printHelp }))
     return
-  }
 
   const { type, name, dryRun } = opts
 

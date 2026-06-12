@@ -35,7 +35,7 @@ CALL :main !args_after_debug!
 ECHO ... finished!!! %ECHO_TO_NUL%
 
 :: Restore original DEBUG state and exit
-ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
+ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 
 :: ===================================================================================
 :: INITIALIZATION FUNCTIONS
@@ -59,7 +59,15 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :parse_debug_mode_and_collect
     :: Parse debug mode arguments and collect remaining arguments
     :: Arguments: +d (basic), +dd (with file), +ddd (full echo), +d0 (disable)
-    :debug_parse_loop
+    SET "_guard_debug_parse=1"
+    REM Fall through to debug_parse_loop
+
+:debug_parse_loop
+    :: Guard against accidental CALL to internal loop label
+    IF NOT defined _guard_debug_parse (
+        CALL :show_error "Internal error: accidental CALL to :debug_parse_loop"
+        EXIT /B 1
+    )
         IF "%~1" == "" GOTO :debug_parse_done
         IF /I "%~1" == "+d" (
             SET "DEBUG=1"
@@ -85,14 +93,24 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
         :: Not a debug flag, collect remaining arguments
         GOTO :debug_parse_done
     :debug_parse_done
-        :: Now collect all remaining arguments
+        :: Guard for args_collect_loop - set before fall-through
+        SET "_guard_args_collect=1"
+        REM Fall through to args_collect_loop
+
     :args_collect_loop
+        :: Guard against accidental CALL to internal loop label
+        IF NOT defined _guard_args_collect (
+            CALL :show_error "Internal error: accidental CALL to :args_collect_loop"
+            EXIT /B 1
+        )
         IF "%~1" == "" GOTO :args_collect_done
         SET "args_after_debug=!args_after_debug! %1"
         SHIFT
         GOTO :args_collect_loop
     :args_collect_done
-    EXIT /B 0
+        SET "_guard_debug_parse="
+        SET "_guard_args_collect="
+        EXIT /B 0
 
 :configure_output_redirection
     :: Configure output redirection based on debug level
@@ -100,6 +118,11 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Level 2: No redirection for file operations
     :: Level 1: No redirection for echo output
     :: Level 0/empty: Full redirection for quiet operation
+    ::
+    :: NOTE: DEBUG semantics differ between platforms:
+    ::   runcmd.bat uses 4 levels (+d, +dd, +ddd, +d0) with granular
+    ::   control over ECHO and redirection behavior.
+    ::   runcmd.sh uses a simpler on/off model (+debug or DEBUG=1).
     IF "%DEBUG%" == "3" (
         ECHO ON
         SET "TO_NUL="
@@ -123,6 +146,27 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     CALL :setup_paths
     CALL :load_default_env_files
     CALL :ensure_bun
+
+    :: Handle --env/-e at main level for proper SHIFT scope
+    IF /I "%~1" == "--env" (
+        IF "%~2" == "" (
+            CALL :show_error "--env option requires a file path"
+            ECHO Usage: runcmd.bat --env /path/to/custom.env
+            EXIT /B 1
+        )
+        CALL :load_env "%~2"
+        SHIFT
+        SHIFT
+    ) ELSE IF /I "%~1" == "-e" (
+        IF "%~2" == "" (
+            CALL :show_error "--env option requires a file path"
+            ECHO Usage: runcmd.bat --env /path/to/custom.env
+            EXIT /B 1
+        )
+        CALL :load_env "%~2"
+        SHIFT
+        SHIFT
+    )
 
     CALL :handle_special_options %*
     IF !ERRORLEVEL! EQU 99 EXIT /B 0
@@ -176,9 +220,8 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
 :: ===================================================================================
 
 :handle_special_options
-    :: Handle special command line options (+e, --env)
+    :: Handle special command line options (+e, +help, +version)
     SET "first_arg=%~1"
-    SET "needs_custom_env=0"
     SET "exit_please=0"
 
     :: Handle environment variable listing
@@ -207,27 +250,29 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
         EXIT /B 99
     )
 
-    :: Handle custom environment file
-    IF /I "%first_arg%" == "-e" SET "needs_custom_env=1"
-    IF /I "%first_arg%" == "--env" SET "needs_custom_env=1"
-
-    IF "!needs_custom_env!" == "1" (
-        SET "custom_env=%~2"
-        IF "!custom_env!" == "" (
-            CALL :show_error "--env option requires a file path"
-            ECHO Usage: runcmd.bat --env /path/to/custom.env
-            EXIT /B 1
-        )
-        CALL :load_env "!custom_env!"
-        SHIFT
-        SHIFT
-    )
     EXIT /B 0
 
 :process_main_arguments
     :: Process and collect main arguments for script execution
-    SET "first_arg=%~1"
-    CALL :collect_args %*
+    :: Skips --env/-e (handled at main level with proper SHIFT scope)
+    SET "_guard_process_args=1"
+    SET "first_arg="
+    SET "collected="
+:process_args_loop
+    :: Guard against accidental CALL
+    IF NOT defined _guard_process_args (
+        CALL :show_error "Internal error: accidental CALL to :process_args_loop"
+        EXIT /B 1
+    )
+    IF "%~1" == "" GOTO :process_args_done
+    IF /I "%~1" == "--env" SHIFT & SHIFT & GOTO :process_args_loop
+    IF /I "%~1" == "-e" SHIFT & SHIFT & GOTO :process_args_loop
+    IF NOT defined first_arg SET "first_arg=%~1"
+    SET "collected=!collected! %1"
+    SHIFT
+    GOTO :process_args_loop
+:process_args_done
+    SET "_guard_process_args="
     SET "main_args=%collected%"
     EXIT /B 0
 
@@ -374,12 +419,21 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     :: Collect all arguments into %collected%
     :: Usage: CALL :collect_args [args...]
     SET "collected="
-    :collect_args_loop
-        IF "%~1" == "" GOTO :collect_args_done
-        SET "collected=!collected! %1"
-        SHIFT
-        GOTO :collect_args_loop
+    SET "_guard_collect_args=1"
+    REM Fall through to collect_args_loop
+
+:collect_args_loop
+    :: Guard against accidental CALL to internal loop label
+    IF NOT defined _guard_collect_args (
+        CALL :show_error "Internal error: accidental CALL to :collect_args_loop"
+        EXIT /B 1
+    )
+    IF "%~1" == "" GOTO :collect_args_done
+    SET "collected=!collected! %1"
+    SHIFT
+    GOTO :collect_args_loop
     :collect_args_done
+    SET "_guard_collect_args="
     EXIT /B 0
 
 :: ===================================================================================
@@ -423,7 +477,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B %ERRORLEVEL%
     )
 
     :: Cleanup old backup if exists
-    IF EXIST "%~f0.old" DEL "%~f0.old" >nul 2>&1
+    IF EXIST "%~f0.old" DEL "%~f0.old" %TO_NUL%
 
     EXIT /B 0
 

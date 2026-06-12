@@ -1,3 +1,6 @@
+## v1.11.2 - 2026-06-12
+- docs: fix doc/code coherence audit findings — 10 files
+- Merge branch 'main' into develop
 # Changelog
 
 All notable changes to this project will be documented in this file.

@@ -60,7 +60,6 @@ export async function handleStart(opts) {
     process.exit(1)
   }
 
-  const _config = runGitFlow('config', { allowFail: true, dryRun: false })
   const baseBranch =
     base || (type === 'hotfix' || type === 'support' ? 'main' : 'develop')
 

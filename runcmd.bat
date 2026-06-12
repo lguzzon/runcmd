@@ -10,6 +10,8 @@
 ::   - Flexible script discovery (current directory, script directory, explicit paths)
 ::   - Environment variable listing (+e option)
 ::   - Custom environment file support (--env option)
+::   - Explicit script path selection (+r flag)
+::   - Code quality check mode (+check)
 :: ===================================================================================
 
 :: ===================================================================================
@@ -42,7 +44,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 :: ===================================================================================
 
 :initialize_environment
-    :: Initialize environment variables and output redirection
     SET "OLD_DEBUG=%DEBUG%"
     
     :: Read version from version.txt for single source of truth
@@ -87,6 +88,12 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
         )
         IF /I "%~1" == "+d0" (
             SET "DEBUG="
+            SHIFT
+            GOTO :debug_parse_loop
+        )
+        IF /I "%~1" == "+r" (
+            SHIFT
+            SET "SCRIPT_OVERRIDE=%~1"
             SHIFT
             GOTO :debug_parse_loop
         )
@@ -173,6 +180,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     IF !ERRORLEVEL! NEQ 0 EXIT /B !ERRORLEVEL!
 
     CALL :process_main_arguments %*
+    IF !ERRORLEVEL! EQU 99 EXIT /B 0
 
     CALL :attempt_script_execution
     EXIT /B !ERRORLEVEL!
@@ -250,6 +258,16 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
         EXIT /B 99
     )
 
+    :: Handle check mode
+    IF /I "%first_arg%" == "+check" (
+        CALL :check_mode
+        EXIT /B 99
+    )
+    IF /I "%first_arg%" == "+c" (
+        CALL :check_mode
+        EXIT /B 99
+    )
+
     EXIT /B 0
 
 :process_main_arguments
@@ -276,12 +294,29 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     SET "main_args=%collected%"
     EXIT /B 0
 
+:arg_check
+    :: Handle +check flag - run code quality checks and exit
+    CALL :check_mode
+    EXIT /B 99
+
 :: ===================================================================================
 :: SCRIPT EXECUTION FUNCTIONS
 :: ===================================================================================
 
 :attempt_script_execution
     :: Attempt to find and execute script in various locations
+
+    :: Check for explicit script path override (+r flag)
+    IF defined SCRIPT_OVERRIDE (
+        IF EXIST "!SCRIPT_OVERRIDE!" (
+            CALL :execute_file "!SCRIPT_OVERRIDE!" !main_args!
+        ) ELSE (
+            CALL :show_error "Script not found: !SCRIPT_OVERRIDE!"
+            EXIT /B 1
+        )
+        EXIT /B !ERRORLEVEL!
+    )
+
     :: Try current working directory first
     CALL :find_and_execute "%CWD%\!DEFAULT_SCRIPT_NAME!" !main_args!
     IF "!exit_please!" == "1" EXIT /B !ERRORLEVEL!
@@ -293,7 +328,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     :: Check if first argument is a file path
     CALL :is_file "!first_arg!"
     IF !ERRORLEVEL! EQU 0 (
-        SHIFT
         CALL :execute_file !main_args!
         EXIT /B !ERRORLEVEL!
     )
@@ -441,7 +475,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 :: ===================================================================================
 
 :check_for_updates
-    :: Check for updates from GitHub Pages
     :: Uses Bun for logic since it's cleaner than batch/powershell
     :: Stores state in %USERPROFILE%\.runcmd\state.json
     
@@ -481,6 +514,53 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 
     EXIT /B 0
 
+:check_mode
+    :: Run code quality checks using available tools
+    SETLOCAL ENABLEDELAYEDEXPANSION
+    SET "exit_code=0"
+
+    ECHO [CHECK] Running code quality checks...
+    ECHO.
+
+    :: Verify bunx availability
+    >nul 2>&1 WHERE bunx
+    IF ERRORLEVEL 1 (
+        ECHO [SKIP] bunx not available, skipping all checks
+        ECHO.
+        ENDLOCAL & EXIT /B 0
+    )
+
+    :: Check oxlint
+    ECHO [CHECK] Running oxlint...
+    CALL bunx oxlint --fix-dangerously .
+    IF ERRORLEVEL 1 (
+        SET "exit_code=1"
+        ECHO [FAIL] oxlint reported issues
+    ) ELSE (
+        ECHO [PASS] oxlint passed
+    )
+    ECHO.
+
+    :: Check oxfmt
+    ECHO [CHECK] Running oxfmt --check...
+    CALL bunx oxfmt --check .
+    IF ERRORLEVEL 1 (
+        SET "exit_code=1"
+        ECHO [FAIL] oxfmt --check reported issues
+    ) ELSE (
+        ECHO [PASS] oxfmt --check passed
+    )
+    ECHO.
+
+    IF "!exit_code!" == "0" (
+        ECHO [CHECK] All checks passed!
+    ) ELSE (
+        ECHO [CHECK] Some checks failed.
+    )
+    ECHO.
+
+    ENDLOCAL & EXIT /B 0
+
 :show_help
     :: Display help message
     ECHO runcmd v%RUNCMD_VERSION%
@@ -496,8 +576,14 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     ECHO   +e
     ECHO       List all environment variables
     ECHO.
+    ECHO   +check
+    ECHO       Run code quality checks (oxlint, oxfmt)
+    ECHO.
     ECHO   +h, +help
     ECHO       Display this help message and exit
+    ECHO.
+    ECHO   +r ^<path^>
+    ECHO       Explicit script path, skips automatic script discovery
     ECHO.
     ECHO   +v, +version
     ECHO       Display version information and exit
@@ -513,6 +599,8 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     ECHO   runcmd.bat +e                    # List environment variables
     ECHO   runcmd.bat --env custom.env      # Load custom environment file
     ECHO   runcmd.bat +v                    # Show version
+    ECHO   runcmd.bat +check                # Run code quality checks
+    ECHO   runcmd.bat +r myscript.mjs       # Run with explicit script path
     ECHO.
     EXIT /B 0
 

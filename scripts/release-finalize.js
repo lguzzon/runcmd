@@ -2,6 +2,7 @@
 import {
   ensureBranchExists,
   ensureCleanTree,
+  getBranchType,
   listBranchesByType,
   logError,
   logSuccess
@@ -120,14 +121,8 @@ function detectBranch(opts) {
   return candidates[index]
 }
 
-function branchType(branch) {
-  if (branch.startsWith('release/')) return 'release'
-  if (branch.startsWith('hotfix/')) return 'hotfix'
-  return 'unknown'
-}
-
 function ensureBranchMatchesType(branch, requested) {
-  const detected = branchType(branch)
+  const detected = getBranchType(branch)
   if (requested && requested !== detected) {
     logError(`Branch '${branch}' does not match type '${requested}'.`)
     process.exit(1)

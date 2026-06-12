@@ -18,12 +18,12 @@ const features = [
   },
   {
     title: 'Robust & Safe',
-    description: 'Atomic updates, self-healing environment, and smart path resolution for maximum reliability.',
+    description: 'Atomic updates with rollback, SHA256 integrity verification, and hardened path resolution for supply-chain defense.',
     icon: 'shield',
   },
   {
     title: 'Modern Tooling',
-    description: 'Built-in formatting, linting, and JSON validation powered by Biome and Shfmt.',
+    description: 'Built-in formatting, linting, and JSON validation powered by oxlint, oxfmt, and Shfmt.',
     icon: 'code',
   },
 ]
@@ -142,6 +142,7 @@ const features = [
                     <li>Auto-installs Bun to <code>~/.bun</code></li>
                     <li>Safe self-formatting and tooling</li>
                     <li>Cross-platform path resolution</li>
+                    <li><code>+check</code> mode for full lint/format audit</li>
                     <li>Integrated debug timing</li>
                   </ul>
                 </div>
@@ -150,7 +151,8 @@ const features = [
                   <ul class="list-disc pl-5 space-y-2 text-gray-600 dark:text-gray-400">
                     <li>Supports .js, .mjs, .ts, and .py</li>
                     <li>Auto-installs tools via PowerShell</li>
-                    <li>Enhanced debug modes (+d, +dd)</li>
+                    <li>Enhanced debug modes (+d, +dd, +ddd, +d0)</li>
+                    <li><code>+check</code> mode and <code>+r</code> path selection</li>
                     <li>Delayed variable expansion support</li>
                   </ul>
                 </div>

@@ -67,7 +67,7 @@ import Nav from '../components/Nav.astro'
               <li><strong>Cross-platform:</strong> Seamless on macOS, Linux, and Windows.</li>
               <li><strong>Zero config:</strong> Automatically installs Bun and required tooling.</li>
               <li><strong>Robust:</strong> Atomic updates, safe self-formatting, and exit-code propagation.</li>
-              <li><strong>Integrated tooling:</strong> Biome, shfmt, and JSON validation built in.</li>
+              <li><strong>Integrated tooling:</strong> oxlint, oxfmt, shfmt, and JSON validation built in.</li>
             </ul>
           </div>
         </div>
@@ -91,9 +91,10 @@ import Nav from '../components/Nav.astro'
               <h2>Install (Windows)</h2>
               <p>Place <code>runcmd.bat</code> alongside your script or in <code>PATH</code>. Usage examples:</p>
               <div class="not-prose bg-gray-900 rounded-xl p-5 overflow-x-auto mb-6">
-                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['runcmd.bat', 'runcmd.bat +d', 'runcmd.bat +e my-script.mjs'].join('\n')}</pre>
+                <pre class="text-blue-400 text-sm font-mono leading-6 whitespace-pre-wrap">{['runcmd.bat', 'runcmd.bat +d', 'runcmd.bat +r my-script.mjs --flag', 'runcmd.bat +check'].join('\n')}</pre>
               </div>
               <p><strong>Supported files:</strong> <code>.js</code>, <code>.mjs</code>, <code>.ts</code>, and <code>.py</code>. Bun and supporting tools auto-install as needed.</p>
+              <p class="mt-4 text-sm text-gray-500 dark:text-gray-400"><strong>v1.11.0:</strong> <code>+check</code> mode and <code>+r</code> path selection now available on Windows.</p>
             </div>
           </div>
         </div>
@@ -127,9 +128,11 @@ import Nav from '../components/Nav.astro'
             </ul>
             <h3>Checks & formatting</h3>
             <ul>
-              <li><code>./runcmd.sh +check</code> — formats shell scripts, sorts JSON, runs Biome.</li>
-              <li>Manual: <code>bunx @biomejs/biome check --unsafe --write .</code></li>
-              <li>Manual: <code>bunx shfmt -w -bn -ci -i 2 -s *.sh</code></li>
+              <li><code>./runcmd.sh +check</code> — formats shell scripts, sorts JSON, runs oxlint and oxfmt.</li>
+              <li><code>runcmd.bat +check</code> — same check mode on Windows (v1.11.0+).</li>
+              <li>Manual: <code>bunx oxfmt --write .</code></li>
+              <li>Manual: <code>bunx oxlint --fix-dangerously .</code></li>
+              <li>Shell: <code>bunx shfmt -w -bn -ci -i 2 -s *.sh</code></li>
             </ul>
           </div>
         </div>
@@ -157,6 +160,7 @@ import Nav from '../components/Nav.astro'
                 <li>Installs Bun to <code>~/.bun</code> if missing.</li>
                 <li>Safe self-formatting with rollback protection.</li>
                 <li>Cross-platform path resolution with Python fallback.</li>
+                <li>Hardened security: SHA256 checksum for auto-install, no eval in .env loading.</li>
                 <li>Timing and debug logging utilities.</li>
               </ul>
             </div>
@@ -165,6 +169,8 @@ import Nav from '../components/Nav.astro'
               <ul>
                 <li>Supports <code>.js</code>, <code>.mjs</code>, <code>.ts</code>, and <code>.py</code>.</li>
                 <li>Auto-installs tooling via PowerShell when needed.</li>
+                <li><code>+check</code> mode for lint/format/validate audits.</li>
+                <li><code>+r &lt;path&gt;</code> flag for explicit script targeting.</li>
                 <li>Multiple debug levels (<code>+d</code>, <code>+dd</code>, <code>+ddd</code>, <code>+d0</code>).</li>
                 <li>Delayed variable expansion for complex operations.</li>
               </ul>
@@ -182,8 +188,9 @@ import Nav from '../components/Nav.astro'
               <li><code>bun scripts/git-flow.js init</code> — initialize git-flow.</li>
               <li><code>bun scripts/git-flow.js start feature my-feature</code> — start a branch.</li>
               <li><code>bun scripts/git-flow.js finish feature my-feature</code> — finish and merge.</li>
-              <li><code>bun scripts/git-flow.js release start --bump minor</code> — start a release.</li>
-              <li><code>bun scripts/git-flow.js hotfix finish --tag v1.1.1</code> — complete a hotfix.</li>
+              <li><code>bun scripts/git-flow.js release start --bump minor</code> — start a release with auto-versioning.</li>
+              <li><code>bun scripts/git-flow.js release finish --tag v1.1.0 --message "Release"</code> — tag and merge.</li>
+              <li><code>bun scripts/git-flow.js hotfix finish --tag v1.0.1 --message "Hotfix"</code> — complete a hotfix.</li>
             </ul>
           </div>
         </div>
@@ -207,8 +214,9 @@ import Nav from '../components/Nav.astro'
               <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Windows</h3>
               <ul class="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
                 <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat</code> — run default script.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +r script.mjs</code> — run specific script.</li>
+                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +check</code> — format and validate.</li>
                 <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +d</code> — enable debug output.</li>
-                <li><code class="bg-gray-800 text-blue-200 px-2 py-1 rounded">runcmd.bat +e my-script.mjs</code> — list env vars then run.</li>
               </ul>
             </div>
           </div>

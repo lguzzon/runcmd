@@ -21,7 +21,6 @@ Marketing website for RunCmd, built with Astro and Tailwind CSS, deployed to Git
 | `bun run dev`     | Start dev server at <http://localhost:4321> |
 | `bun run build`   | Build static files to `../public`           |
 | `bun run preview` | Preview production build                    |
-| `bun run lint`    | Run ESLint                                  |
 | `bun run check`   | Run Astro type checks                       |
 
 ## Contents
@@ -38,10 +37,8 @@ Marketing website for RunCmd, built with Astro and Tailwind CSS, deployed to Git
 
 - [package.json](./package.json) — Project dependencies and scripts
 - [astro.config.mjs](./astro.config.mjs) — Astro config with Tailwind integration, output to `../public`
-- [tailwind.config.js](./tailwind.config.js) — Tailwind content扫描 `.astro` and `.css` files
+- [tailwind.config.js](./tailwind.config.js) — Tailwind content scans `.astro` and `.css` files
 - [tsconfig.json](./tsconfig.json) — Target ES2020, module ESNext
-- [eslint.config.js](./eslint.config.js) — ESLint rules for Astro + TypeScript
-- [postcss.config.js](./postcss.config.js) — PostCSS setup
 
 ### Documentation
 

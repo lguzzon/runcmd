@@ -19,12 +19,13 @@ scripts/
 │   ├── list.js         # List branches by type
 │   └── config.js       # Configuration management
 ├── lib/                # Shared utility modules
+│   ├── core.js         # Core utilities (git wrappers, logging, validation)
 │   ├── version.js      # Version utilities and validation
 │   ├── changelog.js    # Changelog generation and management
-│   ├── prompts.js      # User interaction utilities
-│   ├── release-utils.js # Release and hotfix lifecycle utilities
-│   └── options.js      # CLI option defaults
+│   └── prompts.js      # User interaction utilities
 └── operations/         # High-level git operations
+    ├── release-utils.js # Release and hotfix lifecycle utilities
+    ├── options.js      # CLI option defaults
     ├── sync.js         # Sync main/master & develop branches
     ├── clone.js        # Clone repository with git-flow initialization
     ├── release.js      # Release branch management
@@ -85,7 +86,6 @@ Initializes git-flow in the current repository with default settings.
 
 **Features:**
 
-- Automatic git-flow installation if missing
 - Default configuration setup
 - Configuration display
 
@@ -111,7 +111,6 @@ Starts a new branch of the specified type.
 
 - Branch name validation
 - Automatic base branch detection
-- Remote tracking setup
 - Conflict prevention
 
 **Usage:**

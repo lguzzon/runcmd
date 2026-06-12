@@ -1,3 +1,20 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Planned Features
+
+- Enhanced Windows PowerShell support
+- Additional development tool integrations
+- Performance optimizations for large codebases
+- Advanced configuration options
+- Plugin system for custom tooling
+
 ## v1.11.1 - 2026-06-12
 
 - docs: update website for v1.11.0 (oxlint/oxfmt, Windows +check/+r, security messaging)
@@ -23,7 +40,7 @@
 - docs: migrate all Biome references to oxlint/oxfmt
 - docs: fix line counts, function names, version claims across 5 doc files
 - docs: accept ADR-1 error handling strategy (two-tier convention)
-- polish: remove dead code (_config, _flag, withDryRunLabel, skipped_count, dead SHIFT)
+- polish: remove dead code (\_config, \_flag, withDryRunLabel, skipped_count, dead SHIFT)
 - polish: extract shared run_shfmt dispatch helper
 - polish: remove auto-generation headers from all CLAUDE.md/AGENTS.md files
 - polish: remove tautological function headers and thinking-out-loud comments
@@ -50,13 +67,6 @@
 - fix: strip default 'nextRelease' name in versioned release/hotfix start
 - refactor: consolidate, deduplicate, and fix 20 quality issues
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## v1.9.2 - 2026-04-08
 
 - feat(version): read version from version.txt for single source of truth
@@ -70,23 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## v1.9.0 - 2026-01-07
 
 - chore(operations): remove commented-out changelog generation code
-- Merge tag 'v1.8.0' into develop
-
-## v1.8.0 - 2026-01-07
-
-- Merge tag 'v1.7.0' into develop
 
 ## v1.7.0 - 2026-01-07
 
 - fix(runcmd.sh): fix timer function variable assignment and arithmetic
 - fix(runcmd.sh): fix shell variable assignment syntax
 - refactor(website): reorganize package.json scripts and tsconfig.json structure
-- Merge tag 'v1.6.0' into develop
 
 ## v1.6.0 - 2026-01-07
 
 - feat(ui): enhance theme toggle button with hover effects and improved accessibility
-- Merge tag 'v1.5.0' into develop
 
 ## v1.5.0 - 2026-01-07
 
@@ -94,7 +97,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(website): implement comprehensive UI redesign with component architecture
 - docs: remove generated static files from repository
 - docs: update project documentation and add comprehensive scripts guide
-- Merge tag 'v1.4.0' into develop
 
 ## v1.4.0 - 2026-01-07
 
@@ -157,20 +159,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API documentation in individual script files
 - Git flow command reference and help system
 
-## [Unreleased]
-
-### Planned Features
-
-- Enhanced Windows PowerShell support
-- Additional development tool integrations
-- Performance optimizations for large codebases
-- Advanced configuration options
-- Plugin system for custom tooling
-
+[Unreleased]: https://github.com/lguzzon/runcmd/compare/v1.11.1...HEAD
+[v1.11.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.1
+[v1.11.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.0
+[v1.10.4]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.4
+[v1.10.3]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.3
+[v1.10.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.2
+[v1.10.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.1
+[v1.10.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.0
 [v1.9.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.2
 [v1.9.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.1
 [v1.9.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.9.0
-[v1.8.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.8.0
 [v1.7.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.7.0
 [v1.6.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.6.0
 [v1.5.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.5.0
@@ -179,8 +178,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v1.2.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.0.0
-[v1.10.4]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.4
-[v1.10.3]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.3
-[v1.10.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.2
-[v1.10.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.1
-[v1.10.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.0

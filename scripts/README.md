@@ -21,7 +21,9 @@ scripts/
 ├── lib/                # Shared utility modules
 │   ├── version.js      # Version utilities and validation
 │   ├── changelog.js    # Changelog generation and management
-│   └── prompts.js      # User interaction utilities
+│   ├── prompts.js      # User interaction utilities
+│   ├── release-utils.js # Release and hotfix lifecycle utilities
+│   └── options.js      # CLI option defaults
 └── operations/         # High-level git operations
     ├── sync.js         # Sync main/master & develop branches
     ├── clone.js        # Clone repository with git-flow initialization
@@ -235,15 +237,15 @@ Version management utilities for semantic versioning.
 
 - `parseVersion(version)` - Parse semantic version
 - `compareVersions(v1, v2)` - Compare two versions
-- `bumpVersion(version, type)` - Bump version by type
-- `isValidVersion(version)` - Validate version format
+- `incrementVersion(version, bump)` - Increment version by bump type
+- `validateVersion(version)` - Validate version format
 
 **Usage:**
 
 ```javascript
-import { bumpVersion, compareVersions } from './lib/version.js'
+import { incrementVersion, compareVersions } from './lib/version.js'
 
-const newVersion = bumpVersion('1.2.3', 'minor') // '1.3.0'
+const newVersion = incrementVersion('1.2.3', 'minor') // '1.3.0'
 const isGreater = compareVersions('1.3.0', '1.2.0') // true
 ```
 
@@ -253,20 +255,18 @@ Changelog generation and management utilities.
 
 **Functions:**
 
-- `generateChangelog(commits)` - Generate changelog from commits
-- `updateChangelog(file, content)` - Update changelog file
-- `parseCommitMessage(message)` - Parse conventional commits
-- `formatChangelogEntry(entry)` - Format changelog entry
+- `getLastTag()` - Get the most recent git tag
+- `collectCommitsSince(ref)` - Collect commits since a given ref
+- `appendChangelog(version, opts)` - Append entries to changelog
+- `commitChangelog(version, opts)` - Commit changelog changes
 
 **Usage:**
 
 ```javascript
-import { generateChangelog } from './lib/changelog.js'
+import { getLastTag, collectCommitsSince } from './lib/changelog.js'
 
-const changelog = generateChangelog([
-  { type: 'feat', scope: 'auth', message: 'Add OAuth2 support' },
-  { type: 'fix', scope: 'api', message: 'Fix authentication bug' }
-])
+const lastTag = await getLastTag()
+const commits = await collectCommitsSince(lastTag)
 ```
 
 ### [`lib/prompts.js`](lib/prompts.js)
@@ -277,13 +277,12 @@ User interaction utilities for CLI prompts.
 
 - `promptYesNo(question, defaultYes)` - Yes/No prompt
 - `promptText(question)` - Text input prompt
-- `promptChoice(question, choices)` - Multiple choice prompt
-- `confirmAction(message)` - Confirmation prompt
+- `promptTextSync(question)` - Synchronous text input prompt
 
 **Usage:**
 
 ```javascript
-import { promptYesNo, promptText } from './lib/prompts.js'
+import { promptYesNo, promptText, promptTextSync } from './lib/prompts.js'
 
 const shouldContinue = await promptYesNo('Continue with release?')
 const version = await promptText('Enter version number:')

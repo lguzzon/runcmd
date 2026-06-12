@@ -1,3 +1,7 @@
+## v1.11.1 - 2026-06-12
+- docs: use version.txt as golden source for version info
+- docs: update website for v1.11.0
+- Merge branch 'main' into develop
 ## v1.11.0 - 2026-06-12
 
 - refactor: deepRefactor-graphify pipeline — structural map, adversarial verification, security audit, implementation, review

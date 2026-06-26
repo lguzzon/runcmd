@@ -1,3 +1,9 @@
+## v1.11.4 - 2026-06-26
+- chore: merge beads hook into .githooks/pre-commit
+- chore: bump version to 1.11.3 for release
+- docs: rewrite README with gold-standard patterns
+- bd init: initialize beads issue tracking
+- Merge branch 'main' into develop
 ## v1.11.3 - 2026-06-26
 
 - docs: rewrite README with gold-standard patterns

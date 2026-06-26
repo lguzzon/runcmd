@@ -1,3 +1,6 @@
+## v1.11.3 - 2026-06-26
+- docs: rewrite README with gold-standard patterns
+- bd init: initialize beads issue tracking
 ## v1.11.2 - 2026-06-12
 
 - docs: fix doc/code coherence audit findings across 10 files (line counts, dep claims, examples, AGENTS.md exports, CHANGELOG refs)

@@ -1,317 +1,228 @@
+<div align="center">
+
 # runcmd
 
-A universal script runner that simplifies JavaScript/TypeScript execution using the Bun runtime. The runners handle all the boilerplate—Bun installation, environment setup, and integrated tooling—so you can focus on your script logic.
+### Zero-config runner for Bun scripts. Drop the file, run the file.
 
-## 🚀 What is runcmd?
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.11.2-blue)](version.txt)
 
-runcmd separates boilerplate from business logic:
+[Install](#install) · [See It Work](#see-it-work) · [Getting Started](#getting-started) · [Docs](https://lguzzon.github.io/runcmd)
 
-- **Runner scripts** (`runcmd.sh`, `runcmd.bat`) handle Bun installation, path resolution, environment loading, and integrated tooling
-- **Target scripts** (`.mjs` files) contain your actual application logic
+</div>
 
-The result is a professional-grade script runner with zero configuration and cross-platform support.
+---
 
-## ✨ Key Features
+> [!IMPORTANT]
+> **What runcmd touches:** Installs Bun to `~/.bun`. Creates a state file at `~/.runcmd/state.json`. Makes weekly network calls to `lguzzon.github.io/runcmd/version.txt` to check for updates (disable with `RUNCMD_NO_UPDATE=1`). Runs shell commands you provide. Uninstall by deleting `~/.bun`, `~/.runcmd`, and the runner file.
 
-### Core Functionality
+---
 
-- **Automatic Bun Installation** - Detects and installs Bun to your home directory if missing
-- **Cross-Platform Support** - Works on Unix/macOS (`runcmd.sh`) and Windows (`runcmd.bat`)
-- **Smart Script Resolution** - Automatically discovers `.mjs` files based on runner name
-- **Environment Management** - Automatic `.env` file loading from script and current directories
-- **Exit Code Propagation** - Script exit codes are correctly passed back to the caller
+## The Problem
 
-### Development Tooling
+You write a `.mjs` script. Now you need Bun installed, `.env` loaded, tools wired up, arguments parsed — the boilerplate that has nothing to do with your logic.
 
-- **Integrated Code Formatting** - oxlint for linting, oxfmt for formatting JavaScript/TypeScript, shfmt for shell scripts
-- **JSON Validation** - Automatic JSON file sorting and validation
-- **Debug Mode** - Millisecond-precision timing and detailed execution logs
-- **Self-Healing** - Safe self-formatting for currently running scripts
-- **Atomic Operations** - Safe file operations with rollback protection
+If you have used `npx` or `bunx` to run ad-hoc packages, you already know the convenience. runcmd is the same idea for your own scripts: it wraps Bun installation, path resolution, environment loading, and development tooling into one file.
 
-### Advanced Features
+What's different: no package.json, no `npm install`, no config. Copy the runner, write your `.mjs`, run it.
 
-- **Git Flow Integration** - Comprehensive git-flow management tools in [`scripts/`](scripts/)
-- **Version Management** - Automatic self-updates from GitHub Pages
-- **Comprehensive Help** - Built-in help system with examples
-- **Zero Configuration** - Auto-installs Bun and tooling; only requires bash, curl
+---
 
-## 📦 Quick Start
+## See It Work
 
-### Installation
+```bash
+# Download the runner
+curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh
+chmod +x runcmd.sh
 
-Download and make executable:
+# Create a script
+echo 'console.log("hello from runcmd");' > runcmd.mjs
+
+# Run it
+./runcmd.sh
+# hello from runcmd
+```
+
+That installed Bun, loaded your script, and ran it. One command.
+
+---
+
+## Install
 
 ```bash
 curl -fsSL https://lguzzon.github.io/runcmd/runcmd.sh -o runcmd.sh
 chmod +x runcmd.sh
 ```
 
-### Basic Usage
+<details>
+<summary><b>Windows</b> — runcmd.bat</summary>
 
-```bash
-# Run default script (runcmd.mjs)
-./runcmd.sh
-
-# With debug output
-./runcmd.sh +debug
-
-# Run a specific script with arguments
-./runcmd.sh +r ./my-script.mjs --option value
-
-# Format and validate code
-./runcmd.sh +check
-```
-
-### Windows Support
+Save [`runcmd.bat`](https://lguzzon.github.io/runcmd/runcmd.bat) to your project directory and run:
 
 ```cmd
 runcmd.bat
-runcmd.bat +d
-runcmd.bat +r script.mjs
-runcmd.bat +check
+runcmd.bat +d      # debug mode
+runcmd.bat +check  # format and lint
 ```
 
-## 🛠️ Usage Guide
+</details>
 
-### Script Resolution
+<details>
+<summary><b>Alternative runtimes</b> — rename the runner</summary>
 
-The runner automatically looks for `<runner_name>.mjs` in this order:
-
-1. **Explicit path**: `+r <path>` flag (both platforms)
-2. **Current directory**: `<runner>.mjs` in working directory
-3. **Script directory**: `<runner>.mjs` in runner's directory
-
-**Example:**
+Copy `runcmd.sh` to any name. It automatically discovers the matching `.mjs` file:
 
 ```bash
-# Creates build.sh runner
 cp runcmd.sh build.sh
-
-# Creates corresponding script
-echo 'console.log("Building...");' > build.mjs
-
-# Run it - automatically finds build.mjs
-./build.sh
+# Now writes build.mjs and runs it with ./build.sh
 ```
 
-### Debug Mode
-
-**Unix/macOS:**
-
-```bash
-./runcmd.sh +debug              # Enable debug logging
-DEBUG=1 ./runcmd.sh             # Alternative via environment variable
-./runcmd.sh +dd                 # With file operation details
-./runcmd.sh +ddd                # Full echo of all operations
-./runcmd.sh +d0                 # Disable debug output
-```
-
-**Windows:**
-
-```cmd
-runcmd.bat +d       :: Basic debug output
-runcmd.bat +dd      :: With file operations
-runcmd.bat +ddd     :: Full echo mode
-runcmd.bat +d0      :: Disable debug
-```
-
-### Code Quality Checks
-
-Comprehensive check mode formats and validates your code:
-
-```bash
-# Format shell scripts, sort JSON, run oxlint/oxfmt checks
-./runcmd.sh +check
-
-# Manual tool execution
-bunx oxlint --fix-dangerously . && bunx oxfmt --write .
-bunx shfmt -w -bn -ci -i 2 -s *.sh
-bunx json-sort-cli "**/*.json"
-```
-
-### Environment Variables
-
-`.env` files are automatically loaded in this order:
-
-1. Script directory `.env`
-2. Current directory `.env` (can override script directory values)
-
-```bash
-# .env format:
-VAR1=value1
-VAR2=value2
-# Comments start with #
-```
-
-## 🎯 Git Flow Integration
-
-The [`scripts/`](scripts/) directory contains comprehensive git-flow management tools:
-
-### Core Commands
-
-```bash
-# Initialize git-flow
-bun scripts/git-flow.js init
-
-# Branch management
-bun scripts/git-flow.js start feature new-auth
-bun scripts/git-flow.js finish feature new-auth
-
-# Release management
-bun scripts/git-flow.js release start --bump minor
-bun scripts/git-flow.js hotfix finish --tag v1.1.1 --message "Hotfix"
-```
-
-### Available Commands
-
-- **Branch Operations**: `start`, `finish`, `publish`, `track`, `delete`, `list`
-- **High-Level Operations**: `release`, `hotfix`, `sync`, `clone`
-- **Configuration**: `config` (get/set/list git-flow settings)
-- **Utilities**: `init`, `install` (ensure git-flow availability)
-
-### Commands Reference
-
-| Command                 | Description                       | Example                              |
-| ----------------------- | --------------------------------- | ------------------------------------ |
-| `init`                  | Initialize git-flow in repository | `git-flow.js init`                   |
-| `start <type> <name>`   | Start new branch                  | `start feature new-auth`             |
-| `finish <type> <name>`  | Finish and merge branch           | `finish feature new-auth`            |
-| `publish <type> <name>` | Publish branch to remote          | `publish feature new-auth`           |
-| `track <type> <name>`   | Track remote branch locally       | `track feature new-auth`             |
-| `delete <type> <name>`  | Delete branch                     | `delete feature old-feature`         |
-| `list [type]`           | List branches by type             | `list feature`                       |
-| `release <action>`      | Manage release branches           | `release start --bump minor`         |
-| `hotfix <action>`       | Manage hotfix branches            | `hotfix finish --tag v1.1.1`         |
-| `sync`                  | Sync main/master & develop        | `sync --dry-run`                     |
-| `clone <url> [dir]`     | Clone and initialize git-flow     | `clone https://github.com/user/repo` |
-
-## 🏗️ Project Structure
-
-```text
-runcmd/
-├── runcmd.sh           # Unix/macOS runner (1140 lines)
-├── runcmd.bat          # Windows runner (610 lines)
-├── runcmd.mjs          # Default target script
-├── version.txt         # Current version
-├── CHANGELOG.md        # Version history
-├── LICENSE             # MIT License
-├── scripts/            # Git-flow management tools
-│   ├── git-flow.js     # Main git-flow command handler
-│   ├── commands/       # Individual command implementations
-│   │   ├── init.js     # Initialize git-flow
-│   │   ├── start.js    # Start branches
-│   │   ├── finish.js   # Finish branches
-│   │   ├── publish.js  # Publish branches
-│   │   ├── track.js    # Track branches
-│   │   ├── delete.js   # Delete branches
-│   │   ├── list.js     # List branches
-│   │   └── config.js   # Configuration management
-│   ├── lib/            # Shared utilities
-│   │   ├── version.js  # Version utilities
-│   │   ├── changelog.js # Changelog utilities
-│   │   ├── prompts.js  # User interaction utilities
-│   │   └── core.js     # Core validation helpers
-│   └── operations/     # High-level operations
-│       ├── sync.js     # Sync branches
-│       ├── clone.js    # Clone with git-flow
-│       ├── options.js  # Release option defaults
-│       ├── release-utils.js # Release lifecycle helpers
-│       ├── release.js  # Release management
-│       └── hotfix.js   # Hotfix management
-├── website/            # Astro-based documentation site
-│   ├── src/            # Website source
-│   ├── public/         # Static assets
-│   └── package.json    # Website dependencies
-└── .github/            # GitHub workflows
-    └── workflows/      # CI/CD pipelines
-```
-
-## ⚙️ Configuration
-
-### Code Quality Tools (oxlint/oxfmt)
-
-The project uses [oxlint](https://oxc.rs/) for linting and [oxfmt](https://oxc.rs/) for formatting JavaScript/TypeScript code. Configuration via `.oxfmtrc.json` and `oxlint.json`:
-
-- **oxlint --fix-dangerously** — Lint and auto-fix JS/TS files
-- **oxfmt --write** — Format JS/TS files
-- **shellcheck** — Validate shell scripts
-- **shfmt** — Format shell scripts
-- **json-sort-cli** — Sort JSON files
-
-### Environment Variables
-
-| Variable           | Description          | Default     |
-| ------------------ | -------------------- | ----------- |
-| `DEBUG`            | Enable debug logging | `0`         |
-| `RUNCMD_NO_UPDATE` | Disable auto-updates | `0`         |
-| `RUNCMD_HOME`      | State directory      | `~/.runcmd` |
-
-## 🚀 Development
-
-### Website (Astro)
-
-```bash
-cd website
-bun install
-bun run dev    # start dev server
-bun run check  # astro type checks
-bun run build  # outputs to ../public for GitHub Pages
-```
-
-### Testing
-
-```bash
-# Test runner functionality
-./runcmd.sh +debug
-
-# Test git-flow commands
-bun scripts/git-flow.js help
-
-# Test with custom scripts
-echo 'console.log("Test");' > test.mjs
-./runcmd.sh +r test.mjs
-```
-
-### Publishing
-
-GitHub Pages is built from the `website` folder using Bun in `.github/workflows/publish.yml`. Locally, run the commands above; CI uses `bun install --frozen-lockfile` and `bun run build`.
-
-## 📋 Requirements
-
-| Component | Unix/macOS                        | Windows |
-| --------- | --------------------------------- | ------- |
-| Bash      | 4.0+                              | -       |
-| curl      | For Bun installation              | -       |
-| Internet  | Initial Bun and tool installation | Same    |
-
-All tools (Bun, oxlint, oxfmt, shfmt, json-sort-cli) are auto-installed via `bunx` when first needed.
-
-## 📚 Documentation
-
-- **Main Documentation**: [`README.md`](README.md)
-- **Website**: [https://lguzzon.github.io/runcmd](https://lguzzon.github.io/runcmd)
-- **API Reference**: See individual script files for detailed comments
-- **Git Flow Guide**: [`scripts/git-flow.js`](scripts/git-flow.js) help system
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [Bun](https://bun.sh/) for speed and simplicity
-- Uses [oxlint/oxfmt](https://oxc.rs/) for code formatting and linting
-- Integrates with [git-flow](https://github.com/nvie/gitflow) for Git workflow management
+</details>
 
 ---
 
-**runcmd** - Universal Script Runner for Modern Development Teams
+## Getting Started
+
+### Run your script
+
+```bash
+./runcmd.sh                         # Run runcmd.mjs
+./runcmd.sh +debug                  # Enable timing and verbose logs
+./runcmd.sh +r ./path/to/app.mjs    # Run a different script
+```
+
+### Format and lint
+
+```bash
+./runcmd.sh +check                  # Run all quality checks
+```
+
+This formats shell scripts with `shfmt`, sorts JSON, lints with `oxlint`, and formats JS/TS with `oxfmt` — all through `bunx`, auto-installed on first use.
+
+### Use environment variables
+
+runcmd loads `.env` from the script directory, then from the current directory (overrides allowed):
+
+```bash
+# .env file
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+---
+
+## How It Works
+
+The runner script (`runcmd.sh` / `runcmd.bat`) handles everything except your logic:
+
+```text
+runcmd.sh
+  ↓ Detect Bun (install to ~/.bun if missing)
+  ↓ Load .env files (script dir → current dir)
+  ↓ Resolve target script (+r flag → cwd → runner dir)
+  ↓ Execute .mjs with args forwarded
+  ↓ Propagate exit code
+```
+
+<details>
+<summary><b>Script resolution order</b></summary>
+
+1. `+r <path>` flag — explicit path
+2. `<runner>.mjs` in the current directory
+3. `<runner>.mjs` in the runner's own directory
+
+</details>
+
+<details>
+<summary><b>Debug levels</b></summary>
+
+| Flag | Level | Detail |
+|------|-------|--------|
+| `+debug` or `DEBUG=1` | Basic | Execution flow timing |
+| `+dd` | File ops | + file read/write tracing |
+| `+ddd` | Full echo | All operations |
+| `+d0` | Off | Disable debug |
+
+</details>
+
+---
+
+## Git Flow Integration
+
+The `scripts/` directory contains a git-flow automation CLI:
+
+```bash
+bun scripts/git-flow.js start feature new-auth
+bun scripts/git-flow.js finish feature new-auth
+bun scripts/git-flow.js release start --bump minor
+```
+
+<details>
+<summary><b>All git-flow commands</b></summary>
+
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize git-flow |
+| `start <type> <name>` | Create feature/release/hotfix |
+| `finish <type> <name>` | Merge to develop/main |
+| `publish <type> <name>` | Push branch to remote |
+| `delete <type> <name>` | Delete branch |
+| `release start --bump <ver>` | Create release branch |
+| `hotfix finish --tag <v>` | Complete hotfix |
+| `sync --dry-run` | Preview main/develop sync |
+| `clone <url> [dir]` | Clone and init git-flow |
+
+</details>
+
+---
+
+## Project Structure
+
+```text
+runcmd/
+├── runcmd.sh           # Unix/macOS runner
+├── runcmd.bat          # Windows runner
+├── runcmd.mjs          # Default target script
+├── version.txt         # Current version
+├── CHANGELOG.md        # Release history
+├── LICENSE             # MIT
+├── scripts/            # Git-flow automation
+│   ├── git-flow.js
+│   ├── commands/       # Branch operations
+│   ├── lib/            # Shared utilities
+│   └── operations/     # Release/hotfix/sync
+├── website/            # Astro documentation site
+│   ├── src/
+│   └── package.json
+└── .github/workflows/  # CI/CD
+```
+
+## Configuration
+
+| Variable | Effect | Default |
+|----------|--------|---------|
+| `DEBUG` | Enable debug logging | `0` |
+| `RUNCMD_NO_UPDATE` | Disable auto-update checks | `0` |
+| `RUNCMD_HOME` | State directory path | `~/.runcmd` |
+
+## Requirements
+
+- **Unix/macOS:** Bash 4.0+, curl
+- **Windows:** Batch-compatible shell
+
+Everything else (Bun, oxlint, oxfmt, shfmt, json-sort-cli) is auto-installed.
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch
+3. Run `./runcmd.sh +check` to verify code quality
+4. Submit a PR
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+*Version 1.11.2*

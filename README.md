@@ -136,12 +136,12 @@ runcmd.sh
 <details>
 <summary><b>Debug levels</b></summary>
 
-| Flag | Level | Detail |
-|------|-------|--------|
-| `+debug` or `DEBUG=1` | Basic | Execution flow timing |
-| `+dd` | File ops | + file read/write tracing |
-| `+ddd` | Full echo | All operations |
-| `+d0` | Off | Disable debug |
+| Flag                  | Level     | Detail                    |
+| --------------------- | --------- | ------------------------- |
+| `+debug` or `DEBUG=1` | Basic     | Execution flow timing     |
+| `+dd`                 | File ops  | + file read/write tracing |
+| `+ddd`                | Full echo | All operations            |
+| `+d0`                 | Off       | Disable debug             |
 
 </details>
 
@@ -160,17 +160,17 @@ bun scripts/git-flow.js release start --bump minor
 <details>
 <summary><b>All git-flow commands</b></summary>
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize git-flow |
-| `start <type> <name>` | Create feature/release/hotfix |
-| `finish <type> <name>` | Merge to develop/main |
-| `publish <type> <name>` | Push branch to remote |
-| `delete <type> <name>` | Delete branch |
-| `release start --bump <ver>` | Create release branch |
-| `hotfix finish --tag <v>` | Complete hotfix |
-| `sync --dry-run` | Preview main/develop sync |
-| `clone <url> [dir]` | Clone and init git-flow |
+| Command                      | Description                   |
+| ---------------------------- | ----------------------------- |
+| `init`                       | Initialize git-flow           |
+| `start <type> <name>`        | Create feature/release/hotfix |
+| `finish <type> <name>`       | Merge to develop/main         |
+| `publish <type> <name>`      | Push branch to remote         |
+| `delete <type> <name>`       | Delete branch                 |
+| `release start --bump <ver>` | Create release branch         |
+| `hotfix finish --tag <v>`    | Complete hotfix               |
+| `sync --dry-run`             | Preview main/develop sync     |
+| `clone <url> [dir]`          | Clone and init git-flow       |
 
 </details>
 
@@ -199,11 +199,11 @@ runcmd/
 
 ## Configuration
 
-| Variable | Effect | Default |
-|----------|--------|---------|
-| `DEBUG` | Enable debug logging | `0` |
-| `RUNCMD_NO_UPDATE` | Disable auto-update checks | `0` |
-| `RUNCMD_HOME` | State directory path | `~/.runcmd` |
+| Variable           | Effect                     | Default     |
+| ------------------ | -------------------------- | ----------- |
+| `DEBUG`            | Enable debug logging       | `0`         |
+| `RUNCMD_NO_UPDATE` | Disable auto-update checks | `0`         |
+| `RUNCMD_HOME`      | State directory path       | `~/.runcmd` |
 
 ## Requirements
 
@@ -225,4 +225,4 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-*Version 1.11.2*
+_Version 1.11.2_

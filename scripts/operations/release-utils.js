@@ -162,7 +162,7 @@ export async function handleFinish(config, opts) {
     process.exit(1)
   }
 
-  ensureTagMissing(tag.replace(/^v/, ''))
+  ensureTagMissing(tag)
 
   const branchName = `${prefix}${name ? (name.startsWith('v') ? name : `v${name}`) : tag}`
   ensureBranchExists(branchName)
@@ -191,7 +191,8 @@ export async function handleFinish(config, opts) {
   }
 
   if (!keepBranch && !dryRun) {
-    runGit(`branch -D ${branchName}`, { allowFail: true })
+    const deleteFlag = opts.force ? '-D' : '-d'
+    runGit(`branch ${deleteFlag} ${branchName}`, { allowFail: true })
   }
 
   logSuccess(

@@ -12,8 +12,6 @@ import { promptTextSync } from './lib/prompts.js'
 import { handleHotfix } from './operations/hotfix.js'
 import { handleRelease } from './operations/release.js'
 
-const operations = []
-
 function printHelp() {
   console.log(`
 ${'\x1b[1m'}Git Flow Release/Hotfix Finalizer${'\x1b[0m'}
@@ -134,12 +132,13 @@ function ensureBranchMatchesType(branch, requested) {
   return detected
 }
 
-function generateJsonSummary(status, branch, version) {
-  return JSON.stringify({ status, branch, version, operations })
+function generateJsonSummary(status, branch, version, ops) {
+  return JSON.stringify({ status, branch, version, operations: ops })
 }
 
 async function main() {
   const opts = parseArgs()
+  const operations = []
 
   try {
     if (opts.help) {
@@ -182,7 +181,7 @@ async function main() {
     console.log(`${'\x1b[1m'}Branch:${'\x1b[0m'} ${targetBranch}`)
 
     if (opts.json) {
-      console.log(generateJsonSummary('ok', targetBranch, version))
+      console.log(generateJsonSummary('ok', targetBranch, version, operations))
     }
 
     // Close stdin to prevent hanging
@@ -194,7 +193,7 @@ async function main() {
       message: `Unexpected error: ${error.message}`
     })
     if (opts.json) {
-      console.log(generateJsonSummary('error', '', ''))
+      console.log(generateJsonSummary('error', '', '', operations))
     }
     process.exit(1)
   }

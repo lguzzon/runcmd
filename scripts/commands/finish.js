@@ -76,7 +76,7 @@ export async function handleFinish(opts) {
   }
 
   if (tag) {
-    ensureTagMissing(tag.replace(/^v/, ''))
+    ensureTagMissing(tag)
   }
 
   if (!offline) {
@@ -104,8 +104,9 @@ export async function handleFinish(opts) {
   }
 
   if (!keepBranch && !dryRun) {
-    logInfo(`Deleting branch: ${branchName}`)
-    runGit(`branch -D ${branchName}`, { allowFail: true })
+    const deleteFlag = opts.force ? '-D' : '-d'
+    logInfo(`Deleting branch: ${branchName} (${deleteFlag})`)
+    runGit(`branch ${deleteFlag} ${branchName}`, { allowFail: true })
   } else if (keepBranch) {
     logInfo(`Keeping branch: ${branchName}`)
   }

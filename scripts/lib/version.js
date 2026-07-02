@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from 'node:fs'
-import { logError } from '../git-flow.js'
+import { logError } from './logger.js'
 
 const PROJECT_ROOT = process.cwd()
 export const VERSION_FILE = `${PROJECT_ROOT}/version.txt`

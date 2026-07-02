@@ -96,7 +96,7 @@ log_error() {
 }
 
 # Normalize DEBUG environment variable to a consistent value
-# Accepts various truthy/falsy values and normalizes to 0 or 1
+# Accepts 0/1 and normalizes to 0 or 1
 # Args:
 #   None (uses global DEBUG variable)
 # Globals:
@@ -105,13 +105,11 @@ log_error() {
 #   None
 normalize_debug() {
   local debug_value="${DEBUG:-0}"
-  local lower_value
-  lower_value=$(echo "$debug_value" | tr '[:upper:]' '[:lower:]')
-  case "$lower_value" in
-    1 | true | yes | on) DEBUG=1 ;;
-    0 | false | no | off | "") DEBUG=0 ;;
+  case "$debug_value" in
+    1) DEBUG=1 ;;
+    0 | "") DEBUG=0 ;;
     *)
-      log_error "Invalid DEBUG value '$DEBUG'. Use: 1/true/yes/on or 0/false/no/off"
+      log_warn "Invalid DEBUG value '$DEBUG'. Use 0 or 1. Defaulting to 0."
       DEBUG=0
       ;;
   esac
@@ -298,8 +296,8 @@ resolve_default_script() {
 #   $1: Version A (local)
 #   $2: Version B (remote)
 # Returns:
-#   0 if A < B
-#   1 if A >= B (update needed)
+#   0 if A < B (true/success)
+#   1 if A >= B (false/failure)
 version_lt() {
   # Trivial case: equal versions
   [[ $1 == "$2" ]] && return 1
@@ -315,9 +313,7 @@ version_lt() {
   for ((i = ${#ver2[@]}; i < 3; i++)); do ver2[i]=0; done
 
   for ((i = 0; i < 3; i++)); do
-    if ((ver1[i] < ver2[i])); then return 0; fi # A < B is true (0 in bash usually means success, but here we want boolean semantics. Let's stick to bash convention: 0 is TRUE/SUCCESS, 1 is FALSE/FAILURE)
-    # Wait, the convention in bash is: 0 is SUCCESS (true), non-zero is FAILURE (false).
-    # Function returns 0 (success) if A < B.
+    if ((ver1[i] < ver2[i])); then return 0; fi
     if ((ver1[i] > ver2[i])); then return 1; fi
   done
 
@@ -556,14 +552,8 @@ safe_format_file() {
   # Store temp file paths in a global array for cleanup
   TEMP_FILES_ARRAY+=("$temp_file" "$backup_file")
 
-  # Ensure cleanup on exit - function to remove temp files
-  # shellcheck disable=SC2329
-  cleanup_on_exit() {
-    for file in "${TEMP_FILES_ARRAY[@]}"; do
-      rm -f "$file" 2>/dev/null || true
-    done
-  }
-  trap cleanup_on_exit EXIT
+  # Avoid re-registering the trap on every invocation — clean TEMP_FILES_ARRAY on EXIT
+  trap 'for _f in "${TEMP_FILES_ARRAY[@]}"; do rm -f "$_f" 2>/dev/null || true; done' EXIT
 
   # Create backup of original file
   if ! cp "$file_path" "$backup_file" 2>/dev/null; then
@@ -1038,10 +1028,16 @@ load_env_file() {
     [[ -z ${line// /} ]] && continue
 
     if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      # Export the variable directly (Bash handles KEY=VALUE natively)
-      # shellcheck disable=SC2163
-      export "$line"
-      log_info "${export_prefix}${line%%=*}"
+      local key="${line%%=*}"
+      local rest="${line#*=}"
+      # Export only if key is a valid identifier (already matched by regex) and value doesn't contain dangerous characters
+      if [[ $rest != *[![:graph:]]* ]] || [[ -z $rest ]]; then
+        # shellcheck disable=SC2163
+        export "$line"
+        log_info "${export_prefix}${key}"
+      else
+        log_warn "Skipping ${key}=... (value contains non-printable characters)"
+      fi
     fi
   done <"$env_file"
 

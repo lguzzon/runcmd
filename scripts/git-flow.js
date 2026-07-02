@@ -1,358 +1,65 @@
 #!/usr/bin/env bun
-import { execSync, spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 
+// ============================================================================
+// Re-exports from lib/ — backward compatible
+// ============================================================================
+export {
+  COLOR_INFO,
+  COLOR_WARN,
+  COLOR_ERROR,
+  COLOR_RESET,
+  COLOR_BOLD,
+  logInfo,
+  logWarn,
+  logError,
+  logSuccess
+} from './lib/logger.js'
+
+export { runGit, runGitFlow } from './lib/git.js'
+
+export {
+  checkout,
+  currentBranch,
+  detectMainBranch,
+  ensureBranchExists,
+  ensureBranchMissing,
+  ensureCleanTree,
+  ensureGitFlowInitialized,
+  ensureTagMissing,
+  getBranchType,
+  getGitFlowConfig,
+  listBranchesByType,
+  mergeBranch,
+  pullBranch,
+  pushBranch,
+  stashPop,
+  stashPush,
+  validateBranchName
+} from './lib/validators.js'
+
+export { ensureGitFlowAvailable } from './lib/installer.js'
+
+// Re-export shared utilities (these are also consumed by release scripts)
 export * from './lib/changelog.js'
 export * from './lib/prompts.js'
-// Re-export shared utilities for use by release scripts
 export * from './lib/version.js'
 
-export const COLOR_INFO = '\x1b[32m'
-export const COLOR_WARN = '\x1b[33m'
-export const COLOR_ERROR = '\x1b[31m'
-export const COLOR_RESET = '\x1b[0m'
-export const COLOR_BOLD = '\x1b[1m'
-
-export function logInfo(message) {
-  console.log(`${COLOR_INFO}[INFO]${COLOR_RESET} ${message}`)
-}
-
-export function logWarn(message) {
-  console.log(`${COLOR_WARN}[WARN]${COLOR_RESET} ${message}`)
-}
-
-export function logError(message) {
-  console.error(`${COLOR_ERROR}[ERROR]${COLOR_RESET} ${message}`)
-}
-
-export function logSuccess(message) {
-  console.log(`${COLOR_INFO}[OK]${COLOR_RESET} ${message}`)
-}
-
-/** Split a command string into an array of arguments, handling double-quoted tokens. */
-function splitArgs(str) {
-  const args = []
-  let current = ''
-  let inQuote = false
-  for (const char of str) {
-    if (char === '"') {
-      inQuote = !inQuote
-    } else if (char === ' ' && !inQuote) {
-      if (current) {
-        args.push(current)
-        current = ''
-      }
-    } else {
-      current += char
-    }
-  }
-  if (current) args.push(current)
-  return args
-}
-
-export function runGit(
-  args,
-  { allowFail = false, dryRun = false, pipeStdout = false } = {}
-) {
-  const argArray = typeof args === 'string' ? splitArgs(args) : args
-  const cmd = `git ${argArray.join(' ')}`
-  if (dryRun) {
-    logInfo(`[dry-run] ${cmd}`)
-    return ''
-  }
-  const result = spawnSync('git', argArray, {
-    encoding: 'utf-8',
-    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-  })
-  if (result.error || result.status !== 0) {
-    if (allowFail) return null
-    logError(`${cmd} failed`)
-    if (result.stderr) console.error(result.stderr)
-    process.exit(1)
-  }
-  return (result.stdout || '').trim()
-}
-
-export function ensureCleanTree() {
-  const status = runGit('status --porcelain', { allowFail: true })
-  if (status && status.length > 0) {
-    logError('Uncommitted changes detected. Please commit or stash them first.')
-    process.exit(1)
-  }
-}
-
-export function ensureBranchExists(name) {
-  const res = runGit(`show-ref --verify --quiet refs/heads/${name}`, {
-    allowFail: true
-  })
-  if (res === null) {
-    logError(`Required branch '${name}' not found.`)
-    process.exit(1)
-  }
-}
-
-export function ensureBranchMissing(name) {
-  const exists = runGit(`show-ref --verify --quiet refs/heads/${name}`, {
-    allowFail: true
-  })
-  if (exists !== null) {
-    logError(`Branch '${name}' already exists.`)
-    process.exit(1)
-  }
-}
-
-export function detectMainBranch(remote = 'origin') {
-  const hasMain = runGit(`ls-remote --exit-code --heads ${remote} main`, {
-    allowFail: true
-  })
-  if (hasMain !== null) return 'main'
-  const hasMaster = runGit(`ls-remote --exit-code --heads ${remote} master`, {
-    allowFail: true
-  })
-  if (hasMaster !== null) return 'master'
-  return 'main'
-}
-
-export function checkout(branch, opts = {}) {
-  return runGit(`checkout ${branch}`, opts)
-}
-
-export function pullBranch(
-  branch,
-  { dryRun = false, offline = false, allowFail = true } = {}
-) {
-  if (offline) return
-  checkout(branch, { dryRun })
-  runGit(`pull --ff-only origin ${branch}`, { dryRun, allowFail })
-}
-
-export function pushBranch(branch, opts = {}) {
-  return runGit(`push origin ${branch}`, { ...opts, allowFail: true })
-}
-
-export function mergeBranch(source, target, opts = {}) {
-  checkout(target, opts)
-  const res = runGit(`merge ${source} --no-ff --no-edit`, {
-    ...opts,
-    allowFail: true,
-    pipeStdout: true
-  })
-  if (res === null && !opts.dryRun) {
-    logError(
-      `Merge of ${source} into ${target} failed. Resolve conflicts and retry.`
-    )
-    process.exit(1)
-  }
-}
-
-export function stashPush(message = 'auto-stash') {
-  return runGit(`stash push -m "${message}"`, { allowFail: true })
-}
-
-export function stashPop() {
-  return runGit('stash pop', { allowFail: true })
-}
-
-export function currentBranch() {
-  const name = runGit('rev-parse --abbrev-ref HEAD', { allowFail: true })
-  return name || ''
-}
-
-export function ensureTagMissing(version) {
-  const tagName = version.startsWith('v') ? version : `v${version}`
-  const tags = runGit('tag -l', { allowFail: true }) || ''
-  if (tags.split('\n').includes(tagName)) {
-    logError(`Tag ${tagName} already exists.`)
-    process.exit(1)
-  }
-}
-
-export function runGitFlow(
-  args,
-  { allowFail = false, dryRun = false, pipeStdout = false } = {}
-) {
-  const argArray = typeof args === 'string' ? splitArgs(args) : args
-  const cmd = `git flow ${argArray.join(' ')}`
-  if (dryRun) {
-    logInfo(`[dry-run] ${cmd}`)
-    return ''
-  }
-  const result = spawnSync('git', ['flow', ...argArray], {
-    encoding: 'utf-8',
-    stdio: ['pipe', pipeStdout ? 'inherit' : 'pipe', 'pipe']
-  })
-  if (result.error || result.status !== 0) {
-    if (allowFail) return null
-    logError(`${cmd} failed`)
-    if (result.stderr) console.error(result.stderr)
-    process.exit(1)
-  }
-  return (result.stdout || '').trim()
-}
-
-export function getBranchType(branch) {
-  if (!branch) return 'unknown'
-  if (branch.startsWith('feature/')) return 'feature'
-  if (branch.startsWith('release/')) return 'release'
-  if (branch.startsWith('hotfix/')) return 'hotfix'
-  if (branch.startsWith('support/')) return 'support'
-  if (branch === 'main' || branch === 'master') return 'main'
-  if (branch === 'develop') return 'develop'
-  return 'unknown'
-}
-
-export function validateBranchName(name, type) {
-  const patterns = {
-    feature: /^[\w-]+$/,
-    release: /^[\w-]+$/,
-    hotfix: /^[\w-]+$/,
-    support: /^[\w-]+$/
-  }
-  const pattern = patterns[type]
-  if (!pattern) {
-    logError(`Invalid branch type: ${type}`)
-    return false
-  }
-  if (!pattern.test(name)) {
-    logError(
-      `Invalid ${type} branch name: ${name}. Use alphanumeric characters, hyphens, and underscores only.`
-    )
-    return false
-  }
-  return true
-}
-
-export function ensureGitFlowInitialized() {
-  const initialized = runGit('config --get gitflow.initialized', {
-    allowFail: true
-  })
-  if (!initialized) {
-    logError(
-      "Git Flow is not initialized. Run 'git flow init' or 'bun scripts/git-flow.js init' first."
-    )
-    process.exit(1)
-  }
-}
-
-export function getGitFlowConfig() {
-  const master = runGit('config --get gitflow.branch.master', {
-    allowFail: true
-  })
-  const develop = runGit('config --get gitflow.branch.develop', {
-    allowFail: true
-  })
-  const featurePrefix = runGit('config --get gitflow.prefix.feature', {
-    allowFail: true
-  })
-  const releasePrefix = runGit('config --get gitflow.prefix.release', {
-    allowFail: true
-  })
-  const hotfixPrefix = runGit('config --get gitflow.prefix.hotfix', {
-    allowFail: true
-  })
-  const supportPrefix = runGit('config --get gitflow.prefix.support', {
-    allowFail: true
-  })
-
-  return {
-    master: master || 'master',
-    develop: develop || 'develop',
-    featurePrefix: featurePrefix || 'feature/',
-    releasePrefix: releasePrefix || 'release/',
-    hotfixPrefix: hotfixPrefix || 'hotfix/',
-    supportPrefix: supportPrefix || 'support/'
-  }
-}
-
-export function listBranchesByType(type) {
-  const config = getGitFlowConfig()
-  const prefix = config[`${type}Prefix`]
-  if (!prefix) {
-    logError(`Unknown branch type: ${type}`)
-    return []
-  }
-  const branches = runGit(`branch --list "${prefix}*"`, { allowFail: true })
-  if (!branches) return []
-  return branches
-    .split('\n')
-    .map((b) => b.replace('*', '').trim())
-    .filter(Boolean)
-}
-
 // ============================================================================
-// git-flow auto-install configuration
+// Local imports — for CLI dispatch only
 // ============================================================================
+import {
+  COLOR_BOLD,
+  COLOR_RESET,
+  logError,
+  logInfo,
+  logWarn
+} from './lib/logger.js'
 
-const GITFLOW_INSTALLER_URL =
-  'https://raw.githubusercontent.com/CJ-Systems/gitflow-cjs/v2.2.1/contrib/gitflow-installer.sh'
-const GITFLOW_INSTALLER_SHA256 =
-  '5bc020a856d79e4fb0961f48259614bb8abede22c9c815a9662e0fcd923d221c'
-const GITFLOW_VERSION = 'v2.2.1'
-const GITFLOW_PREFIX = `${homedir()}/.local`
+import { runGit } from './lib/git.js'
 
-export function ensureGitFlowAvailable({ autoInstall, offline, dryRun }) {
-  const available = runGit('flow version', { allowFail: true, dryRun })
-  if (available !== null) return true
-  if (offline) {
-    logError('git-flow not available (offline). Install it first.')
-    process.exit(1)
-  }
-  if (!autoInstall) {
-    logWarn('git-flow not found. Re-run with --auto-install to install it.')
-    return false
-  }
-  if (dryRun) {
-    logInfo('[dry-run] would install git-flow')
-    return false
-  }
-  logInfo('Installing git-flow...')
-  const tmpDir = execSync('mktemp -d 2>/dev/null || mktemp -d -t gitflow', {
-    encoding: 'utf-8'
-  }).trim()
-  const tmpInstaller = `${tmpDir}/gitflow-installer.sh`
-  try {
-    // Download installer script from pinned release tag with --fail on HTTP errors
-    execSync(`curl -fsSL '${GITFLOW_INSTALLER_URL}' -o '${tmpInstaller}'`, {
-      stdio: ['pipe', 'inherit', 'inherit']
-    })
-    // Verify SHA256 checksum of the downloaded script
-    const actual = createHash('sha256')
-      .update(readFileSync(tmpInstaller))
-      .digest('hex')
-    if (actual !== GITFLOW_INSTALLER_SHA256) {
-      logError(
-        `Installer checksum mismatch (expected ${GITFLOW_INSTALLER_SHA256}, got ${actual}). ` +
-          'Download may be corrupted or tampered. Aborting.'
-      )
-      execSync(`rm -rf '${tmpDir}'`)
-      process.exit(1)
-    }
-    // Install as current user (no sudo) by targeting a user-writable prefix
-    execSync(
-      `cd '${tmpDir}' && PREFIX='${GITFLOW_PREFIX}' bash '${tmpInstaller}' install version ${GITFLOW_VERSION}`,
-      { stdio: 'inherit' }
-    )
-  } catch (error) {
-    logError('git-flow installation failed')
-    if (error.stderr) console.error(error.stderr.toString())
-    process.exit(1)
-  } finally {
-    execSync(`rm -rf '${tmpDir}' 2>/dev/null || true`, { stdio: 'pipe' })
-  }
-  // Warn if install bin dir is not in PATH
-  const installBin = `${GITFLOW_PREFIX}/bin`
-  const pathDirs = (process.env.PATH || '').split(':')
-  if (!pathDirs.includes(installBin)) {
-    logWarn(
-      `git-flow installed to ${installBin}, which is not in your PATH. ` +
-        `Add it with: export PATH="${installBin}:$PATH"`
-    )
-  }
-  logSuccess('git-flow installed')
-  return true
-}
+import { ensureGitFlowAvailable } from './lib/installer.js'
+
+// Import command handlers
 import {
   handleConfig as handleConfigCommand,
   printHelp as printConfigHelp
@@ -365,7 +72,6 @@ import {
   handleFinish as handleFinishCommand,
   printHelp as printFinishHelp
 } from './commands/finish.js'
-// Import command modules
 import {
   handleInit as handleInitCommand,
   printHelp as printInitHelp
@@ -386,6 +92,7 @@ import {
   handleTrack as handleTrackCommand,
   printHelp as printTrackHelp
 } from './commands/track.js'
+
 import {
   handleClone as handleCloneOperation,
   printHelp as printCloneHelp
@@ -398,11 +105,32 @@ import {
   handleRelease as handleReleaseOperation,
   printHelp as printReleaseHelp
 } from './operations/release.js'
-// Import operation modules
 import {
   handleSync as handleSyncOperation,
   printHelp as printSyncHelp
 } from './operations/sync.js'
+
+// ============================================================================
+// Command registry — OCP-friendly: add a new entry, no switch-case edits needed
+// ============================================================================
+
+/** @type {Record<string, { handler: (opts: any) => Promise<void>, help: () => void }>} */
+const COMMANDS = {
+  init: { handler: handleInitCommand, help: printInitHelp },
+  start: { handler: handleStartCommand, help: printStartHelp },
+  finish: { handler: handleFinishCommand, help: printFinishHelp },
+  publish: { handler: handlePublishCommand, help: printPublishHelp },
+  track: { handler: handleTrackCommand, help: printTrackHelp },
+  delete: { handler: handleDeleteCommand, help: printDeleteHelp },
+  list: { handler: handleListCommand, help: printListHelp },
+  config: { handler: handleConfigCommand, help: printConfigHelp },
+  sync: { handler: handleSyncOperation, help: printSyncHelp },
+  clone: { handler: handleCloneOperation, help: printCloneHelp },
+  release: { handler: handleReleaseOperation, help: printReleaseHelp },
+  hotfix: { handler: handleHotfixOperation, help: printHotfixHelp }
+}
+
+// --- Help display ---
 
 function printHelp() {
   console.log(`
@@ -443,6 +171,8 @@ ${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
 `)
 }
 
+// --- Argument parsing ---
+
 export function parseArgs(argv) {
   const args = [...argv]
   const next = () => args.shift()
@@ -456,7 +186,6 @@ export function parseArgs(argv) {
   }
 
   const command = next()
-  // Don't treat --help or -h as subcommands
   const nextArg = next()
   let sub = null
   if (
@@ -474,13 +203,12 @@ export function parseArgs(argv) {
     if (nextArg && nextArg !== '--help' && nextArg !== '-h') {
       sub = nextArg
     } else if (nextArg === '--help' || nextArg === '-h') {
-      // Put it back so it's caught by the help flag handler
       args.unshift(nextArg)
     }
   } else if (nextArg === '--help' || nextArg === '-h') {
-    // Put it back for commands that don't have subcommands
     args.unshift(nextArg)
   }
+
   const opts = {
     command,
     sub,
@@ -570,10 +298,7 @@ export function parseArgs(argv) {
         opts.set = [takeValue('--set'), takeValue('value')]
         break
       case '--list':
-        // Only set list flag if not a command
-        if (opts.command !== 'list') {
-          opts.list = true
-        }
+        if (opts.command !== 'list') opts.list = true
         break
       case '--help':
       case '-h':
@@ -606,6 +331,8 @@ export function parseArgs(argv) {
   return opts
 }
 
+// --- Install command handler ---
+
 function handleInstall(opts) {
   const available = ensureGitFlowAvailable(opts)
   if (!available) return
@@ -619,6 +346,8 @@ function handleInstall(opts) {
   }
 }
 
+// --- Main CLI dispatch ---
+
 async function main() {
   const argv = process.argv.slice(2)
   if (argv.length === 0) {
@@ -627,51 +356,18 @@ async function main() {
   }
   const opts = parseArgs(argv)
 
-  // Handle help flag for any command
+  // Help dispatch — registry lookup with fallback
   if (opts.help) {
-    switch (opts.command) {
-      case 'init':
-        printInitHelp()
-        break
-      case 'start':
-        printStartHelp()
-        break
-      case 'finish':
-        printFinishHelp()
-        break
-      case 'publish':
-        printPublishHelp()
-        break
-      case 'track':
-        printTrackHelp()
-        break
-      case 'delete':
-        printDeleteHelp()
-        break
-      case 'list':
-        printListHelp()
-        break
-      case 'config':
-        printConfigHelp()
-        break
-      case 'sync':
-        printSyncHelp()
-        break
-      case 'clone':
-        printCloneHelp()
-        break
-      case 'release':
-        printReleaseHelp()
-        break
-      case 'hotfix':
-        printHotfixHelp()
-        break
-      default:
-        printHelp()
+    const cmd = COMMANDS[opts.command]
+    if (cmd) {
+      cmd.help()
+      return
     }
+    printHelp()
     return
   }
 
+  // Route command
   switch (opts.command) {
     case 'help':
     case '--help':
@@ -681,51 +377,28 @@ async function main() {
     case 'install':
       handleInstall(opts)
       return
-    case 'init':
-      await handleInitCommand(opts)
-      return
-    case 'start':
-      await handleStartCommand(opts)
-      return
-    case 'finish':
-      await handleFinishCommand(opts)
-      return
-    case 'publish':
-      await handlePublishCommand(opts)
-      return
-    case 'track':
-      await handleTrackCommand(opts)
-      return
-    case 'delete':
-      await handleDeleteCommand(opts)
-      return
-    case 'list':
-      await handleListCommand(opts)
-      return
-    case 'config':
-      await handleConfigCommand(opts)
-      return
-    case 'clone':
-      await handleCloneOperation(opts)
-      return
-    case 'sync':
-      await handleSyncOperation(opts)
-      return
-    case 'release':
-      await handleReleaseOperation(opts.sub, opts)
-      return
-    case 'hotfix':
-      await handleHotfixOperation(opts.sub, opts)
-      return
-    default:
+    default: {
+      const cmd = COMMANDS[opts.command]
+      if (cmd) {
+        // release/hotfix need sub as first positional arg
+        if (opts.command === 'release') {
+          await handleReleaseOperation(opts.sub, opts)
+        } else if (opts.command === 'hotfix') {
+          await handleHotfixOperation(opts.sub, opts)
+        } else {
+          await cmd.handler(opts)
+        }
+        return
+      }
       logError(`Unknown command: ${opts.command}`)
+    }
   }
 
   printHelp()
   process.exit(1)
 }
 
-// Only execute main() when this file is run directly, not when imported
+// Only execute main() when run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     logError(`Unexpected error: ${error.message}`)

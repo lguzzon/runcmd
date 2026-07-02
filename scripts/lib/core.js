@@ -1,9 +1,7 @@
 #!/usr/bin/env bun
-import {
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
-  logError
-} from '../git-flow.js'
+import { ensureGitFlowAvailable } from './installer.js'
+import { ensureGitFlowInitialized } from './validators.js'
+import { logError } from './logger.js'
 
 export function requireValidCommand(opts, { commandName, helpFn }) {
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })

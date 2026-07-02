@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { logInfo, runGit } from '../git-flow.js'
+import { logInfo } from './logger.js'
+import { runGit } from './git.js'
 
 const PROJECT_ROOT = process.cwd()
 export const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`

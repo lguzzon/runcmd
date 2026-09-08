@@ -1,21 +1,6 @@
 @CLAUDE.local.md
 @AGENTS.md
 
-## AgentOps Knowledge Flywheel
-
-Knowledge compounds automatically across sessions:
-
-- **MEMORY.md** is auto-loaded by your AI coding tool every session
-- **Session hooks** extract learnings, update MEMORY.md, and prune stale knowledge
-- **Skills** invoke flywheel commands at the right moments (no manual ao commands needed)
-
-Verify the flywheel any time:
-
-```bash
-ao flywheel status    # escape velocity check
-ao status             # current knowledge inventory
-```
-
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
 ## Beads Issue Tracker

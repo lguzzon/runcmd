@@ -55,6 +55,10 @@ jobs:
           cp runcmd.sh public/
           cp runcmd.bat public/
           cp version.txt public/
+          # Update manifest: sha256sum-style lines consumed by runcmd.sh and
+          # runcmd-update.js to verify downloaded updates before overwrite.
+          # Generated here so hashes match the exact bytes served.
+          sha256sum runcmd.sh runcmd.bat > public/update.sha256
           ls -R public
 
       - name: Upload artifact

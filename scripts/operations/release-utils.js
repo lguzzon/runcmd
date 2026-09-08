@@ -149,7 +149,7 @@ export function buildFinishCommand({
  * Start a release/hotfix branch: bump version, update version.txt,
  * generate changelog, create the branch.
  * @param {{ defaultBump: string, defaultBase: string, prefix: string, typeLabel: string }} config - Branch-family config
- * @param {{ version?: string, bump?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, offline?: boolean }} opts
+ * @param {{ name?: string, version?: string, bump?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, offline?: boolean, base?: string }} opts
  * @returns {Promise<void>}
  */
 export async function handleStart(config, opts) {
@@ -227,7 +227,7 @@ export async function handleStart(config, opts) {
  * Finish a release/hotfix branch: merge to integration branches, tag,
  * push, and optionally keep the branch.
  * @param {{ prefix: string, typeLabel: string }} config - Branch-family config
- * @param {{ branch?: string, tag?: string, message?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, keepBranch?: boolean, offline?: boolean }} opts
+ * @param {{ name?: string, branch?: string, tag?: string, message?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, keepBranch?: boolean, offline?: boolean, force?: boolean }} opts
  * @returns {Promise<void>}
  */
 export async function handleFinish(config, opts) {

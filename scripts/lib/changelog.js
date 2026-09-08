@@ -17,7 +17,7 @@ export function getLastTag() {
 
 /**
  * Collect commit subjects since a ref as `- <subject>` lines.
- * @param {string} [ref] - Starting ref; all history when omitted
+ * @param {string | null | undefined} [ref] - Starting ref; all history when omitted
  * @returns {string[]} Commit subjects, empty when no commits
  */
 export function collectCommitsSince(ref) {

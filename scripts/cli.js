@@ -68,7 +68,7 @@ import {
   printHelp as printSyncHelp
 } from './operations/sync.js'
 
-/** @type {Record<string, { handler: (action: string, opts: any) => Promise<void>, help: () => void, config: import('./operations/branch-operation.js').BranchOperationConfig }>} */
+/** @type {Record<string, { handler: (action: string | null, opts: any, config: import('./operations/branch-operation.js').BranchOperationConfig) => Promise<void>, help: () => void, config: import('./operations/branch-operation.js').BranchOperationConfig }>} */
 const BRANCH_OPERATIONS = {
   release: {
     handler: handleBranchOperation,
@@ -82,7 +82,7 @@ const BRANCH_OPERATIONS = {
   }
 }
 
-/** @type {Record<string, { handler: (opts: any) => Promise<void>, help: () => void }>} */
+/** @type {Record<string, { handler: (...args: any[]) => Promise<void>, help: () => void }>} */
 const COMMANDS = {
   init: { handler: handleInitCommand, help: printInitHelp },
   start: { handler: handleStartCommand, help: printStartHelp },
@@ -146,13 +146,7 @@ ${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
 // --- Argument parsing ---
 
 /**
- * Parse a CLI argv array into the structured `opts` consumed by command
- * handlers. Detects a subcommand slot for branch-action commands
- * (release/hotfix/start/finish/publish/track/delete) and folds the rest of
- * the argv into the known flag set.
- *
- * @param {string[]} argv process argv slice
- * @returns {{
+ * @typedef {{
  *   command: string | undefined,
  *   sub: string | null,
  *   name: string | undefined,
@@ -178,11 +172,22 @@ ${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
  *   set: [string, string] | undefined,
  *   list: boolean,
  *   help?: boolean
- * }} parsed options
+ * }} ParsedArgs
+ */
+
+/**
+ * Parse a CLI argv array into the structured `opts` consumed by command
+ * handlers. Detects a subcommand slot for branch-action commands
+ * (release/hotfix/start/finish/publish/track/delete) and folds the rest of
+ * the argv into the known flag set.
+ *
+ * @param {string[]} argv process argv slice
+ * @returns {ParsedArgs}
  */
 export function parseArgs(argv) {
   const args = [...argv]
   const next = () => args.shift()
+  /** @param {string} flag @returns {string} */
   const takeValue = (flag) => {
     const v = next()
     if (!v) {
@@ -218,6 +223,7 @@ export function parseArgs(argv) {
     args.unshift(nextArg)
   }
 
+  /** @type {ParsedArgs} */
   const opts = {
     command,
     sub,
@@ -247,6 +253,7 @@ export function parseArgs(argv) {
 
   while (args.length) {
     const arg = next()
+    if (arg === undefined) break
     switch (arg) {
       case '--name':
         opts.name = takeValue('--name')
@@ -346,7 +353,7 @@ export function parseArgs(argv) {
  * Handle the top-level `install` command: ensure git-flow is available and,
  * when inside a repository, run `git flow init -d`.
  *
- * @param {object} opts parsed CLI options (dryRun, autoInstall)
+ * @param {{ dryRun?: boolean, autoInstall?: boolean, offline?: boolean, help?: boolean }} opts parsed CLI options
  * @returns {void}
  */
 function handleInstall(opts) {
@@ -378,18 +385,21 @@ export async function main() {
     process.exit(0)
   }
   const opts = parseArgs(argv)
+  const command = opts.command
 
   if (opts.help) {
-    const cmd = COMMANDS[opts.command]
-    if (cmd) {
-      cmd.help()
-      return
+    if (command !== undefined) {
+      const cmd = COMMANDS[command]
+      if (cmd) {
+        cmd.help()
+        return
+      }
     }
     printHelp()
     return
   }
 
-  switch (opts.command) {
+  switch (command) {
     case 'help':
     case '--help':
     case '-h':
@@ -398,19 +408,20 @@ export async function main() {
     case 'install':
       handleInstall(opts)
       return
-    default: {
-      const cmd = COMMANDS[opts.command]
-      if (cmd) {
-        const branchOp = BRANCH_OPERATIONS[opts.command]
-        if (branchOp) {
-          await branchOp.handler(opts.sub, opts, branchOp.config)
-        } else {
-          await cmd.handler(opts)
+    default:
+      if (command !== undefined) {
+        const cmd = COMMANDS[command]
+        if (cmd) {
+          const branchOp = BRANCH_OPERATIONS[command]
+          if (branchOp) {
+            await branchOp.handler(opts.sub, opts, branchOp.config)
+          } else {
+            await cmd.handler(opts)
+          }
+          return
         }
-        return
+        logError(`Unknown command: ${command}`)
       }
-      logError(`Unknown command: ${opts.command}`)
-    }
   }
 
   printHelp()

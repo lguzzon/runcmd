@@ -43,6 +43,6 @@ All scripts enforce:
 
 ## Subdirectories
 
-[../lib/](./../lib/) — Shared utilities: version.js, changelog.js, prompts.js
-
 [../](./) — Git Flow core: git-flow.js, release-init.js, release-finalize.js
+
+Shared utilities live in [../lib/](../lib/); see the Dependencies table above for the actual modules operations import from.

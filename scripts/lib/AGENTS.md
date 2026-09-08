@@ -1,25 +1,34 @@
 # scripts/lib
 
-Utility library directory providing version management, changelog generation, and CLI prompt functionality for the release tooling.
+Utility library directory providing version management, changelog generation, CLI prompt functionality, git operations, validation guards, logging, git-flow installation, and shared option parsing for the release tooling.
 
 ## Contents
 
 [changelog.js](./changelog.js) — Git-integrated CHANGELOG.md versioning: retrieves last tag, collects commits since ref, prepends version sections, commits changes.
 
+[core.js](./core.js) — Shared command-dispatch helper: validates `opts.command` and prints help on missing/invalid command.
+
+[git.js](./git.js) — Thin git wrapper: `runGit`, `runGitFlow`, `splitArgs`. All commands routed through these go through the same exec pipeline.
+
+[installer.js](./installer.js) — `ensureGitFlowAvailable({ autoInstall, offline, dryRun })`: checks for `git-flow` on PATH, auto-installs via apt/brew when missing, honors offline/dry-run flags.
+
+[logger.js](./logger.js) — ANSI-colored console output: `logInfo`, `logWarn`, `logError`, `logSuccess` plus `COLOR_*` constants.
+
+[options.js](./options.js) — Shared CLI flag parser (`parseFlags`) and default option shapes (`releaseInitDefaults`, `releaseFinalizeDefaults`) for `release-init.js` and `release-finalize.js`. Unknown flags are ignored for backward compatibility; `CI=true` forces `opts.yes=true`.
+
 [prompts.js](./prompts.js) — CLI prompting utilities: async/sync text input, yes/no prompts with CI bypass. Requires Bun runtime.
+
+[validators.js](./validators.js) — Pre-flight guards: `ensureCleanTree`, `ensureBranchExists`, `ensureBranchMissing`, `detectMainBranch`, plus `checkout`/`pullBranch`/`pushBranch`/`mergeBranch`/`stashPush`/`stashPop`/`ensureTagMissing`/`getBranchType`/`getGitFlowConfig`. Throws `GuardError` on invariant violations.
 
 [version.js](./version.js) — Semver utilities: validate, parse, increment (major/minor/patch), compare versions, read from version.txt.
 
-[release-utils.js](./release-utils.js) — Shared release/hotfix lifecycle functions: version file update, git commit, version prompting, and parameterized start/finish handlers. Imports from `../git-flow.js` and sibling lib modules.
-
-[options.js](./options.js) — Shared option defaults for release-init and release-finalize standalone scripts.
-
 ## Dependencies
 
-- `../git-flow.js` — shared git operations (`logInfo`, `runGit`, `logError`)
 - `node:fs` — file system operations (readFileSync, writeFileSync, existsSync)
-- `./changelog.js` — changelog append operations (via release-utils.js)
-- `./version.js` — version read/increment/validate (via release-utils.js)
+- `node:child_process` — git/command exec via `git.js`
+- `./logger.js` — colored output used by `git.js` and `validators.js`
+- `./version.js` — semver helpers consumed by `changelog.js`
+- `../git-flow.js` — backward-compatible re-export hub that aggregates every public symbol from `./lib/*`
 
 ## Behavioral Contracts
 
@@ -41,15 +50,11 @@ Utility library directory providing version management, changelog generation, an
 - Prompt format: `[Y/n]` or `[y/N]` based on default
 - Sync read buffer: 1024 bytes
 
-**release-utils.js:**
+**validators.js:**
 
-- Version file path: `process.cwd() + "/version.txt"`
-- Changelog file path: `process.cwd() + "/CHANGELOG.md"`
-- Commit message format: `chore: bump version to ${version} for ${type}`
-- `handleStart` config: `{ defaultBump, defaultBase, prefix, typeLabel }`; calls `ensureCleanTree()`, `ensureBranchExists(defaultBase)`
-- `handleFinish` config: `{ prefix, typeLabel }`; calls `ensureCleanTree()`, `ensureBranchExists("main")`, `ensureBranchExists("develop")`
-- `promptVersion` respects `--yes` flag (non-interactive skip), falls back to `promptText` for version confirmation
-- All exported functions delegate to `../git-flow.js` for git operations and `./lib/*` for utility functions
+- `ensureCleanTree()` aborts on any tracked-file modification
+- `detectMainBranch()` probes `origin/HEAD` then falls back to `main`/`master`
+- `checkout`/`pullBranch`/`pushBranch` honor `dryRun` to no-op without touching the working tree
 
 ## Stack
 

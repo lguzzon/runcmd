@@ -11,6 +11,7 @@ import {
   logSuccess,
   logWarn,
   pullBranch,
+  runGit,
   runGitFlow,
   validateBranchName
 } from '../git-flow.js'

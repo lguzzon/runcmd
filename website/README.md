@@ -66,9 +66,7 @@ website/
 ├── astro.config.mjs          # Astro configuration
 ├── package.json              # Dependencies and scripts
 ├── tsconfig.json             # TypeScript configuration
-├── tailwind.config.js        # Tailwind CSS configuration
-├── eslint.config.js          # ESLint configuration
-└── postcss.config.js         # PostCSS configuration
+└── tailwind.config.js        # Tailwind CSS configuration
 ```
 
 ## 🎨 Styling
@@ -78,7 +76,7 @@ The website uses Tailwind CSS for styling with the following key features:
 - **Responsive Design**: Mobile-first approach with responsive breakpoints
 - **Dark Mode**: Built-in dark theme support
 - **Accessibility**: Semantic HTML and ARIA attributes
-- **Performance**: PurgeCSS removes unused styles in production
+- **Performance**: Tailwind JIT generates only the utilities used in source
 
 ## 📝 Content Management
 
@@ -123,7 +121,6 @@ The deployment is automated via GitHub Actions in `.github/workflows/publish.yml
 
 ```bash
 bun run dev     # Start development server
-bun run lint    # Run ESLint
 bun run check   # Run Astro type checks
 bun run build   # Build for production
 ```
@@ -177,7 +174,7 @@ bun run build   # Build for production
 ## 📊 Performance
 
 - **Bundle Size**: Optimized with Astro's partial hydration
-- **CSS**: PurgeCSS removes unused styles
+- **CSS**: Tailwind JIT emits only used utilities
 - **Images**: Optimized with modern formats
 - **Caching**: Static assets with long cache headers
 

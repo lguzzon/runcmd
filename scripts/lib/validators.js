@@ -14,6 +14,10 @@ export class GuardError extends Error {
   }
 }
 
+/**
+ * Abort if the working tree has uncommitted tracked-file changes.
+ * @throws {GuardError} when `git status --porcelain` is non-empty
+ */
 export function ensureCleanTree() {
   const status = runGit('status --porcelain', { allowFail: true })
   if (status && status.length > 0) {
@@ -22,6 +26,11 @@ export function ensureCleanTree() {
   }
 }
 
+/**
+ * Abort if a local branch does not exist.
+ * @param {string} name - Branch name (e.g. `develop`)
+ * @throws {GuardError} when `refs/heads/<name>` is absent
+ */
 export function ensureBranchExists(name) {
   const res = runGit(`show-ref --verify --quiet refs/heads/${name}`, {
     allowFail: true
@@ -32,6 +41,11 @@ export function ensureBranchExists(name) {
   }
 }
 
+/**
+ * Abort if a local branch already exists.
+ * @param {string} name - Branch name (e.g. `feature/new-auth`)
+ * @throws {GuardError} when `refs/heads/<name>` exists
+ */
 export function ensureBranchMissing(name) {
   const exists = runGit(`show-ref --verify --quiet refs/heads/${name}`, {
     allowFail: true
@@ -42,6 +56,12 @@ export function ensureBranchMissing(name) {
   }
 }
 
+/**
+ * Detect the primary integration branch by probing the remote.
+ * Probes `origin/HEAD` first, then `main`, falling back to `master`.
+ * @param {string} [remote] - Remote name (default `origin`)
+ * @returns {string} `main` or `master`
+ */
 export function detectMainBranch(remote = 'origin') {
   const hasMain = runGit(`ls-remote --exit-code --heads ${remote} main`, {
     allowFail: true
@@ -54,10 +74,22 @@ export function detectMainBranch(remote = 'origin') {
   return 'main'
 }
 
+/**
+ * Check out a branch.
+ * @param {string} branch - Branch name
+ * @param {{ dryRun?: boolean }} [opts] - Honor `dryRun` to skip the checkout
+ * @returns {string} `git checkout` output
+ */
 export function checkout(branch, opts = {}) {
   return runGit(`checkout ${branch}`, opts)
 }
 
+/**
+ * Check out a branch and fast-forward pull it from the remote.
+ * No-op when `offline` is true.
+ * @param {string} branch - Branch to pull
+ * @param {{ dryRun?: boolean, offline?: boolean, allowFail?: boolean }} [opts]
+ */
 export function pullBranch(
   branch,
   { dryRun = false, offline = false, allowFail = true } = {}
@@ -67,10 +99,23 @@ export function pullBranch(
   runGit(`pull --ff-only origin ${branch}`, { dryRun, allowFail })
 }
 
+/**
+ * Push a branch to `origin`.
+ * @param {string} branch - Branch to push
+ * @param {{ dryRun?: boolean }} [opts] - Forwarded to `runGit`
+ * @returns {string} `git push` output
+ */
 export function pushBranch(branch, opts = {}) {
   return runGit(`push origin ${branch}`, { ...opts, allowFail: true })
 }
 
+/**
+ * Merge `source` into `target` (no-ff, no-edit). Checks out `target` first.
+ * @param {string} source - Branch being merged
+ * @param {string} target - Branch receiving the merge
+ * @param {{ dryRun?: boolean }} [opts] - Forwarded to `runGit`
+ * @throws {GuardError} when the merge fails and `dryRun` is false
+ */
 export function mergeBranch(source, target, opts = {}) {
   checkout(target, opts)
   const res = runGit(`merge ${source} --no-ff --no-edit`, {
@@ -88,19 +133,37 @@ export function mergeBranch(source, target, opts = {}) {
   }
 }
 
+/**
+ * Stash uncommitted changes.
+ * @param {string} [message] - Stash message (default `auto-stash`)
+ * @returns {string} `git stash push` output
+ */
 export function stashPush(message = 'auto-stash') {
   return runGit(`stash push -m "${message}"`, { allowFail: true })
 }
 
+/**
+ * Restore the most recent stash.
+ * @returns {string} `git stash pop` output
+ */
 export function stashPop() {
   return runGit('stash pop', { allowFail: true })
 }
 
+/**
+ * Get the current branch name.
+ * @returns {string} Current branch, or empty string when detached/unknown
+ */
 export function currentBranch() {
   const name = runGit('rev-parse --abbrev-ref HEAD', { allowFail: true })
   return name || ''
 }
 
+/**
+ * Abort if a `v<version>` tag already exists.
+ * @param {string} version - Version, with or without leading `v`
+ * @throws {GuardError} when the tag is present
+ */
 export function ensureTagMissing(version) {
   // Normalize: strip leading 'v' then compare against v-prefixed tag list
   const normalizedVersion = version.replace(/^v/, '')
@@ -112,6 +175,11 @@ export function ensureTagMissing(version) {
   }
 }
 
+/**
+ * Classify a branch name into its git-flow family.
+ * @param {string} branch - Branch name
+ * @returns {'feature'|'release'|'hotfix'|'support'|'main'|'develop'|'unknown'}
+ */
 export function getBranchType(branch) {
   if (!branch) return 'unknown'
   if (branch.startsWith('feature/')) return 'feature'
@@ -123,6 +191,12 @@ export function getBranchType(branch) {
   return 'unknown'
 }
 
+/**
+ * Validate a branch name against its type's allowed pattern (`[\w-]+`).
+ * @param {string} name - Branch name (without the type prefix)
+ * @param {string} type - `feature`, `release`, `hotfix`, or `support`
+ * @returns {boolean} true when valid; logs and returns false otherwise
+ */
 export function validateBranchName(name, type) {
   const patterns = {
     feature: /^[\w-]+$/,
@@ -144,6 +218,10 @@ export function validateBranchName(name, type) {
   return true
 }
 
+/**
+ * Abort if git-flow has not been initialized in the repository.
+ * @throws {GuardError} when the `gitflow.initialized` config key is unset
+ */
 export function ensureGitFlowInitialized() {
   const initialized = runGit('config --get gitflow.initialized', {
     allowFail: true
@@ -188,6 +266,11 @@ export function getGitFlowConfig() {
   }
 }
 
+/**
+ * List local branches whose name starts with the type's prefix.
+ * @param {string} type - `feature`, `release`, `hotfix`, or `support`
+ * @returns {string[]} Branch names, trimmed, without `*` markers
+ */
 export function listBranchesByType(type) {
   const config = getGitFlowConfig()
   const prefix = config[`${type}Prefix`]

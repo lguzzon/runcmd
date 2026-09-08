@@ -8,6 +8,7 @@ import {
   logSuccess
 } from '../git-flow.js'
 
+/** Print `list` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow List${COLOR_RESET}
@@ -29,6 +30,11 @@ Examples:
 `)
 }
 
+/**
+ * List branches of one type, or all types when `type` is omitted.
+ * @param {{ type?: string, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleList(opts) {
   if (!requireValidCommand(opts, { commandName: 'list', helpFn: printHelp }))
     return

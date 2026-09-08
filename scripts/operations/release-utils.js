@@ -23,6 +23,13 @@ import {
   validateVersion
 } from '../lib/version.js'
 
+/**
+ * Write `version` to the first line of version.txt, keeping the rest.
+ * @param {string} version - New version (no leading `v`)
+ * @param {{ dryRun?: boolean }} opts - Dry-run returns false without writing
+ * @returns {boolean} true when the file was written
+ * @throws {GuardError} when version.txt does not exist
+ */
 export function updateVersionFile(version, { dryRun }) {
   if (!existsSync(VERSION_FILE)) {
     logError(`version.txt not found at ${VERSION_FILE}`)
@@ -39,6 +46,12 @@ export function updateVersionFile(version, { dryRun }) {
   return true
 }
 
+/**
+ * Stage and commit version.txt with the standard bump message.
+ * @param {string} version - Version being released
+ * @param {string} type - `release` or `hotfix`
+ * @param {{ dryRun?: boolean }} opts
+ */
 export function commitChanges(version, type, { dryRun }) {
   const message = `chore: bump version to ${version} for ${type}`
   runGit(
@@ -50,6 +63,14 @@ export function commitChanges(version, type, { dryRun }) {
   runGit(`commit -m "${message}"`, { dryRun })
 }
 
+/**
+ * Resolve the version for a release/hotfix start: explicit `--version`,
+ * bumped from `currentVersion` via `--bump`, or interactive prompt.
+ * @param {string} currentVersion - Current version from version.txt
+ * @param {{ version?: string, bump?: string, yes?: boolean }} opts
+ * @returns {Promise<string>} Semver version (no `v` prefix)
+ * @throws {GuardError} on invalid `--version` or custom input
+ */
 export async function promptVersion(currentVersion, opts) {
   if (opts.version) {
     if (!validateVersion(opts.version)) {
@@ -124,6 +145,13 @@ export function buildFinishCommand({
   return `${typeLabel} finish ${flags.join(' ')} ${cmdName}`
 }
 
+/**
+ * Start a release/hotfix branch: bump version, update version.txt,
+ * generate changelog, create the branch.
+ * @param {{ defaultBump: string, defaultBase: string, prefix: string, typeLabel: string }} config - Branch-family config
+ * @param {{ version?: string, bump?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, offline?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleStart(config, opts) {
   const { defaultBump, defaultBase, prefix, typeLabel } = config
   ensureCleanTree()
@@ -195,6 +223,13 @@ export async function handleStart(config, opts) {
   }
 }
 
+/**
+ * Finish a release/hotfix branch: merge to integration branches, tag,
+ * push, and optionally keep the branch.
+ * @param {{ prefix: string, typeLabel: string }} config - Branch-family config
+ * @param {{ branch?: string, tag?: string, message?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, keepBranch?: boolean, offline?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleFinish(config, opts) {
   const { prefix, typeLabel } = config
 

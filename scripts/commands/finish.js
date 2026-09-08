@@ -15,6 +15,7 @@ import {
   runGitFlow
 } from '../git-flow.js'
 
+/** Print `finish` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Finish${COLOR_RESET}
@@ -44,6 +45,11 @@ Examples:
 `)
 }
 
+/**
+ * Finish a branch and merge it into its integration branches.
+ * @param {{ type?: string, name?: string, tag?: string, message?: string, push?: boolean, keepBranch?: boolean, squash?: boolean, dryRun?: boolean, offline?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleFinish(opts) {
   if (!requireValidCommand(opts, { commandName: 'finish', helpFn: printHelp }))
     return

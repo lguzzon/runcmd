@@ -10,6 +10,7 @@ import {
   runGit
 } from '../git-flow.js'
 
+/** Print `config` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Config${COLOR_RESET}
@@ -31,6 +32,11 @@ Examples:
 `)
 }
 
+/**
+ * Get, set, or list git-flow configuration.
+ * @param {{ get?: string, set?: [string, string], list?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleConfig(opts) {
   if (!requireValidCommand(opts, { commandName: 'config', helpFn: printHelp }))
     return

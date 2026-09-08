@@ -11,6 +11,7 @@ import {
   runGitFlow
 } from '../git-flow.js'
 
+/** Print `delete` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Delete${COLOR_RESET}
@@ -34,6 +35,11 @@ Examples:
 `)
 }
 
+/**
+ * Delete a branch locally and remotely.
+ * @param {{ type?: string, name?: string, force?: boolean, dryRun?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleDelete(opts) {
   if (!requireValidCommand(opts, { commandName: 'delete', helpFn: printHelp }))
     return

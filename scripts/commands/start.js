@@ -16,6 +16,7 @@ import {
   validateBranchName
 } from '../git-flow.js'
 
+/** Print `start` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Start${COLOR_RESET}
@@ -44,6 +45,11 @@ Examples:
 `)
 }
 
+/**
+ * Start a new branch of the given type.
+ * @param {{ type?: string, name?: string, base?: string, fetch?: boolean, force?: boolean, dryRun?: boolean, offline?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleStart(opts) {
   if (!requireValidCommand(opts, { commandName: 'start', helpFn: printHelp }))
     return

@@ -9,6 +9,7 @@ import {
   runGitFlow
 } from '../git-flow.js'
 
+/** Print `init` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Init${COLOR_RESET}
@@ -27,6 +28,11 @@ Examples:
 `)
 }
 
+/**
+ * Initialize git-flow in the current repository.
+ * @param {{ dryRun?: boolean, offline?: boolean, autoInstall?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleInit(opts) {
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {

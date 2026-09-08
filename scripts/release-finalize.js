@@ -13,6 +13,7 @@ import { handleBranchOperation } from './operations/branch-operation.js'
 import { hotfixConfig } from './operations/hotfix.js'
 import { releaseConfig } from './operations/release.js'
 
+/** Print `release-finalize` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${'\x1b[1m'}Git Flow Release/Hotfix Finalizer${'\x1b[0m'}

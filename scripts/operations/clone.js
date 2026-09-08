@@ -9,6 +9,7 @@ import {
   runGit
 } from '../git-flow.js'
 
+/** Print `clone` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Clone${COLOR_RESET}
@@ -32,6 +33,11 @@ Examples:
 `)
 }
 
+/**
+ * Clone a repository and initialize git-flow inside it.
+ * @param {{ cloneUrl?: string, targetDir?: string, dryRun?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleClone(opts) {
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {

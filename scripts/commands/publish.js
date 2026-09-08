@@ -10,6 +10,7 @@ import {
   runGitFlow
 } from '../git-flow.js'
 
+/** Print `publish` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Publish${COLOR_RESET}
@@ -32,6 +33,11 @@ Examples:
 `)
 }
 
+/**
+ * Publish a branch to the remote.
+ * @param {{ type?: string, name?: string, dryRun?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handlePublish(opts) {
   if (!requireValidCommand(opts, { commandName: 'publish', helpFn: printHelp }))
     return

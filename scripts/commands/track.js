@@ -9,6 +9,7 @@ import {
   runGitFlow
 } from '../git-flow.js'
 
+/** Print `track` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Track${COLOR_RESET}
@@ -31,6 +32,11 @@ Examples:
 `)
 }
 
+/**
+ * Track a remote branch locally.
+ * @param {{ type?: string, name?: string, dryRun?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleTrack(opts) {
   if (!requireValidCommand(opts, { commandName: 'track', helpFn: printHelp }))
     return

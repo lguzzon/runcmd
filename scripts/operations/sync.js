@@ -18,6 +18,7 @@ import {
   stashPush
 } from '../git-flow.js'
 
+/** Print `sync` usage text to stdout. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Sync${COLOR_RESET}
@@ -46,6 +47,12 @@ Examples:
 `)
 }
 
+/**
+ * Sync main/master and develop with the remote: stash, pull, merge into
+ * develop, push, restore.
+ * @param {{ dryRun?: boolean, offline?: boolean, help?: boolean }} opts
+ * @returns {Promise<void>}
+ */
 export async function handleSync(opts) {
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {

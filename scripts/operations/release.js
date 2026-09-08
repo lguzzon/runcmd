@@ -14,6 +14,7 @@ export const releaseConfig = {
   printHelp
 }
 
+/** Print the release branch-family usage text. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Release${COLOR_RESET}

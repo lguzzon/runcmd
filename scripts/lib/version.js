@@ -6,15 +6,32 @@ import { logError } from './logger.js'
 const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
 export const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
 
+/**
+ * Check a string matches strict `X.Y.Z` semver (no leading zeros).
+ * @param {string} version
+ * @returns {boolean}
+ */
 export function validateVersion(version) {
   return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)
 }
 
+/**
+ * Split a version into its numeric components.
+ * @param {string} version
+ * @returns {{ major: number, minor: number, patch: number }}
+ */
 export function parseVersion(version) {
   const [major, minor, patch] = version.split('.').map(Number)
   return { major, minor, patch }
 }
 
+/**
+ * Bump a version's major, minor, or patch component.
+ * Unknown `bump` returns the version unchanged.
+ * @param {string} version
+ * @param {string} [bump] - `major`, `minor`, or `patch`
+ * @returns {string} Bumped version
+ */
 export function incrementVersion(version, bump) {
   const { major, minor, patch } = parseVersion(version)
   switch ((bump || '').toLowerCase()) {
@@ -29,6 +46,12 @@ export function incrementVersion(version, bump) {
   }
 }
 
+/**
+ * Compare two versions.
+ * @param {string} a
+ * @param {string} b
+ * @returns {1|0|-1} 1 when a > b, -1 when a < b, 0 when equal
+ */
 export function compareVersions(a, b) {
   const pa = a.split('.').map(Number)
   const pb = b.split('.').map(Number)
@@ -39,6 +62,11 @@ export function compareVersions(a, b) {
   return 0
 }
 
+/**
+ * Read the current version from version.txt (first line).
+ * @returns {string} Version
+ * @throws {GuardError} when the file is missing or malformed
+ */
 export function readVersion() {
   if (!existsSync(VERSION_FILE)) {
     logError(`version.txt not found at ${VERSION_FILE}`)

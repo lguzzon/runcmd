@@ -14,6 +14,7 @@ export const hotfixConfig = {
   printHelp
 }
 
+/** Print the hotfix branch-family usage text. */
 export function printHelp() {
   console.log(`
 ${COLOR_BOLD}Git Flow Hotfix${COLOR_RESET}

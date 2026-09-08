@@ -1,9 +1,3 @@
-## v1.11.3 - 2026-06-26
-- docs: rewrite README with gold-standard patterns
-- bd init: initialize beads issue tracking
-## v1.11.2 - 2026-06-12
-
-- docs: fix doc/code coherence audit findings across 10 files (line counts, dep claims, examples, AGENTS.md exports, CHANGELOG refs)
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -20,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance optimizations for large codebases
 - Advanced configuration options
 - Plugin system for custom tooling
+
+## v1.11.4 - 2026-09-08
+
+- chore: merge beads hook into .githooks/pre-commit
+
+## v1.11.3 - 2026-06-26
+
+- docs: rewrite README with gold-standard patterns
+- bd init: initialize beads issue tracking
+
+## v1.11.2 - 2026-06-12
+
+- docs: fix doc/code coherence audit findings across 10 files (line counts, dep claims, examples, AGENTS.md exports, CHANGELOG refs)
 
 ## v1.11.1 - 2026-06-12
 
@@ -165,7 +172,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API documentation in individual script files
 - Git flow command reference and help system
 
-[Unreleased]: https://github.com/lguzzon/runcmd/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/lguzzon/runcmd/compare/v1.11.4...HEAD
+[v1.11.4]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.4
+[v1.11.3]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.3
+[v1.11.2]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.2
 [v1.11.1]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.1
 [v1.11.0]: https://github.com/lguzzon/runcmd/releases/tag/v1.11.0
 [v1.10.4]: https://github.com/lguzzon/runcmd/releases/tag/v1.10.4

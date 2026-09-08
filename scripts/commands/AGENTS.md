@@ -40,6 +40,6 @@ All commands import from `../git-flow.js`:
 | `logError`, `logInfo`, `logSuccess` | All files                                                     |
 | `ensureBranchExists`                | delete.js, finish.js, publish.js, start.js                    |
 | `ensureCleanTree`                   | finish.js, start.js                                           |
-| `runGit`                            | config.js, finish.js                                          |
+| `runGit`                            | config.js, finish.js, start.js                                |
 | `getGitFlowConfig`                  | config.js                                                     |
 | `listBranchesByType`                | list.js                                                       |

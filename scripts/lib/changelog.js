@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { logInfo } from './logger.js'
 import { runGit } from './git.js'
 
-const PROJECT_ROOT = process.cwd()
+const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
 export const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
 
 export function getLastTag() {

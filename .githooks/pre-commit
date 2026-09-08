@@ -73,4 +73,12 @@ fi
 # Re-add files that may have been auto-fixed
 git diff --name-only --diff-filter=ACM | xargs git add 2>/dev/null || true
 
+# Run tests when scripts/ files staged (non-blocking)
+if echo "$STAGED_FILES" | grep -q '^scripts/'; then
+  echo "[pre-commit] Running git-flow tests..."
+  if ! (cd "$REPO_ROOT/scripts" && bun test --isolate >/dev/null 2>&1); then
+    echo "[pre-commit] tests failed in scripts/ (not blocking)"
+  fi
+fi
+
 echo "[pre-commit] Checks complete."

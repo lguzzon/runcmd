@@ -1,4 +1,4 @@
-# styles
+# website/src/styles
 
 Directory containing global stylesheets for the website, managing theme system, typography, and motion preferences.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { COLOR_BOLD, COLOR_RESET } from '../git-flow.js'
+import { COLOR_BOLD, COLOR_RESET } from '../lib/logger.js'
 
 /**
  * Per-type configuration for the `hotfix` git-flow branch family.

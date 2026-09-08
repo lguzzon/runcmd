@@ -7,13 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned Features
+### Added
 
-- Enhanced Windows PowerShell support
-- Additional development tool integrations
-- Performance optimizations for large codebases
-- Advanced configuration options
-- Plugin system for custom tooling
+- feat: verify self-update payloads against `update.sha256` manifest (runcmd.sh + runcmd-update.js fail closed on checksum mismatch; publish.yml generates manifest at deploy)
+
+### Fixed
+
+- fix: `parseArgs` keeps flags in the 2nd argv slot for branch commands — `start --name x` no longer swallows the flag as the subcommand
+
+### Changed
+
+- refactor: split git-flow.js god module into lib/ + cli.js dispatcher
+- test: suite for git-flow libs, wire bun test runner, guard repo files
+- chore: NXTG-Forge governance + beads issue tracker
+- docs: sync version refs to 1.11.4
 
 ## v1.11.4 - 2026-09-08
 

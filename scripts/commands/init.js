@@ -3,6 +3,7 @@ import {
   COLOR_BOLD,
   COLOR_RESET,
   ensureGitFlowAvailable,
+  logError,
   logInfo,
   logSuccess,
   runGitFlow

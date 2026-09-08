@@ -1,0 +1,94 @@
+{
+  "version": "3.0.0",
+  "project": {
+    "name": "runcmd",
+    "type": "shell/script-runner",
+    "vision": "Universal Bun-based script runner with auto-install, cross-platform support, and integrated dev tooling",
+    "goals": [
+      "Ship working MVP",
+      "High test coverage",
+      "Clean architecture"
+    ],
+    "initialized": "2026-09-08T08:44:43Z",
+    "forgeVersion": "3.0.0"
+  },
+  "workstreams": [],
+  "qualityGates": {
+    "testsPass": true,
+    "typesClean": true,
+    "noSecurityIssues": true
+  },
+  "metrics": {
+    "sessionsCompleted": 0,
+    "tasksCompleted": 0,
+    "testsWritten": 0
+  },
+  "sentinelLog": [
+    {
+      "id": "oracle-1788857133000-1889444",
+      "timestamp": 1788857133000,
+      "type": "SUCCESS",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session completed (0 files modified)",
+      "context": {},
+      "actionRequired": false
+    },
+    {
+      "id": "oracle-1788857221000-1889883",
+      "timestamp": 1788857221000,
+      "type": "INFO",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session started on branch develop (3 uncommitted files)",
+      "context": {},
+      "actionRequired": false
+    },
+    {
+      "id": "oracle-1788857235000-1890232",
+      "timestamp": 1788857235000,
+      "type": "SUCCESS",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session completed (0 files modified)",
+      "context": {},
+      "actionRequired": false
+    },
+    {
+      "id": "oracle-1788857321000-1891258",
+      "timestamp": 1788857321000,
+      "type": "INFO",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session started on branch develop (3 uncommitted files)",
+      "context": {},
+      "actionRequired": false
+    },
+    {
+      "id": "oracle-1788857362000-1891936",
+      "timestamp": 1788857362000,
+      "type": "SUCCESS",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session completed (0 files modified)",
+      "context": {},
+      "actionRequired": false
+    },
+    {
+      "id": "oracle-1788857480000-1893119",
+      "timestamp": 1788857480000,
+      "type": "INFO",
+      "severity": "low",
+      "category": "session",
+      "source": "oracle",
+      "message": "Session started on branch develop (3 uncommitted files)",
+      "context": {},
+      "actionRequired": false
+    }
+  ]
+}

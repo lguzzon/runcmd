@@ -64,3 +64,12 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
+
+## NXTG-Forge
+
+This project uses NXTG-Forge for AI-powered development governance.
+
+- **Vision:** Universal Bun-based script runner with auto-install, cross-platform support, and integrated dev tooling
+- **Goals:** Ship working MVP, High test coverage, Clean architecture
+- **Commands:** Type /forge: to see available Forge commands
+- **Governance:** Project state tracked in .claude/governance.json

@@ -47,7 +47,7 @@ Examples:
 
 /**
  * Finish a branch and merge it into its integration branches.
- * @param {{ type?: string, name?: string, tag?: string, message?: string, push?: boolean, keepBranch?: boolean, squash?: boolean, dryRun?: boolean, offline?: boolean, help?: boolean }} opts
+ * @param {{ type?: string, name?: string, tag?: string, message?: string, push?: boolean, keepBranch?: boolean, squash?: boolean, dryRun?: boolean, offline?: boolean, help?: boolean, force?: boolean }} opts
  * @returns {Promise<void>}
  */
 export async function handleFinish(opts) {

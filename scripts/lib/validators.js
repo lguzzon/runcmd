@@ -8,6 +8,7 @@ import { runGit } from './git.js'
  * monkey-patching `process.exit`.
  */
 export class GuardError extends Error {
+  /** @param {string} message */
   constructor(message) {
     super(message)
     this.name = 'GuardError'
@@ -78,7 +79,7 @@ export function detectMainBranch(remote = 'origin') {
  * Check out a branch.
  * @param {string} branch - Branch name
  * @param {{ dryRun?: boolean }} [opts] - Honor `dryRun` to skip the checkout
- * @returns {string} `git checkout` output
+ * @returns {string|null} `git checkout` output, or null on failure
  */
 export function checkout(branch, opts = {}) {
   return runGit(`checkout ${branch}`, opts)
@@ -102,8 +103,8 @@ export function pullBranch(
 /**
  * Push a branch to `origin`.
  * @param {string} branch - Branch to push
- * @param {{ dryRun?: boolean }} [opts] - Forwarded to `runGit`
- * @returns {string} `git push` output
+ * @param {{ dryRun?: boolean, offline?: boolean }} [opts] - Forwarded to `runGit`
+ * @returns {string|null} `git push` output, or null on failure
  */
 export function pushBranch(branch, opts = {}) {
   return runGit(`push origin ${branch}`, { ...opts, allowFail: true })
@@ -136,7 +137,7 @@ export function mergeBranch(source, target, opts = {}) {
 /**
  * Stash uncommitted changes.
  * @param {string} [message] - Stash message (default `auto-stash`)
- * @returns {string} `git stash push` output
+ * @returns {string|null} `git stash push` output, or null on failure
  */
 export function stashPush(message = 'auto-stash') {
   return runGit(`stash push -m "${message}"`, { allowFail: true })
@@ -144,7 +145,7 @@ export function stashPush(message = 'auto-stash') {
 
 /**
  * Restore the most recent stash.
- * @returns {string} `git stash pop` output
+ * @returns {string|null} `git stash pop` output, or null on failure
  */
 export function stashPop() {
   return runGit('stash pop', { allowFail: true })
@@ -198,6 +199,7 @@ export function getBranchType(branch) {
  * @returns {boolean} true when valid; logs and returns false otherwise
  */
 export function validateBranchName(name, type) {
+  /** @type {Record<string, RegExp>} */
   const patterns = {
     feature: /^[\w-]+$/,
     release: /^[\w-]+$/,
@@ -273,7 +275,9 @@ export function getGitFlowConfig() {
  */
 export function listBranchesByType(type) {
   const config = getGitFlowConfig()
-  const prefix = config[`${type}Prefix`]
+  const prefix = /** @type {Record<string, string>} */ (
+    /** @type {unknown} */ (config)
+  )[`${type}Prefix`]
   if (!prefix) {
     logError(`Unknown branch type: ${type}`)
     return []

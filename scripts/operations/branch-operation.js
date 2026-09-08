@@ -20,12 +20,29 @@ import { handleFinish, handleStart } from './release-utils.js'
  */
 
 /**
+ * CLI options passed through branch operations.
+ * @typedef {object} BranchOpOpts
+ * @property {boolean} [help] show help and stop
+ * @property {boolean} [dryRun] don't perform side effects
+ * @property {boolean} [offline] never reach the network
+ * @property {string} [name] branch/tag name
+ * @property {string} [version] target version
+ * @property {string} [message] commit/tag message
+ * @property {boolean} [push] push to remote
+ * @property {boolean} [squash] squash merge
+ * @property {boolean} [keepBranch] keep branch after finish
+ * @property {string} [bump] version bump kind
+ * @property {string} [base] base branch
+ * @property {boolean} [force] force flag
+ */
+
+/**
  * Dispatch a `start` or `finish` action for a release-family git-flow
  * branch. Validates git-flow availability and initialization, then routes
  * to `handleStart` / `handleFinish` with the supplied per-type config.
  *
- * @param {string} action `start` or `finish`
- * @param {object} opts CLI options (help, dry-run, name, version, etc.)
+ * @param {string | null} action `start` or `finish`
+ * @param {BranchOpOpts} opts CLI options (help, dry-run, name, version, etc.)
  * @param {BranchOperationConfig} config per-type configuration
  * @returns {Promise<void>}
  */

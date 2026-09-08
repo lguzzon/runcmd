@@ -30,6 +30,7 @@ Examples:
 }
 
 async function main() {
+  /** @type {import('./lib/options.js').ReleaseInitOpts} */
   const opts = parseFlags(process.argv.slice(2), releaseInitDefaults)
 
   if (opts.help) {

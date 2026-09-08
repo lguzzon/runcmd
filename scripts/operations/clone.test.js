@@ -15,7 +15,7 @@ let available = true
 let gitCalls = []
 let infoOut = []
 let consoleOut = []
-const realLog = console.log
+
 console.log = (...args) => {
   consoleOut.push(args.join(' '))
 }

@@ -10,7 +10,7 @@ let available = true
 let initCalls = 0
 let errors = []
 let consoleOut = []
-const realLog = console.log
+
 console.log = (...args) => {
   consoleOut.push(args.join(' '))
 }

@@ -13,6 +13,7 @@ const GITFLOW_PREFIX = `${homedir()}/.local`
 
 /**
  * Check if git-flow is available; optionally install it.
+ * @param {{ autoInstall?: boolean, offline?: boolean, dryRun?: boolean }} opts
  * @returns {boolean} true if available, false if not (with warning), exits on error
  */
 export function ensureGitFlowAvailable({ autoInstall, offline, dryRun }) {
@@ -61,7 +62,14 @@ export function ensureGitFlowAvailable({ autoInstall, offline, dryRun }) {
     )
   } catch (error) {
     logError('git-flow installation failed')
-    if (error.stderr) console.error(error.stderr.toString())
+    if (
+      error &&
+      typeof error === 'object' &&
+      'stderr' in error &&
+      (error.stderr || '').toString()
+    ) {
+      console.error(String(error.stderr).toString())
+    }
     process.exit(1)
   } finally {
     execSync(`rm -rf '${tmpDir}' 2>/dev/null || true`, { stdio: 'pipe' })

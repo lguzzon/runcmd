@@ -42,7 +42,7 @@ Examples:
  * Parse command-line arguments into an options object.
  * Honors process.env.CI === 'true' to set opts.yes.
  * @param {string[]} [argv] - Defaults to process.argv.slice(2)
- * @returns {object} Merged options
+ * @returns {import('./lib/options.js').ReleaseFinalizeOpts} Merged options
  */
 export const parseArgs = (argv) =>
   parseFlags(argv ?? process.argv.slice(2), releaseFinalizeDefaults)
@@ -52,7 +52,7 @@ export const parseArgs = (argv) =>
  * Explicit --branch short-circuits. Otherwise picks from candidates
  * via listBranchesByType; single candidate returns directly, multiple
  * candidates prompt unless --yes (or CI) is set.
- * @param {object} opts - Parsed CLI options
+ * @param {import('./lib/options.js').ReleaseFinalizeOpts} opts - Parsed CLI options
  * @returns {string} The selected branch name
  */
 export function detectBranch(opts) {
@@ -182,12 +182,14 @@ export async function main() {
     // Close stdin to prevent hanging
     process.stdin.pause()
   } catch (error) {
-    if (!error || error.name !== 'GuardError') {
-      logError(`Unexpected error: ${error.message}`)
+    const isGuard = error instanceof Error && error.name === 'GuardError'
+    if (!isGuard) {
+      const message = error instanceof Error ? error.message : String(error)
+      logError(`Unexpected error: ${message}`)
     }
     operations.push({
       type: 'error',
-      message: `Unexpected error: ${error.message}`
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
     })
     if (opts.json) {
       console.log(generateJsonSummary('error', '', '', operations))

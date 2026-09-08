@@ -25,13 +25,13 @@ let consoleOut = []
 
 // Capture console.log/error so handlers that print config / lists are
 // assertable without polluting test output.
-const realLog = console.log
+
 console.log = (...args) => {
   consoleOut.push(args.join(' '))
 }
 
 mock.module('../lib/core.js', () => ({
-  requireValidCommand(opts, cfg) {
+  requireValidCommand(_opts, _cfg) {
     return requireValidResult
   }
 }))

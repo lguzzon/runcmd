@@ -1,18 +1,40 @@
 #!/usr/bin/env bun
 
 /**
+ * Options produced by `parseFlags` when seeded with `releaseInitDefaults`.
+ * @typedef {object} ReleaseInitOpts
+ * @property {string} type branch type (release/hotfix)
+ * @property {string|undefined} bump version bump kind
+ * @property {string|undefined} version explicit version
+ * @property {boolean} push push new branch+commit
+ * @property {boolean} dryRun no side effects
+ * @property {boolean} yes non-interactive
+ * @property {boolean} noChangelog skip changelog
+ * @property {boolean} offline skip remote
+ * @property {boolean} help show help
+ */
+
+/**
+ * Options produced by `parseFlags` when seeded with `releaseFinalizeDefaults`.
+ * @typedef {object} ReleaseFinalizeOpts
+ * @property {string|undefined} type branch type (release/hotfix)
+ * @property {string|undefined} branch branch to finalize
+ * @property {boolean} push push branches/tags
+ * @property {boolean} dryRun no side effects
+ * @property {boolean} yes non-interactive
+ * @property {boolean} noChangelog skip changelog
+ * @property {boolean} keepBranch do not delete branch
+ * @property {boolean} json emit JSON summary
+ * @property {boolean} offline skip pulls
+ * @property {boolean} help show help
+ * @property {string} [name] branch/feature name (set by the finalizer flow)
+ * @property {string} [tag] version tag (set by the finalizer flow)
+ * @property {string} [message] release message (set by the finalizer flow)
+ */
+
+/**
  * Default options for `release-init.js`.
- * @type {{
- *   type: string,
- *   bump: (string|undefined),
- *   version: (string|undefined),
- *   push: boolean,
- *   dryRun: boolean,
- *   yes: boolean,
- *   noChangelog: boolean,
- *   offline: boolean,
- *   help: boolean
- * }}
+ * @type {ReleaseInitOpts}
  */
 export const releaseInitDefaults = {
   type: 'release',
@@ -28,18 +50,7 @@ export const releaseInitDefaults = {
 
 /**
  * Default options for `release-finalize.js`.
- * @type {{
- *   type: (string|undefined),
- *   branch: (string|undefined),
- *   push: boolean,
- *   dryRun: boolean,
- *   yes: boolean,
- *   noChangelog: boolean,
- *   keepBranch: boolean,
- *   json: boolean,
- *   offline: boolean,
- *   help: boolean
- * }}
+ * @type {ReleaseFinalizeOpts}
  */
 export const releaseFinalizeDefaults = {
   type: undefined,
@@ -65,12 +76,14 @@ export const releaseFinalizeDefaults = {
  *   --push            --dry-run      --yes          --no-changelog
  *   --keep-branch     --json         --offline      --help / -h
  *
+ * @template T
  * @param {string[]} argv tokens to parse (process.argv.slice(2) by default)
- * @param {object} defaults starting options object (e.g. releaseInitDefaults)
- * @returns {object} merged options; CI=true is also folded into opts.yes
+ * @param {T} defaults starting options object (e.g. releaseInitDefaults)
+ * @returns {T & { help?: boolean, yes?: boolean }} merged options; CI=true also folded into opts.yes
  */
 export function parseFlags(argv, defaults) {
-  const opts = { ...defaults }
+  /** @type {Record<string, any>} */
+  const opts = { .../** @type {Record<string, any>} */ (defaults) }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     switch (arg) {
@@ -119,5 +132,7 @@ export function parseFlags(argv, defaults) {
   if (process.env.CI === 'true') {
     opts.yes = true
   }
-  return opts
+  return /** @type {T & { help?: boolean, yes?: boolean }} */ (
+    /** @type {any} */ (opts)
+  )
 }

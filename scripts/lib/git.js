@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { logError, logInfo } from './logger.js'
 
-/** Split a command string into an array of arguments, handling quoted tokens. */
+/** Split a command string into an array of arguments, handling quoted tokens. @param {string} str */
 export function splitArgs(str) {
   const args = []
   let current = ''

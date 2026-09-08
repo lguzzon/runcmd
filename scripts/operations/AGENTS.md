@@ -6,9 +6,9 @@ Implements Git Flow operational commands for branch lifecycle management: clonin
 
 [clone.js](./clone.js) — Clones a repository and initializes git-flow. Exports `printHelp()` and `handleClone(opts)` with dry-run support.
 
-[hotfix.js](./hotfix.js) — Manages git-flow hotfix branches with automatic version bumping. Exports `printHelp()` and `handleHotfix(action, opts)` dispatching to start/finish handlers.
+[hotfix.js](./hotfix.js) — Per-type configuration for the hotfix branch family. Exports `hotfixConfig` (`{ defaultBump, defaultBase, prefix, typeLabel, printHelp }`) and `printHelp()`. Lifecycle dispatch lives in `branch-operation.js`.
 
-[release.js](./release.js) — Orchestrates Git Flow release lifecycle: branch creation with version bumping, changelog generation, and branch completion with tagging. Exports `printHelp()` and `handleRelease(action, opts)`.
+[release.js](./release.js) — Per-type configuration for the release branch family. Exports `releaseConfig` (`{ defaultBump, defaultBase, prefix, typeLabel, printHelp }`) and `printHelp()`. Lifecycle dispatch lives in `branch-operation.js`.
 
 [sync.js](./sync.js) — Syncs local main/master and develop branches with remote. Exports `printHelp()` and `handleSync(opts)`.
 
@@ -17,7 +17,7 @@ Implements Git Flow operational commands for branch lifecycle management: clonin
 All operation scripts follow identical conventions:
 
 - Export `printHelp()` for CLI usage documentation
-- Export a handler function accepting `action` (start/finish) or opts object
+- Export either a handler function (`clone`, `sync`) accepting an opts object, or a per-type config consumed by the shared dispatcher `handleBranchOperation(action, opts, config)` in `branch-operation.js` (`release`, `hotfix`)
 - Support `--help`, `--dry-run`, `--offline`, `--yes` flags
 - Import utilities from `../git-flow.js` and `../lib/*`
 

@@ -14,7 +14,7 @@ Universal Bun-based script runner with auto-installation, cross-platform support
 
 ### Runner Scripts
 
-[runcmd.sh](./runcmd.sh) — Unix/macOS runner (1147 lines) with DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution order, update checking, check mode (+check).
+[runcmd.sh](./runcmd.sh) — Unix/macOS runner (1155 lines) with DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution order, update checking, check mode (+check).
 
 [runcmd.bat](./runcmd.bat) — Windows runner (610 lines) with equivalent functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing, update mechanism.
 

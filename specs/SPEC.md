@@ -61,7 +61,7 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Runner Scripts
 
-**runcmd.sh** (Unix/macOS runner, 1147 lines)
+**runcmd.sh** (Unix/macOS runner, 1155 lines)
 
 - Exported behaviors: DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution, update checking, check mode (+check)
 
@@ -90,13 +90,15 @@ export function logError(msg: string): void
 export function logSuccess(msg: string): void
 
 // Git wrapper (scripts/lib/git.js)
+// runGit/runGitFlow accept a string (split via splitArgs) or a pre-split
+// argv array; pipeStdout routes child stdout to the parent's stdout.
 export function runGit(
-  args: string,
-  opts?: { dryRun?: boolean; allowFail?: boolean }
+  args: string | string[],
+  opts?: { dryRun?: boolean; allowFail?: boolean; pipeStdout?: boolean }
 ): string
 export function runGitFlow(
-  args: string,
-  opts?: { dryRun?: boolean; allowFail?: boolean }
+  args: string | string[],
+  opts?: { dryRun?: boolean; allowFail?: boolean; pipeStdout?: boolean }
 ): string
 
 // Validators (scripts/lib/validators.js)
@@ -132,8 +134,10 @@ export function ensureGitFlowAvailable(opts: {
 
 ### Release Operations (scripts/release-init.js)
 
+Thin CLI entry for initiating a release/hotfix branch. Delegates to `handleBranchOperation` (via the type config in `operations/release.js` / `operations/hotfix.js`); parses flags with `parseFlags(argv, releaseInitDefaults)` from `lib/options.js`. Executes `main()` on module run; exports no public symbols.
+
 ```typescript
-// CLI flags
+// CLI flags (parsed by lib/options.js parseFlags)
 interface ReleaseInitOpts {
   help?: boolean
   type?: 'release' | 'hotfix'
@@ -146,13 +150,25 @@ interface ReleaseInitOpts {
   offline?: boolean
 }
 
-export async function handleReleaseInit(opts: ReleaseInitOpts): Promise<void>
-export function printReleaseInitHelp(): void
+// Invoked on module run; delegates to branch-operation lifecycle.
+function main(): Promise<void>
 ```
 
 ### Release Finalize (scripts/release-finalize.js)
 
+Finalizes a release/hotfix branch: auto-detects branch type from `release/*` or `hotfix/*`, enforces clean tree + existence of main/develop, supports `--json` summary output.
+
 ```typescript
+export function printHelp(): void
+export const parseArgs: (argv?: string[]) => ReleaseFinalizeOpts
+export function detectBranch(opts: ReleaseFinalizeOpts): string
+export function ensureBranchMatchesType(branch: string, requested?: string): 'release' | 'hotfix'
+export function generateJsonSummary(
+  status: string, branch: string, version: string | null, ops: unknown[]
+): string
+export function extractVersion(branch: string): string | null
+export async function main(): Promise<void>
+
 interface ReleaseFinalizeOpts {
   help?: boolean
   type?: 'release' | 'hotfix'
@@ -165,11 +181,6 @@ interface ReleaseFinalizeOpts {
   json?: boolean
   offline?: boolean
 }
-
-export async function handleReleaseFinalize(
-  opts: ReleaseFinalizeOpts
-): Promise<void>
-export function printReleaseFinalizeHelp(): void
 ```
 
 ### Version Library (scripts/lib/version.js)
@@ -667,11 +678,11 @@ Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
 - `scripts/operations/clone.js`: `handleClone`, `printHelp`
 - `scripts/operations/sync.js`: `handleSync`, `printHelp`
 - `scripts/operations/branch-operation.js`: `handleBranchOperation` (shared start/finish helper)
-- `scripts/operations/release-utils.js`: `updateVersionFile`, `commitChanges`, `promptVersion`, `handleStart`, `handleFinish`
+- `scripts/operations/release-utils.js`: `updateVersionFile`, `commitChanges`, `promptVersion`, `normalizeBranchName`, `buildBranchName`, `buildFinishCommand`, `handleStart`, `handleFinish`
 - `scripts/operations/release.js`: `releaseConfig`, `printHelp` (release-specific config)
 - `scripts/operations/hotfix.js`: `hotfixConfig`, `printHelp` (hotfix-specific config)
-- `scripts/release-init.js`: `handleReleaseInit`, `printReleaseInitHelp`
-- `scripts/release-finalize.js`: `handleReleaseFinalize`, `printReleaseFinalizeHelp`
+- `scripts/release-init.js`: `main` (CLI entry; no public exports)
+- `scripts/release-finalize.js`: `printHelp`, `parseArgs`, `detectBranch`, `ensureBranchMatchesType`, `generateJsonSummary`, `extractVersion`, `main`
 
 **Consumes:**
 
@@ -760,8 +771,8 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | File                  | Module        | Exports                                                                                                                                                                                                                                                                |
 | --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `git-flow.js`         | Core          | Re-export hub: logger, git, validators, installer, lib/* (changelog/prompts/version), options (`parseFlags`, `releaseInitDefaults`, `releaseFinalizeDefaults`), `parseArgs` |
-| `release-init.js`     | Release       | `handleReleaseInit`, `printReleaseInitHelp`                                                                                                                                                                                                                            |
-| `release-finalize.js` | Release       | `handleReleaseFinalize`, `printReleaseFinalizeHelp`                                                                                                                                                                                                                    |
+| `release-init.js`     | Release       | `main` (CLI entry; delegates to branch-operation lifecycle)                                                                                                                             |
+| `release-finalize.js` | Release       | `printHelp`, `parseArgs`, `detectBranch`, `ensureBranchMatchesType`, `generateJsonSummary`, `extractVersion`, `main`                                                                     |
 | `README.md`           | Documentation | Command interface table, library exports                                                                                                                                                                                                                               |
 
 ### scripts/commands/ Directory
@@ -784,6 +795,11 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `version.js`   | Utilities | `VERSION_FILE`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion` |
 | `changelog.js` | Utilities | `CHANGELOG_FILE`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`           |
 | `prompts.js`   | Utilities | `promptText`, `promptTextSync`, `promptYesNo`                                                           |
+| `core.js`      | Utilities | `requireValidCommand` (shared command-dispatch gate)                                                   |
+| `git.js`       | Utilities | `splitArgs`, `runGit`, `runGitFlow`                                                                    |
+| `logger.js`    | Utilities | `COLOR_INFO`, `COLOR_WARN`, `COLOR_ERROR`, `COLOR_RESET`, `COLOR_BOLD`, `logInfo`, `logWarn`, `logError`, `logSuccess` |
+| `installer.js` | Utilities | `ensureGitFlowAvailable`                                                                                |
+| `options.js`   | Utilities | `parseFlags`, `releaseInitDefaults`, `releaseFinalizeDefaults`                                          |
 
 ### scripts/operations/ Directory
 
@@ -792,7 +808,7 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `clone.js`   | Operations | `handleClone`, `printHelp`                                 |
 | `sync.js`    | Operations | `handleSync`, `printHelp`                                  |
 | `branch-operation.js` | Operations | `handleBranchOperation` (shared start/finish helper) |
-| `release-utils.js` | Operations | `updateVersionFile`, `commitChanges`, `promptVersion`, `handleStart`, `handleFinish` |
+| `release-utils.js` | Operations | `updateVersionFile`, `commitChanges`, `promptVersion`, `normalizeBranchName`, `buildBranchName`, `buildFinishCommand`, `handleStart`, `handleFinish` |
 | `release.js` | Operations | `releaseConfig`, `printHelp` (release-specific config)     |
 | `hotfix.js`  | Operations | `hotfixConfig`, `printHelp` (hotfix-specific config)       |
 

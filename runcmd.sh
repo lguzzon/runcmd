@@ -387,8 +387,27 @@ check_for_updates() {
     temp_script=$(mktemp)
 
     if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
-      # Verify it looks like a script and passes syntax check
-      if grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
+      # Fail-closed: verify SHA256 from update.sha256 manifest before
+      # overwriting the running shell script. Manifest travels over the same
+      # TLS channel as the payload — same posture as installer.js until a
+      # signed manifest ships.
+      local expected_hash actual_hash hash_cmd
+      if command_exists sha256sum; then
+        hash_cmd="sha256sum"
+      else
+        # macOS ships shasum, not sha256sum.
+        hash_cmd="shasum -a 256"
+      fi
+      # Look up runcmd.sh's manifest entry by name so line order stays
+      # irrelevant; tolerate sha256sum's optional '*' binary marker.
+      expected_hash=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/update.sha256" 2>/dev/null | awk -v want="runcmd.sh" '{ gsub(/^\*/,"",$2); if ($2 == want && $1 ~ /^[0-9a-fA-F]{64}$/) { print tolower($1); exit } }' || true)
+      actual_hash=$($hash_cmd "$temp_script" 2>/dev/null | awk '{print $1}')
+
+      if [[ -z $expected_hash ]]; then
+        log_error "Update manifest missing or malformed. Aborting."
+      elif [[ -z $actual_hash ]] || [[ $actual_hash != "$expected_hash" ]]; then
+        log_error "Update checksum mismatch (expected $expected_hash, got $actual_hash). Aborting."
+      elif grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
         chmod +x "$temp_script"
 
         # Atomic replacement

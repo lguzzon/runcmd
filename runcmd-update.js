@@ -1,6 +1,11 @@
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
+const { createHash } = require('crypto')
+const {
+  expectedHashFor,
+  parseManifestLine
+} = require('./runcmd-update.manifest.js')
 
 const UPDATE_URL_BASE = 'https://lguzzon.github.io/runcmd'
 const RUNCMD_HOME = path.join(os.homedir(), '.runcmd')
@@ -48,6 +53,27 @@ async function main() {
     if (!newContent.includes('runcmd.bat'))
       throw new Error('Invalid update content')
 
+    // Fail-closed: verify SHA256 from update.sha256 manifest before overwriting
+    // the running batch script. Manifest travels over the same TLS channel as
+    // the payload — same posture as installer.js until a signed manifest ships.
+    const manifestRes = await fetch(UPDATE_URL_BASE + '/update.sha256', {
+      signal: AbortSignal.timeout(5000)
+    })
+    if (!manifestRes.ok) throw new Error('Failed to fetch update manifest')
+    const manifest = await manifestRes.text()
+    const expected = expectedHashFor(manifest, 'runcmd.bat')
+    if (!expected) throw new Error('runcmd.bat missing from update manifest')
+    const actual = createHash('sha256').update(newContent).digest('hex')
+    if (actual !== expected) {
+      throw new Error(
+        'Update checksum mismatch (expected ' +
+          expected +
+          ', got ' +
+          actual +
+          '). Aborting.'
+      )
+    }
+
     // Write new content to a temporary file
     const tempFile = CURRENT_SCRIPT + '.new'
     fs.writeFileSync(tempFile, newContent)
@@ -77,4 +103,8 @@ function compareVersions(a, b) {
   return 0
 }
 
-main()
+if (require.main === module) {
+  main()
+}
+
+module.exports = { main, compareVersions, parseManifestLine, expectedHashFor }

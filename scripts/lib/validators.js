@@ -1,11 +1,24 @@
 import { logError } from './logger.js'
 import { runGit } from './git.js'
 
+/**
+ * Thrown by guard helpers (`ensureCleanTree`, `ensureBranchExists`, ...)
+ * when a precondition fails. The CLI dispatch layer logs the message and
+ * exits with code 1; tests can assert on `instanceof GuardError` without
+ * monkey-patching `process.exit`.
+ */
+export class GuardError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'GuardError'
+  }
+}
+
 export function ensureCleanTree() {
   const status = runGit('status --porcelain', { allowFail: true })
   if (status && status.length > 0) {
     logError('Uncommitted changes detected. Please commit or stash them first.')
-    process.exit(1)
+    throw new GuardError('Uncommitted changes detected')
   }
 }
 
@@ -15,7 +28,7 @@ export function ensureBranchExists(name) {
   })
   if (res === null) {
     logError(`Required branch '${name}' not found.`)
-    process.exit(1)
+    throw new GuardError(`Required branch '${name}' not found`)
   }
 }
 
@@ -25,7 +38,7 @@ export function ensureBranchMissing(name) {
   })
   if (exists !== null) {
     logError(`Branch '${name}' already exists.`)
-    process.exit(1)
+    throw new GuardError(`Branch '${name}' already exists`)
   }
 }
 
@@ -69,7 +82,9 @@ export function mergeBranch(source, target, opts = {}) {
     logError(
       `Merge of ${source} into ${target} failed. Resolve conflicts and retry.`
     )
-    process.exit(1)
+    throw new GuardError(
+      `Merge of ${source} into ${target} failed. Resolve conflicts and retry.`
+    )
   }
 }
 
@@ -93,7 +108,7 @@ export function ensureTagMissing(version) {
   const tags = runGit('tag -l', { allowFail: true }) || ''
   if (tags.split('\n').includes(tagName)) {
     logError(`Tag ${tagName} already exists.`)
-    process.exit(1)
+    throw new GuardError(`Tag ${tagName} already exists`)
   }
 }
 
@@ -137,37 +152,39 @@ export function ensureGitFlowInitialized() {
     logError(
       "Git Flow is not initialized. Run 'git flow init' or 'bun scripts/git-flow.js init' first."
     )
-    process.exit(1)
+    throw new GuardError('Git Flow is not initialized')
   }
 }
 
+/**
+ * Read every git-flow config key in a single git invocation.
+ *
+ * `git config --get-regexp <pattern>` prints `<key> <value>` lines and exits
+ * non-zero (no stdout) when nothing matches — we treat that as "use defaults".
+ * One spawn replaces the previous six `config --get <key>` forks.
+ *
+ * @returns {{ master: string, develop: string, featurePrefix: string, releasePrefix: string, hotfixPrefix: string, supportPrefix: string }}
+ */
 export function getGitFlowConfig() {
-  const master = runGit('config --get gitflow.branch.master', {
-    allowFail: true
-  })
-  const develop = runGit('config --get gitflow.branch.develop', {
-    allowFail: true
-  })
-  const featurePrefix = runGit('config --get gitflow.prefix.feature', {
-    allowFail: true
-  })
-  const releasePrefix = runGit('config --get gitflow.prefix.release', {
-    allowFail: true
-  })
-  const hotfixPrefix = runGit('config --get gitflow.prefix.hotfix', {
-    allowFail: true
-  })
-  const supportPrefix = runGit('config --get gitflow.prefix.support', {
-    allowFail: true
-  })
-
+  const output = runGit(
+    'config --get-regexp ^gitflow\\.(branch\\.(master|develop)|prefix\\.(feature|release|hotfix|support))$',
+    { allowFail: true }
+  )
+  const found = new Map()
+  if (output) {
+    for (const line of output.split('\n')) {
+      const space = line.indexOf(' ')
+      if (space === -1) continue
+      found.set(line.slice(0, space), line.slice(space + 1))
+    }
+  }
   return {
-    master: master || 'master',
-    develop: develop || 'develop',
-    featurePrefix: featurePrefix || 'feature/',
-    releasePrefix: releasePrefix || 'release/',
-    hotfixPrefix: hotfixPrefix || 'hotfix/',
-    supportPrefix: supportPrefix || 'support/'
+    master: found.get('gitflow.branch.master') || 'master',
+    develop: found.get('gitflow.branch.develop') || 'develop',
+    featurePrefix: found.get('gitflow.prefix.feature') || 'feature/',
+    releasePrefix: found.get('gitflow.prefix.release') || 'release/',
+    hotfixPrefix: found.get('gitflow.prefix.hotfix') || 'hotfix/',
+    supportPrefix: found.get('gitflow.prefix.support') || 'support/'
   }
 }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from 'node:fs'
+import { GuardError } from './validators.js'
 import { logError } from './logger.js'
 
 const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
@@ -41,7 +42,7 @@ export function compareVersions(a, b) {
 export function readVersion() {
   if (!existsSync(VERSION_FILE)) {
     logError(`version.txt not found at ${VERSION_FILE}`)
-    process.exit(1)
+    throw new GuardError(`version.txt not found at ${VERSION_FILE}`)
   }
   const version = readFileSync(VERSION_FILE, 'utf-8')
     .trim()
@@ -49,7 +50,7 @@ export function readVersion() {
     .trim()
   if (!validateVersion(version)) {
     logError(`Invalid version format in version.txt: ${version}`)
-    process.exit(1)
+    throw new GuardError(`Invalid version format in version.txt: ${version}`)
   }
   return version
 }

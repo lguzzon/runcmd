@@ -8,29 +8,54 @@ This directory contains comprehensive git-flow management tools and utilities fo
 
 ```text
 scripts/
-├── git-flow.js          # Main git-flow command handler and utilities
+├── git-flow.js                  # Main git-flow command handler and utilities
+├── git-flow.test.js             # Tests for git-flow re-exports
+├── cli.js                       # CLI dispatch (parseArgs, main)
+├── release-init.js              # Standalone release/hotfix init script
+├── release-finalize.js          # Standalone release/hotfix finalize script
+├── release-finalize.test.js     # Tests for release-finalize
 ├── commands/            # Individual git-flow command implementations
 │   ├── init.js         # Initialize git-flow in repository
 │   ├── start.js        # Start new branches (feature, release, hotfix, support)
+│   ├── start.test.js   # Tests for start command
 │   ├── finish.js       # Finish and merge branches
+│   ├── finish.test.js  # Tests for finish command
 │   ├── publish.js      # Publish branches to remote
 │   ├── track.js        # Track remote branches locally
 │   ├── delete.js       # Delete branches
 │   ├── list.js         # List branches by type
 │   └── config.js       # Configuration management
 ├── lib/                # Shared utility modules
-│   ├── core.js         # Core utilities (git wrappers, logging, validation)
-│   ├── version.js      # Version utilities and validation
-│   ├── changelog.js    # Changelog generation and management
-│   └── prompts.js      # User interaction utilities
+│   ├── changelog.js        # CHANGELOG.md generation and management
+│   ├── changelog.test.js   # Tests for changelog
+│   ├── core.js             # Command-level guard helper (requireValidCommand)
+│   ├── git.js              # Git/git-flow command runners (runGit, runGitFlow)
+│   ├── git.test.js         # Tests for git command runners
+│   ├── installer.js        # git-flow availability check + installer
+│   ├── logger.js           # Colored log helpers and ANSI constants
+│   ├── options.js          # Shared flag parser and option defaults
+│   ├── options.test.js     # Tests for options
+│   ├── prompts.js          # User interaction utilities
+│   ├── validators.js       # Precondition guards, branch ops, validation
+│   ├── validators.test.js  # Tests for validators
+│   ├── version.js          # Semver utilities
+│   └── version.test.js     # Tests for version utilities
 └── operations/         # High-level git operations
-    ├── release-utils.js # Release and hotfix lifecycle utilities
-    ├── options.js      # CLI option defaults
-    ├── sync.js         # Sync main/master & develop branches
-    ├── clone.js        # Clone repository with git-flow initialization
-    ├── release.js      # Release branch management
-    └── hotfix.js       # Hotfix branch management
+    ├── branch-operation.js        # Shared branch-op dispatch helper
+    ├── branch-operation.test.js   # Tests for branch-operation
+    ├── clone.js                   # Clone repository with git-flow initialization
+    ├── hotfix.js                  # Hotfix branch management
+    ├── release.js                 # Release branch management
+    ├── release-utils.js           # Release/hotfix lifecycle utilities
+    ├── release-utils.test.js      # Tests for release-utils
+    ├── release-utils.orchestration.test.js  # End-to-end orchestration tests
+    ├── sync.js                    # Sync main/master & develop branches
+    └── sync.test.js               # Tests for sync
 ```
+
+> Tree reflects the current filesystem layout. For the authoritative
+> description of each lib module (exports, contracts, dependencies), see
+> [lib/AGENTS.md](./lib/AGENTS.md).
 
 ## 🎯 Main Git-Flow Script
 
@@ -228,64 +253,22 @@ bun scripts/git-flow.js config --list
 
 ## 🔧 Utility Libraries
 
-### [`lib/version.js`](lib/version.js)
+The `lib/` directory holds the shared modules used by `commands/`,
+`operations/`, and the standalone `release-init.js` / `release-finalize.js`
+scripts:
 
-Version management utilities for semantic versioning.
+- [`changelog.js`](lib/changelog.js) — CHANGELOG.md versioning (tags, commits, append, commit)
+- [`core.js`](lib/core.js) — command-level guard helper (`requireValidCommand`)
+- [`git.js`](lib/git.js) — `runGit` / `runGitFlow` spawn wrappers
+- [`installer.js`](lib/installer.js) — git-flow availability + installer
+- [`logger.js`](lib/logger.js) — colored log helpers and ANSI constants
+- [`options.js`](lib/options.js) — shared flag parser and option defaults
+- [`prompts.js`](lib/prompts.js) — async/sync text and yes/no prompts
+- [`validators.js`](lib/validators.js) — precondition guards, branch ops, validation
+- [`version.js`](lib/version.js) — semver parse/increment/compare/validate
 
-**Functions:**
-
-- `parseVersion(version)` - Parse semantic version
-- `compareVersions(v1, v2)` - Compare two versions
-- `incrementVersion(version, bump)` - Increment version by bump type
-- `validateVersion(version)` - Validate version format
-
-**Usage:**
-
-```javascript
-import { incrementVersion, compareVersions } from './lib/version.js'
-
-const newVersion = incrementVersion('1.2.3', 'minor') // '1.3.0'
-const isGreater = compareVersions('1.3.0', '1.2.0') // true
-```
-
-### [`lib/changelog.js`](lib/changelog.js)
-
-Changelog generation and management utilities.
-
-**Functions:**
-
-- `getLastTag()` - Get the most recent git tag
-- `collectCommitsSince(ref)` - Collect commits since a given ref
-- `appendChangelog(version, opts)` - Append entries to changelog
-- `commitChangelog(version, opts)` - Commit changelog changes
-
-**Usage:**
-
-```javascript
-import { getLastTag, collectCommitsSince } from './lib/changelog.js'
-
-const lastTag = await getLastTag()
-const commits = await collectCommitsSince(lastTag)
-```
-
-### [`lib/prompts.js`](lib/prompts.js)
-
-User interaction utilities for CLI prompts.
-
-**Functions:**
-
-- `promptYesNo(question, defaultYes)` - Yes/No prompt
-- `promptText(question)` - Text input prompt
-- `promptTextSync(question)` - Synchronous text input prompt
-
-**Usage:**
-
-```javascript
-import { promptYesNo, promptText, promptTextSync } from './lib/prompts.js'
-
-const shouldContinue = await promptYesNo('Continue with release?')
-const version = await promptText('Enter version number:')
-```
+> For the full export list, behavioral contracts, and dependencies of each
+> module, see [lib/AGENTS.md](./lib/AGENTS.md).
 
 ## 🚀 High-Level Operations
 

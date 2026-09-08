@@ -7,12 +7,13 @@ import {
   logError,
   logSuccess
 } from './git-flow.js'
-import { releaseFinalizeDefaults } from './operations/options.js'
+import { parseFlags, releaseFinalizeDefaults } from './lib/options.js'
 import { promptTextSync } from './lib/prompts.js'
-import { handleHotfix } from './operations/hotfix.js'
-import { handleRelease } from './operations/release.js'
+import { handleBranchOperation } from './operations/branch-operation.js'
+import { hotfixConfig } from './operations/hotfix.js'
+import { releaseConfig } from './operations/release.js'
 
-function printHelp() {
+export function printHelp() {
   console.log(`
 ${'\x1b[1m'}Git Flow Release/Hotfix Finalizer${'\x1b[0m'}
 
@@ -36,55 +37,24 @@ Examples:
 `)
 }
 
-function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = { ...releaseFinalizeDefaults }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    switch (arg) {
-      case '--type':
-        opts.type = args[++i]
-        break
-      case '--branch':
-        opts.branch = args[++i]
-        break
-      case '--push':
-        opts.push = true
-        break
-      case '--dry-run':
-        opts.dryRun = true
-        break
-      case '--yes':
-        opts.yes = true
-        break
-      case '--no-changelog':
-        opts.noChangelog = true
-        break
-      case '--keep-branch':
-        opts.keepBranch = true
-        break
-      case '--json':
-        opts.json = true
-        break
-      case '--offline':
-        opts.offline = true
-        break
-      case '--help':
-      case '-h':
-        opts.help = true
-        break
-      default:
-        // Ignore unknown arguments for backward compatibility
-        break
-    }
-  }
-  if (process.env.CI === 'true') {
-    opts.yes = true
-  }
-  return opts
-}
+/**
+ * Parse command-line arguments into an options object.
+ * Honors process.env.CI === 'true' to set opts.yes.
+ * @param {string[]} [argv] - Defaults to process.argv.slice(2)
+ * @returns {object} Merged options
+ */
+export const parseArgs = (argv) =>
+  parseFlags(argv ?? process.argv.slice(2), releaseFinalizeDefaults)
 
-function detectBranch(opts) {
+/**
+ * Resolve the target release/hotfix branch to finalize.
+ * Explicit --branch short-circuits. Otherwise picks from candidates
+ * via listBranchesByType; single candidate returns directly, multiple
+ * candidates prompt unless --yes (or CI) is set.
+ * @param {object} opts - Parsed CLI options
+ * @returns {string} The selected branch name
+ */
+export function detectBranch(opts) {
   if (opts.branch) return opts.branch
 
   const releases = listBranchesByType('release')
@@ -119,7 +89,14 @@ function detectBranch(opts) {
   return candidates[index]
 }
 
-function ensureBranchMatchesType(branch, requested) {
+/**
+ * Validate that a branch matches the requested type (if any) and is a
+ * release/hotfix branch.
+ * @param {string} branch - Branch name
+ * @param {string|undefined} requested - Requested type from --type
+ * @returns {string} Detected branch type
+ */
+export function ensureBranchMatchesType(branch, requested) {
   const detected = getBranchType(branch)
   if (requested && requested !== detected) {
     logError(`Branch '${branch}' does not match type '${requested}'.`)
@@ -132,11 +109,29 @@ function ensureBranchMatchesType(branch, requested) {
   return detected
 }
 
-function generateJsonSummary(status, branch, version, ops) {
+/**
+ * Render a JSON summary line for --json mode.
+ * @param {string} status - ok | error
+ * @param {string} branch - Branch name (may be empty on error)
+ * @param {string} version - Version (may be empty on error)
+ * @param {object[]} ops - Operations log entries
+ * @returns {string} JSON string
+ */
+export function generateJsonSummary(status, branch, version, ops) {
   return JSON.stringify({ status, branch, version, operations: ops })
 }
 
-async function main() {
+/**
+ * Extract the vX.Y.Z version suffix from a branch name like release/v1.2.0.
+ * @param {string} branch - Branch name
+ * @returns {string|null} Version (no v prefix) or null if not found
+ */
+export function extractVersion(branch) {
+  const m = branch.match(/v(\d+\.\d+\.\d+)$/)
+  return m ? m[1] : null
+}
+
+export async function main() {
   const opts = parseArgs()
   const operations = []
 
@@ -154,12 +149,11 @@ async function main() {
     const detectedType = ensureBranchMatchesType(targetBranch, opts.type)
 
     // Extract version from branch name for tag and message
-    const versionMatch = targetBranch.match(/v(\d+\.\d+\.\d+)$/)
-    if (!versionMatch) {
+    const version = extractVersion(targetBranch)
+    if (!version) {
       logError('Branch name must include version (e.g., release/v1.2.0)')
       process.exit(1)
     }
-    const version = versionMatch[1]
 
     // Set required options for git-flow operations
     opts.name = version
@@ -170,9 +164,9 @@ async function main() {
     const action = 'finish'
 
     if (detectedType === 'hotfix') {
-      await handleHotfix(action, opts)
+      await handleBranchOperation(action, opts, hotfixConfig)
     } else {
-      await handleRelease(action, opts)
+      await handleBranchOperation(action, opts, releaseConfig)
     }
 
     logSuccess('Release/hotfix finalized.')
@@ -187,7 +181,9 @@ async function main() {
     // Close stdin to prevent hanging
     process.stdin.pause()
   } catch (error) {
-    logError(`Unexpected error: ${error.message}`)
+    if (!error || error.name !== 'GuardError') {
+      logError(`Unexpected error: ${error.message}`)
+    }
     operations.push({
       type: 'error',
       message: `Unexpected error: ${error.message}`
@@ -199,4 +195,7 @@ async function main() {
   }
 }
 
-main()
+// Only run when invoked as a script (not when imported for testing).
+if (import.meta.main) {
+  main()
+}

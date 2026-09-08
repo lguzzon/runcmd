@@ -93,7 +93,8 @@ export async function handleFinish(opts) {
   if (tag) flags.push(`-T ${tag}`)
   if (message) flags.push(`-m "${message}"`)
 
-  const cmd = `${type} finish ${flags.join(' ')} ${name}`.trim()
+  const flagPart = flags.length ? `${flags.join(' ')} ` : ''
+  const cmd = `${type} finish ${flagPart}${name}`.trim()
   logInfo(`Finishing ${type} branch: ${branchName}`)
   runGitFlow(cmd, { dryRun })
 

@@ -4,7 +4,7 @@
 
 **Purpose:** Universal Bun-based script runner with auto-installation, cross-platform support, integrated development tooling, and git-flow management. Separates boilerplate from business logic via runner scripts handling Bun installation, path resolution, `.env` loading, and tooling integration.
 
-**Core Value Proposition:** Provides a consistent, zero-config script execution environment across Unix/Windows platforms with automatic dependency management (Bun), environment variable loading, development tool integration (Biome, shfmt), and git-flow automation.
+**Core Value Proposition:** Provides a consistent, zero-config script execution environment across Unix/Windows platforms with automatic dependency management (Bun), environment variable loading, development tool integration (oxlint, oxfmt, shfmt), and git-flow automation.
 
 **Problem Solved:** Eliminates platform-specific runner implementations, manual Bun installation, and repetitive boilerplate for script execution, while enabling standardized git-flow workflows.
 
@@ -14,7 +14,7 @@
 - **Shell:** Bash (runcmd.sh), Batch (runcmd.bat)
 - **Web Framework:** Astro 4.15.0 (website)
 - **Styling:** Tailwind CSS (website)
-- **CLI Tools:** Biome (formatting/linting), shfmt (shell formatting), json-sort-cli
+- **CLI Tools:** oxlint (linting), oxfmt (formatting), shfmt (shell formatting), json-sort-cli
 
 ---
 
@@ -29,7 +29,7 @@ Script Resolution: explicit +r flag → current dir .mjs → script dir .mjs
     ↓
 Environment Loading: script_dir .env → current_dir .env (overwrites)
     ↓
-Tooling: Bun auto-install → Biome/shfmt/json-sort-cli (on +check)
+Tooling: Bun auto-install → oxlint/oxfmt/shfmt/json-sort-cli (on +check)
     ↓
 Update Check: 7-day interval, version.txt comparison, self-update
 ```
@@ -61,11 +61,11 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Runner Scripts
 
-**runcmd.sh** (Unix/macOS runner, 1141 lines)
+**runcmd.sh** (Unix/macOS runner, 1147 lines)
 
 - Exported behaviors: DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution, update checking, check mode (+check)
 
-**runcmd.bat** (Windows runner, 364 lines)
+**runcmd.bat** (Windows runner, 610 lines)
 
 - Exported behaviors: Equivalent Unix functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing
 
@@ -75,32 +75,59 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Git-Flow CLI Module (scripts/git-flow.js)
 
-```typescript
-// Main entry point exports
-export function logError(msg: string): void
-export function logInfo(msg: string): void
-export function logSuccess(msg: string): void
-export function logWarn(msg: string): void
-export function runGit(
-  args: string[]
-): Promise<{ code: number; stdout: string; stderr: string }>
-export function runGitFlow(
-  args: string[]
-): Promise<{ code: number; stdout: string; stderr: string }>
-export function ensureGitFlowAvailable(opts?: {
-  autoInstall?: boolean
-}): Promise<void>
-export function ensureGitFlowInitialized(): Promise<void>
-export function ensureBranchExists(branch: string): Promise<void>
-export function ensureBranchMissing(branch: string): Promise<void>
-export function ensureCleanTree(): Promise<void>
-export function getGitFlowConfig(): Promise<Record<string, string>>
-export function stashPush(msg: string): Promise<void>
-export function stashPop(): Promise<void>
+Backward-compatible re-export hub. Re-exports every public symbol from `./lib/*` and `parseArgs` from `./cli.js`. When invoked directly, hands off to `main()` in `./cli.js`.
 
-// Color constants
-export const COLOR_BOLD: string
+```typescript
+// Logger (scripts/lib/logger.js)
+export const COLOR_INFO: string
+export const COLOR_WARN: string
+export const COLOR_ERROR: string
 export const COLOR_RESET: string
+export const COLOR_BOLD: string
+export function logInfo(msg: string): void
+export function logWarn(msg: string): void
+export function logError(msg: string): void
+export function logSuccess(msg: string): void
+
+// Git wrapper (scripts/lib/git.js)
+export function runGit(
+  args: string,
+  opts?: { dryRun?: boolean; allowFail?: boolean }
+): string
+export function runGitFlow(
+  args: string,
+  opts?: { dryRun?: boolean; allowFail?: boolean }
+): string
+
+// Validators (scripts/lib/validators.js)
+export async function checkout(branch: string, opts?: { dryRun?: boolean }): Promise<void>
+export function currentBranch(): string
+export function detectMainBranch(): string
+export async function ensureBranchExists(branch: string): Promise<void>
+export async function ensureBranchMissing(branch: string): Promise<void>
+export async function ensureCleanTree(): Promise<void>
+export async function ensureGitFlowInitialized(): Promise<void>
+export async function ensureTagMissing(tag: string): Promise<void>
+export function getBranchType(branch: string): 'feature' | 'release' | 'hotfix' | 'support' | null
+export function getGitFlowConfig(): Record<string, string>
+export function listBranchesByType(type: string): string[]
+export async function mergeBranch(branch: string, opts?: { dryRun?: boolean }): Promise<void>
+export async function pullBranch(branch: string, opts?: { dryRun?: boolean }): Promise<void>
+export async function pushBranch(branch: string, opts?: { dryRun?: boolean }): Promise<void>
+export async function stashPop(): Promise<void>
+export async function stashPush(msg: string): Promise<void>
+export function validateBranchName(name: string): boolean
+
+// Installer (scripts/lib/installer.js)
+export function ensureGitFlowAvailable(opts: {
+  autoInstall?: boolean
+  offline?: boolean
+  dryRun?: boolean
+}): Promise<void>
+
+// Re-exports from scripts/lib/changelog.js, prompts.js, version.js — see sections below.
+// Re-exports from scripts/lib/options.js: parseFlags, releaseInitDefaults, releaseFinalizeDefaults.
+// Re-export from scripts/cli.js: parseArgs.
 ```
 
 ### Release Operations (scripts/release-init.js)
@@ -148,16 +175,12 @@ export function printReleaseFinalizeHelp(): void
 ### Version Library (scripts/lib/version.js)
 
 ```typescript
+export const VERSION_FILE: string
 export function parseVersion(
   version: string
 ): { major: number; minor: number; patch: number } | null
 export function compareVersions(a: string, b: string): 1 | 0 | -1
-export function bumpVersion(
-  version: string,
-  type: 'major' | 'minor' | 'patch'
-): string
-export function isValidVersion(version: string): boolean
-export function validateVersion(version: string): void
+export function validateVersion(version: string): boolean
 export function incrementVersion(
   version: string,
   type: 'major' | 'minor' | 'patch'
@@ -168,39 +191,28 @@ export function readVersion(): string
 ### Changelog Library (scripts/lib/changelog.js)
 
 ```typescript
-export function generateChangelog(since: string): Promise<string>
-export function updateChangelog(version: string, content: string): Promise<void>
-export function parseCommitMessage(msg: string): {
-  type: string
-  scope: string
-  subject: string
-}
-export function formatChangelogEntry(
+export const CHANGELOG_FILE: string
+export function getLastTag(): string | null
+export function collectCommitsSince(ref: string | null): string[]
+export function appendChangelog(
   version: string,
-  date: string,
-  commits: string[]
-): string
-export function appendChangelog(version: string, content: string): Promise<void>
-export function commitChangelog(version: string): Promise<void>
+  opts: { dryRun?: boolean }
+): boolean
+export function commitChangelog(
+  version: string,
+  opts: { dryRun?: boolean }
+): void
 ```
 
 ### Prompts Library (scripts/lib/prompts.js)
 
 ```typescript
+export async function promptText(question: string): Promise<string>
+export function promptTextSync(question: string): string
 export async function promptYesNo(
-  question: string,
+  message: string,
   defaultYes?: boolean
 ): Promise<boolean>
-export async function promptText(
-  question: string,
-  defaultValue?: string
-): Promise<string>
-export async function promptChoice<T>(
-  question: string,
-  options: T[]
-): Promise<T>
-export async function confirmAction(action: string): Promise<boolean>
-export function promptTextSync(question: string, defaultValue?: string): string
 ```
 
 ### Commands Module (scripts/commands/\*.js)
@@ -216,14 +228,30 @@ Commands: config, delete, finish, init, list, publish, start, track
 
 ### Operations Module (scripts/operations/\*.js)
 
-Each operation exports:
+Operations have two handler shapes depending on the role:
+
+- Lifecycle (release, hotfix): `handleStart(config, opts)`, `handleFinish(config, opts)` — config carries branch name/type, opts carries CLI flags.
+- Shared lifecycle helper: `handleBranchOperation(action, opts, config)` — action string ('start' | 'finish') plus opts and config.
+- Standalone: `handleClone(opts)`, `handleSync(opts)` — single-arg handler.
 
 ```typescript
-export async function handleXxx(action: string, opts: XxxOpts): Promise<void>
-export function printHelp(): void
+// Standalone operation
+export async function handleClone(opts: CloneOpts): Promise<void>
+export async function handleSync(opts: SyncOpts): Promise<void>
+
+// Release/hotfix lifecycle (scripts/operations/release-utils.js)
+export async function handleStart(config: StartConfig, opts: StartOpts): Promise<void>
+export async function handleFinish(config: FinishConfig, opts: FinishOpts): Promise<void>
+
+// Shared branch lifecycle helper (scripts/operations/branch-operation.js)
+export async function handleBranchOperation(
+  action: 'start' | 'finish',
+  opts: BranchOpts,
+  config: BranchConfig
+): Promise<void>
 ```
 
-Operations: clone, hotfix, release, sync
+Operations: clone, hotfix, release, sync (all export `printHelp`).
 
 ---
 
@@ -316,7 +344,7 @@ interface PublishOpts {
 
 **Update Check Configuration:**
 
-- Update URL: `https://lguzzondata.github.io/runcmd/version.txt`
+- Update URL: `https://lguzzon.github.io/runcmd/version.txt`
 - State file: `$HOME/.runcmd/state.json`
 - Check interval: `7 * 24 * 3600` seconds (7 days)
 
@@ -372,10 +400,11 @@ None (uses Bun runtime and git commands).
 - `postcss`: ^8.4.0
 - `autoprefixer`: ^10.4.0
 - `typescript`: ~5.9.3
-- `eslint`: (latest for Astro)
-- `@typescript-eslint/parser`: (latest)
-- `@typescript-eslint/eslint-plugin`: (latest)
-- `eslint-plugin-astro`: (latest)
+- `@types/node`: ^24.10.0
+- `@astrojs/check`: ^0.9.0
+
+Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
+(see `AGENTS.md`); the website module has no ESLint configuration.
 
 ---
 
@@ -482,21 +511,21 @@ None (uses Bun runtime and git commands).
    - No quotes around values
 
 2. **version.txt:**
-   - Single line containing semantic version (e.g., "1.9.1")
+   - Single line containing semantic version (e.g., "1.11.4")
 
 3. **state.json:**
 
    ```json
    {
      "lastCheck": 1234567890,
-     "currentVersion": "1.9.1"
+     "currentVersion": "1.11.4"
    }
    ```
 
 4. **CHANGELOG.md:**
    - Keep a Changelog format
    - Semantic Versioning v2.0.0
-   - Tagged with `v` prefix in git but without `v` in changelog
+   - Tagged with `v` prefix in both git tags and changelog section headers (`## v${version} - ${date}`)
 
 ---
 
@@ -564,7 +593,8 @@ None (uses Bun runtime and git commands).
 - `runcmd.sh` (Unix runner)
 - `runcmd.bat` (Windows runner)
 - `runcmd.mjs` (default target)
-- `biome.json` (configuration)
+- `oxlint.json` (JS/TS lint config)
+- `.oxfmtrc.json` (JS/TS format config)
 - `version.txt`
 
 **Consumes:** None
@@ -580,7 +610,7 @@ None (uses Bun runtime and git commands).
 
 **Defines:**
 
-- `scripts/git-flow.js` exports: `logError`, `logInfo`, `logSuccess`, `logWarn`, `runGit`, `runGitFlow`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `getGitFlowConfig`, `stashPush`, `stashPop`, `COLOR_BOLD`, `COLOR_RESET`
+- `scripts/git-flow.js` exports: logger (`logInfo`, `logWarn`, `logError`, `logSuccess`, `COLOR_INFO`, `COLOR_WARN`, `COLOR_ERROR`, `COLOR_RESET`, `COLOR_BOLD`), git wrapper (`runGit`, `runGitFlow`), validators (`checkout`, `currentBranch`, `detectMainBranch`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `ensureGitFlowInitialized`, `ensureTagMissing`, `getBranchType`, `getGitFlowConfig`, `listBranchesByType`, `mergeBranch`, `pullBranch`, `pushBranch`, `stashPop`, `stashPush`, `validateBranchName`), installer (`ensureGitFlowAvailable`), plus wildcard re-exports from `lib/changelog.js`, `lib/prompts.js`, `lib/version.js` and named re-exports from `lib/options.js` (`parseFlags`, `releaseInitDefaults`, `releaseFinalizeDefaults`) and `cli.js` (`parseArgs`).
 
 **Consumes:** None
 
@@ -594,9 +624,9 @@ None (uses Bun runtime and git commands).
 
 **Defines:**
 
-- `scripts/lib/version.js` exports: `parseVersion`, `compareVersions`, `bumpVersion`, `isValidVersion`, `validateVersion`, `incrementVersion`, `readVersion`
-- `scripts/lib/changelog.js` exports: `generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`, `appendChangelog`, `commitChangelog`
-- `scripts/lib/prompts.js` exports: `promptYesNo`, `promptText`, `promptChoice`, `confirmAction`, `promptTextSync`
+- `scripts/lib/version.js` exports: `VERSION_FILE`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion`
+- `scripts/lib/changelog.js` exports: `CHANGELOG_FILE`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`
+- `scripts/lib/prompts.js` exports: `promptText`, `promptTextSync`, `promptYesNo`
 
 **Consumes:**
 
@@ -635,9 +665,11 @@ None (uses Bun runtime and git commands).
 **Defines:**
 
 - `scripts/operations/clone.js`: `handleClone`, `printHelp`
-- `scripts/operations/hotfix.js`: `handleHotfix`, `printHelp`
-- `scripts/operations/release.js`: `handleRelease`, `printHelp`
 - `scripts/operations/sync.js`: `handleSync`, `printHelp`
+- `scripts/operations/branch-operation.js`: `handleBranchOperation` (shared start/finish helper)
+- `scripts/operations/release-utils.js`: `updateVersionFile`, `commitChanges`, `promptVersion`, `handleStart`, `handleFinish`
+- `scripts/operations/release.js`: `releaseConfig`, `printHelp` (release-specific config)
+- `scripts/operations/hotfix.js`: `hotfixConfig`, `printHelp` (hotfix-specific config)
 - `scripts/release-init.js`: `handleReleaseInit`, `printReleaseInitHelp`
 - `scripts/release-finalize.js`: `handleReleaseFinalize`, `printReleaseFinalizeHelp`
 
@@ -666,8 +698,6 @@ None (uses Bun runtime and git commands).
 - `website/astro.config.mjs`
 - `website/tailwind.config.js`
 - `website/tsconfig.json`
-- `website/eslint.config.js`
-- `website/postcss.config.js`
 
 **Consumes:** None
 
@@ -718,8 +748,9 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `runcmd.sh`    | Runner        | Shell script with DEBUG flags, environment loading, Bun auto-install         |
 | `runcmd.bat`   | Runner        | Windows batch script with equivalent functionality                           |
 | `runcmd.mjs`   | Runner        | Default target script, logs CWD and CLI args                                 |
-| `biome.json`   | Configuration | Biome formatter/linter config (2-space indent, 80-char width, single quotes) |
-| `version.txt`  | Configuration | Version file (1.9.1)                                                         |
+| `oxlint.json`  | Configuration | JS/TS lint config (oxlint)                                                   |
+| `.oxfmtrc.json`| Configuration | JS/TS format config (oxfmt)                                                  |
+| `version.txt`  | Configuration | Version file (1.11.4)                                                        |
 | `README.md`    | Documentation | Project overview and usage                                                   |
 | `CHANGELOG.md` | Documentation | Keep a Changelog format                                                      |
 | `LICENSE`      | Documentation | MIT license                                                                  |
@@ -728,7 +759,7 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 
 | File                  | Module        | Exports                                                                                                                                                                                                                                                                |
 | --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `git-flow.js`         | Core          | `logError`, `logInfo`, `logSuccess`, `logWarn`, `runGit`, `runGitFlow`, `ensureGitFlowAvailable`, `ensureGitFlowInitialized`, `ensureBranchExists`, `ensureBranchMissing`, `ensureCleanTree`, `getGitFlowConfig`, `stashPush`, `stashPop`, `COLOR_BOLD`, `COLOR_RESET` |
+| `git-flow.js`         | Core          | Re-export hub: logger, git, validators, installer, lib/* (changelog/prompts/version), options (`parseFlags`, `releaseInitDefaults`, `releaseFinalizeDefaults`), `parseArgs` |
 | `release-init.js`     | Release       | `handleReleaseInit`, `printReleaseInitHelp`                                                                                                                                                                                                                            |
 | `release-finalize.js` | Release       | `handleReleaseFinalize`, `printReleaseFinalizeHelp`                                                                                                                                                                                                                    |
 | `README.md`           | Documentation | Command interface table, library exports                                                                                                                                                                                                                               |
@@ -750,18 +781,20 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 
 | File           | Module    | Exports                                                                                                                    |
 | -------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `version.js`   | Utilities | `parseVersion`, `compareVersions`, `bumpVersion`, `isValidVersion`, `validateVersion`, `incrementVersion`, `readVersion`   |
-| `changelog.js` | Utilities | `generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`, `appendChangelog`, `commitChangelog` |
-| `prompts.js`   | Utilities | `promptYesNo`, `promptText`, `promptChoice`, `confirmAction`, `promptTextSync`                                             |
+| `version.js`   | Utilities | `VERSION_FILE`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion` |
+| `changelog.js` | Utilities | `CHANGELOG_FILE`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`           |
+| `prompts.js`   | Utilities | `promptText`, `promptTextSync`, `promptYesNo`                                                           |
 
 ### scripts/operations/ Directory
 
 | File         | Module     | Exports                      |
 | ------------ | ---------- | ---------------------------- |
-| `clone.js`   | Operations | `handleClone`, `printHelp`   |
-| `hotfix.js`  | Operations | `handleHotfix`, `printHelp`  |
-| `release.js` | Operations | `handleRelease`, `printHelp` |
-| `sync.js`    | Operations | `handleSync`, `printHelp`    |
+| `clone.js`   | Operations | `handleClone`, `printHelp`                                 |
+| `sync.js`    | Operations | `handleSync`, `printHelp`                                  |
+| `branch-operation.js` | Operations | `handleBranchOperation` (shared start/finish helper) |
+| `release-utils.js` | Operations | `updateVersionFile`, `commitChanges`, `promptVersion`, `handleStart`, `handleFinish` |
+| `release.js` | Operations | `releaseConfig`, `printHelp` (release-specific config)     |
+| `hotfix.js`  | Operations | `hotfixConfig`, `printHelp` (hotfix-specific config)       |
 
 ### website/ Directory
 
@@ -771,8 +804,6 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `astro.config.mjs`   | Configuration | Astro config with Tailwind |
 | `tailwind.config.js` | Configuration | Tailwind content config    |
 | `tsconfig.json`      | Configuration | TypeScript config          |
-| `eslint.config.js`   | Configuration | ESLint rules               |
-| `postcss.config.js`  | Configuration | PostCSS setup              |
 | `README.md`          | Documentation | Setup and deployment       |
 
 ### website/src/ Directory

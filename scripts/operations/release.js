@@ -1,12 +1,18 @@
 #!/usr/bin/env bun
-import {
-  COLOR_BOLD,
-  COLOR_RESET,
-  ensureGitFlowAvailable,
-  ensureGitFlowInitialized,
-  logError
-} from '../git-flow.js'
-import { handleFinish, handleStart } from './release-utils.js'
+import { COLOR_BOLD, COLOR_RESET } from '../git-flow.js'
+
+/**
+ * Per-type configuration for the `release` git-flow branch family.
+ * Consumed by `handleBranchOperation` in `./branch-operation.js`.
+ * @type {import('./branch-operation.js').BranchOperationConfig}
+ */
+export const releaseConfig = {
+  defaultBump: 'minor',
+  defaultBase: 'develop',
+  prefix: 'release/',
+  typeLabel: 'release',
+  printHelp
+}
 
 export function printHelp() {
   console.log(`
@@ -21,7 +27,7 @@ Actions:
   finish                    Finish and merge a release branch
 
 Start Options:
-  --name <name>             Release name (default: nextRelease)
+  --name <name>             Release name (default: derived from --version or --bump)
   --bump <patch|minor|major> Auto bump from current version
   --version <x.y.z>         Explicit version
   --base <branch>           Base branch (default: develop)
@@ -29,7 +35,7 @@ Start Options:
   --no-changelog            Skip changelog update
 
 Finish Options:
-  --name <name>             Release name (default: nextRelease)
+  --name <name>             Release name (default: derived from --tag)
   --tag <tag>               Tag name (required)
   --message <msg>           Tag message (required)
   --push                    Push branches and tags
@@ -46,47 +52,4 @@ Examples:
   bun scripts/git-flow.js release start --version 1.2.0
   bun scripts/git-flow.js release finish --tag v1.2.0 --message "Release 1.2.0" --push
 `)
-}
-
-export async function handleBranchOperation(action, opts, config) {
-  const {
-    defaultBump,
-    defaultBase,
-    prefix,
-    typeLabel,
-    printHelp: helpFn
-  } = config
-  const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
-  if (!available) {
-    logError(`git-flow is required for ${typeLabel} operations`)
-    process.exit(1)
-  }
-
-  ensureGitFlowInitialized()
-
-  // Check for help flag before processing
-  if (opts.help) {
-    helpFn()
-    return
-  }
-
-  if (action === 'start') {
-    await handleStart({ defaultBump, defaultBase, prefix, typeLabel }, opts)
-  } else if (action === 'finish') {
-    await handleFinish({ prefix, typeLabel }, opts)
-  } else {
-    logError(`Unknown ${typeLabel} action: ${action}`)
-    helpFn()
-    process.exit(1)
-  }
-}
-
-export async function handleRelease(action, opts) {
-  await handleBranchOperation(action, opts, {
-    defaultBump: 'minor',
-    defaultBase: 'develop',
-    prefix: 'release/',
-    typeLabel: 'release',
-    printHelp
-  })
 }

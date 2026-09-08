@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
-import { parseArgs, logError } from './git-flow.js'
-import { handleHotfix } from './operations/hotfix.js'
-import { handleRelease } from './operations/release.js'
+import { logError } from './git-flow.js'
+import { parseFlags, releaseInitDefaults } from './lib/options.js'
+import { handleBranchOperation } from './operations/branch-operation.js'
+import { hotfixConfig } from './operations/hotfix.js'
+import { releaseConfig } from './operations/release.js'
 
 function printHelp() {
   console.log(`
@@ -28,46 +30,21 @@ Examples:
 }
 
 async function main() {
-  const rawArgs = process.argv.slice(2)
+  const opts = parseFlags(process.argv.slice(2), releaseInitDefaults)
 
-  if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
+  if (opts.help) {
     printHelp()
     process.exit(0)
   }
 
-  // Detect --type from raw args to determine git-flow command routing
-  const typeIdx = rawArgs.indexOf('--type')
-  const type =
-    typeIdx !== -1 && typeIdx + 1 < rawArgs.length
-      ? rawArgs[typeIdx + 1]
-      : 'release'
-
-  // Strip --type and its value from args before passing to git-flow.js parseArgs
-  const strippedArgs = []
-  for (let i = 0; i < rawArgs.length; i++) {
-    if (rawArgs[i] === '--type') {
-      i += 1 // skip value
-      continue
-    }
-    strippedArgs.push(rawArgs[i])
-  }
-
-  // Prepend command and subcommand, then delegate parsing to git-flow.js
-  const mappedArgs = [type, 'start', ...strippedArgs]
-  const opts = parseArgs(mappedArgs)
-
-  if (process.env.CI === 'true') {
-    opts.yes = true
-  }
-
   if (!opts.bump && !opts.version) {
-    opts.bump = type === 'hotfix' ? 'patch' : 'minor'
+    opts.bump = opts.type === 'hotfix' ? 'patch' : 'minor'
   }
 
-  if (type === 'hotfix') {
-    await handleHotfix('start', opts)
+  if (opts.type === 'hotfix') {
+    await handleBranchOperation('start', opts, hotfixConfig)
   } else {
-    await handleRelease('start', opts)
+    await handleBranchOperation('start', opts, releaseConfig)
   }
 
   // Close stdin to prevent hanging
@@ -75,6 +52,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  logError(`Unexpected error: ${error.message}`)
+  if (!error || error.name !== 'GuardError') {
+    logError(`Unexpected error: ${error.message}`)
+  }
   process.exit(1)
 })

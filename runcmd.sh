@@ -582,6 +582,7 @@ safe_format_file() {
   TEMP_FILES_ARRAY+=("$temp_file" "$backup_file")
 
   # Avoid re-registering the trap on every invocation — clean TEMP_FILES_ARRAY on EXIT
+  # shellcheck disable=SC2154
   trap 'for _f in "${TEMP_FILES_ARRAY[@]}"; do rm -f "$_f" 2>/dev/null || true; done' EXIT
 
   # Create backup of original file
@@ -652,15 +653,6 @@ format_shell_scripts() {
   fi
 
   log_info "Found ${#shell_files[@]} shell script(s) to format."
-
-  # Check if shfmt is available
-  if ! command_exists shfmt; then
-    if ! command_exists bunx; then
-      log_error "Neither 'shfmt' nor 'bunx' is available for shell formatting."
-      return 1
-    fi
-    log_info "Using bunx shfmt for shell formatting..."
-  fi
 
   # Format each shell script
   for shell_file in "${shell_files[@]}"; do
@@ -885,7 +877,21 @@ ensure_bun_installed() {
   log_info "Bun is not installed. Installing now..."
   ensure_curl_installed
 
-  if curl -fsSL "$BUN_INSTALL_SCRIPT" | bash >/dev/null 2>&1; then
+  local installer_tmp
+  installer_tmp=$(mktemp)
+  if ! curl -fsSL "$BUN_INSTALL_SCRIPT" -o "$installer_tmp" 2>/dev/null; then
+    log_error "Failed to download the Bun installer."
+    rm -f "$installer_tmp"
+    exit 1
+  fi
+  # The installer is fetched over TLS from bun.sh. This check only rejects a
+  # truncated response or an HTML error page; it is not a signature check.
+  if [[ ! -s $installer_tmp ]] || ! head -n1 "$installer_tmp" | grep -q '^#!'; then
+    log_error "Downloaded Bun installer is not a shell script. Aborting."
+    rm -f "$installer_tmp"
+    exit 1
+  fi
+  if bash "$installer_tmp" >/dev/null 2>&1; then
     log_info "Bun has been successfully installed."
     if [[ -f "$BUN_INSTALL/env" ]]; then
       # shellcheck disable=SC1091
@@ -895,12 +901,15 @@ ensure_bun_installed() {
       log_info "'bun' environment sourced."
     else
       log_error "Failed to source 'bun' environment. Please add '$BUN_INSTALL/bin' to your PATH."
+      rm -f "$installer_tmp"
       exit 1
     fi
   else
     log_error "Failed to install Bun."
+    rm -f "$installer_tmp"
     exit 1
   fi
+  rm -f "$installer_tmp"
 
   if ! command_exists bun; then
     log_error "Bun installation succeeded but command is unavailable. Add '$BUN_INSTALL/bin' to PATH."
@@ -923,13 +932,8 @@ execute_script() {
   log_info "Executing '$target' using Bun..."
   local result=0
   start_timer
-  if [ ${#BUN_ARGS[@]} -eq 0 ]; then
-    bun run "$target"
-    result=$?
-  else
-    bun run "$target" "${BUN_ARGS[@]}"
-    result=$?
-  fi
+  bun run "$target" ${BUN_ARGS[@]+"${BUN_ARGS[@]}"}
+  result=$?
   end_timer
   if ((result == 0)); then
     log_info "Script execution completed successfully."

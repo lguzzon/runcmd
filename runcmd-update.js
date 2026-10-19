@@ -22,7 +22,9 @@ async function main() {
     let state = { last_check: 0 }
     try {
       state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
-    } catch {}
+    } catch (e) {
+      console.error('[WARN] Could not read update state:', e.message)
+    }
 
     const now = Date.now()
     if (now - state.last_check < CHECK_INTERVAL) return

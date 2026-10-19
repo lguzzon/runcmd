@@ -488,6 +488,19 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
             SET "NEW_SCRIPT=%%B"
             SET "NEW_VER=%%C"
 
+            :: Only accept the sibling .new file runcmd-update.js is meant to produce.
+            :: Anything else could overwrite an arbitrary path.
+            SET "EXPECTED_NEW=%~f0.new"
+            IF /I NOT "!NEW_SCRIPT!"=="!EXPECTED_NEW!" (
+                ECHO [WARN] Update path rejected: !NEW_SCRIPT! >&2
+                EXIT /B 0
+            )
+
+            IF NOT EXIST "!NEW_SCRIPT!" (
+                ECHO [WARN] Update file missing: !NEW_SCRIPT! >&2
+                EXIT /B 0
+            )
+
             ECHO [INFO] Applying update to version !NEW_VER!...
 
             MOVE /Y "%~f0" "%~f0.old" >nul

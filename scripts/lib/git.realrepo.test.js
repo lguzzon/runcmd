@@ -221,7 +221,18 @@ describe('runGitFlow (real spawn)', () => {
   })
 
   test('returns trimmed stdout for a real git flow command (version)', () => {
+    // Stub process.exit: without it the fatal path calls the real one and kills
+    // the runner mid-suite, which is how this failed in CI with no report.
+    const errSpy = spyOn(console, 'error').mockImplementation(() => {})
+    let exitCode = null
+    process.exit = (code) => {
+      exitCode = code
+    }
     const out = git.runGitFlow('version')
+    errSpy.mockRestore()
+    if (exitCode !== null) {
+      throw new Error('git-flow is not installed: `git flow version` failed')
+    }
     // git-flow-next prints "X.Y.Z (git-flow-next)"; we just want a non-empty trim
     expect(out.length).toBeGreaterThan(0)
     expect(out).toBe(out.trim())

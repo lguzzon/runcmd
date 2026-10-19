@@ -41,7 +41,29 @@ jobs:
           bunx oxfmt@0.73.0 --check scripts/ website/src runcmd-update.js runcmd-update.manifest.js
 
       - name: Shellcheck runner
-        run: shellcheck -S warning runcmd.sh
+        run: |
+          # Ubuntu runners ship shellcheck; a bare container (act, a slim image)
+          # does not. Install it when missing so the step does not depend on the
+          # runner image. Verified clean under both 0.9.0 (GitHub's) and 0.11.0.
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            SUDO=""
+            command -v sudo >/dev/null 2>&1 && SUDO=sudo
+            $SUDO apt-get update -qq
+            $SUDO apt-get install -y -qq shellcheck
+          fi
+          shellcheck -S warning runcmd.sh
+
+      - name: Install git-flow
+        run: |
+          # The realrepo suites drive actual `git flow`; ubuntu-latest ships
+          # none, so the suite's last test failed and killed the runner.
+          # Reuse the project's own pinned installer (URL, sha256 and version
+          # live in scripts/lib/installer.js) rather than repeating them here.
+          bun -e "const m = await import('./scripts/lib/installer.js'); if (!m.ensureGitFlowAvailable({ autoInstall: true })) process.exit(1)"
+          # GITHUB_PATH only reaches later steps, so prepend for the check here.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          git flow version
 
       - name: Run tests
         run: bun test --isolate

@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 
+## v2.1.0 - 2026-10-19
+- docs: record the README sync in the module docs
+- docs: sync the README badge and footer to 2.0.2
+- feat(git-flow): sync the README version during release start
+- Merge branch 'main' into develop
+
 ## v2.0.2 - 2026-10-19
 - docs: document the hotfix flow end to end
 - ci: run local act jobs one at a time

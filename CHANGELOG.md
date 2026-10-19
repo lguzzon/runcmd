@@ -36,6 +36,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 
+## v2.0.0 - 2026-10-19
+- chore: ignore the .empryo directory
+- docs: sync AGENTS.md and the Windows install steps to reality
+- ci: cover the untested suites, the website and lint
+- fix(publish): serve the updater and gate the deploy on CI
+- fix(runcmd): validate the Bun installer and the Windows update payload
+- Merge branch 'main' into develop
+- fix(changelog): insert release section below the file header
+- fix(git-flow): use --push for finish; -p is --preserve-merges in git-flow-next
+- Merge branch 'main' into develop
+
 ## v1.12.0 - 2026-10-19
 
 - fix(runcmd): improve option parsing, .env handling, and shell robustness

@@ -6,6 +6,10 @@
 #
 # The runner image tracks GitHub's ubuntu-latest (ubuntu-24.04). Pin the tag
 # rather than act-latest so a local run and CI agree on the base image.
+# act mounts the one checkout into every job, so two concurrent jobs race on
+# .git/index.lock during their checkouts. GitHub isolates jobs on separate
+# runners; locally they must run one at a time.
+--concurrent-jobs 1
 -P ubuntu-latest=catthehacker/ubuntu:act-24.04
 --container-architecture linux/amd64
 --pull=false

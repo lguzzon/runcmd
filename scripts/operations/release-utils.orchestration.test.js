@@ -366,7 +366,7 @@ describe('handleFinish orchestration', () => {
     ).toBe(false)
   })
 
-  test('keepBranch=false + !dryRun: branch -d invoked', async () => {
+  test('keepBranch=false: no branch -d, git-flow deletes it itself', async () => {
     installRunGit((args) => {
       if (args.includes('show-ref --verify --quiet refs/heads/main'))
         return 'abc'
@@ -374,7 +374,7 @@ describe('handleFinish orchestration', () => {
         return 'abc'
       if (args.includes('show-ref --verify --quiet refs/heads/release/v1.2.0'))
         return 'abc'
-      if (args.startsWith('tag --list')) return ''
+      if (args.startsWith('tag -l')) return ''
       return ''
     })
     await ru.handleFinish(
@@ -389,13 +389,16 @@ describe('handleFinish orchestration', () => {
         keepBranch: false
       }
     )
-    const delCall = gitCalls.find((c) => c.args.startsWith('branch -d'))
-    expect(delCall).toBeDefined()
-    expect(delCall.args).toBe('branch -d release/v1.2.0')
-    expect(delCall.opts.allowFail).toBe(true)
+    expect(
+      gitCalls.some(
+        (c) => c.args.startsWith('branch -d') || c.args.startsWith('branch -D')
+      )
+    ).toBe(false)
+    const finishCall = gitCalls.find((c) => c.args.includes('release finish'))
+    expect(finishCall.args).not.toContain('-k')
   })
 
-  test('keepBranch=false + force: branch -D invoked (uppercase)', async () => {
+  test('keepBranch=true: -k forwarded so git-flow keeps the branch', async () => {
     installRunGit((args) => {
       if (args.includes('show-ref --verify --quiet refs/heads/main'))
         return 'abc'
@@ -403,7 +406,7 @@ describe('handleFinish orchestration', () => {
         return 'abc'
       if (args.includes('show-ref --verify --quiet refs/heads/release/v1.2.0'))
         return 'abc'
-      if (args.startsWith('tag --list')) return ''
+      if (args.startsWith('tag -l')) return ''
       return ''
     })
     await ru.handleFinish(
@@ -415,12 +418,10 @@ describe('handleFinish orchestration', () => {
         push: false,
         offline: true,
         dryRun: false,
-        keepBranch: false,
-        force: true
+        keepBranch: true
       }
     )
-    const delCall = gitCalls.find((c) => c.args.startsWith('branch -D'))
-    expect(delCall).toBeDefined()
-    expect(delCall.args).toBe('branch -D release/v1.2.0')
+    const finishCall = gitCalls.find((c) => c.args.includes('release finish'))
+    expect(finishCall.args).toContain('-k')
   })
 })

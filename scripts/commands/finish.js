@@ -11,7 +11,6 @@ import {
   logSuccess,
   logWarn,
   pullBranch,
-  runGit,
   runGitFlow
 } from '../git-flow.js'
 
@@ -96,6 +95,8 @@ export async function handleFinish(opts) {
   const flags = []
   // git-flow-next: `-p` is --preserve-merges; push is the long flag only.
   if (push && !offline) flags.push('--push')
+  // git-flow deletes the finished branch itself; only -k stops it.
+  if (keepBranch) flags.push('-k')
   if (squash) flags.push('--squash')
   if (tag) flags.push(`-T ${tag}`)
   if (message) flags.push(`-m "${message}"`)
@@ -111,11 +112,7 @@ export async function handleFinish(opts) {
     logWarn('--push ignored in offline mode')
   }
 
-  if (!keepBranch && !dryRun) {
-    const deleteFlag = opts.force ? '-D' : '-d'
-    logInfo(`Deleting branch: ${branchName} (${deleteFlag})`)
-    runGit(`branch ${deleteFlag} ${branchName}`, { allowFail: true })
-  } else if (keepBranch) {
+  if (keepBranch) {
     logInfo(`Keeping branch: ${branchName}`)
   }
 

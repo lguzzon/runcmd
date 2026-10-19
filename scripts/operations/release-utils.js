@@ -124,9 +124,10 @@ export function buildBranchName(name, fallback, prefix) {
 /**
  * Assemble the git-flow finish command string from the resolved flags.
  * Pure: no I/O, no env lookup. `--push` only included when push is on and
- * offline is false. `-T` and `-m` always included when their arg is set.
+ * offline is false. `-k` only when the branch must survive the finish.
+ * `-T` and `-m` always included when their arg is set.
  *
- * @param {{ typeLabel: string, name: string, tag?: string, message?: string, push?: boolean, offline?: boolean }} args
+ * @param {{ typeLabel: string, name: string, tag?: string, message?: string, push?: boolean, offline?: boolean, keepBranch?: boolean }} args
  * @returns {string} command string suitable for `runGitFlow`
  */
 export function buildFinishCommand({
@@ -135,11 +136,14 @@ export function buildFinishCommand({
   tag,
   message,
   push,
-  offline
+  offline,
+  keepBranch
 }) {
   const flags = []
   // git-flow-next: `-p` is --preserve-merges; push is the long flag only.
   if (push && !offline) flags.push('--push')
+  // git-flow deletes the finished branch itself; only -k stops it.
+  if (keepBranch) flags.push('-k')
   if (tag) flags.push(`-T ${tag}`)
   if (message) flags.push(`-m "${message}"`)
   const cmdName = name
@@ -225,10 +229,11 @@ export async function handleStart(config, opts) {
 }
 
 /**
- * Finish a release/hotfix branch: merge to integration branches, tag,
- * push, and optionally keep the branch.
+ * Finish a release/hotfix branch: merge to integration branches, tag, push,
+ * and optionally keep the branch. git-flow deletes the branch itself unless
+ * `--keep-branch` asks it not to.
  * @param {{ prefix: string, typeLabel: string }} config - Branch-family config
- * @param {{ name?: string, branch?: string, tag?: string, message?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, keepBranch?: boolean, offline?: boolean, force?: boolean }} opts
+ * @param {{ name?: string, branch?: string, tag?: string, message?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, keepBranch?: boolean, offline?: boolean }} opts
  * @returns {Promise<void>}
  */
 export async function handleFinish(config, opts) {
@@ -265,7 +270,8 @@ export async function handleFinish(config, opts) {
     tag,
     message,
     push,
-    offline
+    offline,
+    keepBranch
   })
   logInfo(`Finishing ${typeLabel} branch: ${branchName}`)
   runGitFlow(cmd, { dryRun })
@@ -277,9 +283,8 @@ export async function handleFinish(config, opts) {
     logWarn('--push ignored in offline mode')
   }
 
-  if (!keepBranch && !dryRun) {
-    const deleteFlag = opts.force ? '-D' : '-d'
-    runGit(`branch ${deleteFlag} ${branchName}`, { allowFail: true })
+  if (keepBranch) {
+    logInfo(`Keeping branch: ${branchName}`)
   }
 
   logSuccess(

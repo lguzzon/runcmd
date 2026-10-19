@@ -305,53 +305,34 @@ describe('handleFinish — --push and --offline interaction', () => {
   })
 })
 
-describe('handleFinish — branch deletion', () => {
-  test('default behaviour: deletes branch with -d (allowFail)', async () => {
+describe('handleFinish — branch retention', () => {
+  test('default: no -k, and the script never deletes the branch itself', async () => {
     await safeHandle({ type: 'feature', name: 'new-auth' })
-    const del = gitCalls.find(
-      (c) => c.fn === 'runGit' && c.args.startsWith('branch ')
-    )
-    expect(del).toBeDefined()
-    expect(del.args).toBe('branch -d feature/new-auth')
-    expect(del.opts.allowFail).toBe(true)
+    const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
+    expect(gf.args).not.toContain('-k')
+    // git-flow deletes the finished branch on its own; a second delete from
+    // here always failed and was hidden by allowFail.
+    expect(
+      gitCalls.some((c) => c.fn === 'runGit' && c.args.startsWith('branch '))
+    ).toBe(false)
   })
 
-  test('--force: deletes branch with -D', async () => {
-    await safeHandle({ type: 'feature', name: 'new-auth', force: true })
-    const del = gitCalls.find(
-      (c) => c.fn === 'runGit' && c.args.startsWith('branch ')
-    )
-    expect(del.args).toBe('branch -D feature/new-auth')
-  })
-
-  test('--keep-branch: skips deletion entirely', async () => {
+  test('--keep-branch: forwards -k to git-flow', async () => {
     await safeHandle({ type: 'feature', name: 'new-auth', keepBranch: true })
-    const del = gitCalls.find(
-      (c) => c.fn === 'runGit' && c.args.startsWith('branch ')
-    )
-    expect(del).toBeUndefined()
+    const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
+    expect(gf.args).toContain('-k')
   })
 
-  test('--dry-run: skips branch deletion', async () => {
-    await safeHandle({ type: 'feature', name: 'new-auth', dryRun: true })
-    const del = gitCalls.find(
-      (c) => c.fn === 'runGit' && c.args.startsWith('branch ')
-    )
-    expect(del).toBeUndefined()
-  })
-
-  test('keepBranch + dryRun: no delete, no force', async () => {
+  test('--keep-branch + dryRun: still forwards -k', async () => {
     await safeHandle({
       type: 'feature',
       name: 'new-auth',
       keepBranch: true,
-      dryRun: true,
-      force: true
+      dryRun: true
     })
-    const del = gitCalls.find(
-      (c) => c.fn === 'runGit' && c.args.startsWith('branch ')
-    )
-    expect(del).toBeUndefined()
+    const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
+    expect(gf.args).toContain('-k')
+    expect(gf.opts.dryRun).toBe(true)
   })
 })
 

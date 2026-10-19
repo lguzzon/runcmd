@@ -184,4 +184,31 @@ describe('buildFinishCommand', () => {
       })
     ).toBe('release finish -T v1.2.0 v1.2.0')
   })
+
+  test('adds -k when the branch must survive the finish', () => {
+    expect(
+      ru.buildFinishCommand({
+        typeLabel: 'hotfix',
+        name: 'v1.1.1',
+        tag: 'v1.1.1',
+        message: 'Hotfix 1.1.1',
+        push: true,
+        offline: false,
+        keepBranch: true
+      })
+    ).toBe('hotfix finish --push -k -T v1.1.1 -m "Hotfix 1.1.1" v1.1.1')
+  })
+
+  test('omits -k when the branch is to be deleted', () => {
+    expect(
+      ru.buildFinishCommand({
+        typeLabel: 'hotfix',
+        name: 'v1.1.1',
+        tag: 'v1.1.1',
+        message: 'Hotfix 1.1.1',
+        offline: false,
+        keepBranch: false
+      })
+    ).toBe('hotfix finish -T v1.1.1 -m "Hotfix 1.1.1" v1.1.1')
+  })
 })

@@ -61,11 +61,11 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Runner Scripts
 
-**runcmd.sh** (Unix/macOS runner, 1155 lines)
+**runcmd.sh** (Unix/macOS runner, 1191 lines)
 
 - Exported behaviors: DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution, update checking, check mode (+check)
 
-**runcmd.bat** (Windows runner, 610 lines)
+**runcmd.bat** (Windows runner, 602 lines)
 
 - Exported behaviors: Equivalent Unix functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing
 
@@ -520,6 +520,11 @@ Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
    - Format: `KEY=value`
    - Comments: Lines starting with `#`
    - No quotes around values
+   - `runcmd.sh`: values are exported verbatim (spaces preserved), `\r` is
+     stripped, and values containing control characters are skipped with a
+     warning; the file is loaded once when the runner directory equals the cwd
+   - `runcmd.bat`: `FOR /F` tokenizes on `=`, so values must not contain `=`
+     and empty values are skipped
 
 2. **version.txt:**
    - Single line containing semantic version (e.g., "1.11.4")

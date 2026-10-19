@@ -124,6 +124,8 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Print usage text. Callers choose the exit status: 0 for +help, 1 for a
+# rejected invocation.
 usage() {
   cat <<EOF
 runcmd v${RUNCMD_VERSION}
@@ -179,7 +181,6 @@ ENVIRONMENT:
   # .env files are auto-loaded from script directory and current working directory
 
 EOF
-  exit 1
 }
 
 # Resolve a file path to its absolute path with cross-platform compatibility
@@ -299,8 +300,12 @@ resolve_default_script() {
 #   0 if A < B (true/success)
 #   1 if A >= B (false/failure)
 version_lt() {
-  # Trivial case: equal versions
-  [[ $1 == "$2" ]] && return 1
+  # Reject malformed input instead of comparing garbage as zero: a bad remote
+  # version must never look like "no update needed".
+  local semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+  if [[ ! $1 =~ $semver || ! $2 =~ $semver ]]; then
+    return 1
+  fi
 
   # Parse versions into arrays
   local ver1
@@ -344,7 +349,7 @@ check_for_updates() {
   if [[ -f $RUNCMD_STATE ]]; then
     # Simple JSON parsing using Bun since we want to avoid complex dependencies for this core function
     if command_exists bun; then
-      last_check=$(bun -e "try { console.log(require('$RUNCMD_STATE').last_check || 0) } catch(e) { console.log(0) }" 2>/dev/null || echo 0)
+      last_check=$(_RUNCMD_STATE="$RUNCMD_STATE" bun -e "try { console.log(require(process.env._RUNCMD_STATE).last_check || 0) } catch(e) { console.log(0) }" 2>/dev/null || echo 0)
     fi
   fi
 
@@ -377,7 +382,12 @@ check_for_updates() {
   # Clean up version string
   remote_version=$(echo "$remote_version" | tr -d '[:space:]')
 
-  # Check if update is needed
+  if [[ ! $remote_version =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+    log_error "Malformed remote version '$remote_version'. Skipping update."
+    echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
+    return 0
+  fi
+
   # version_lt returns 0 (true) if current < remote
   if version_lt "$current_version" "$remote_version"; then
     # Perform update
@@ -451,7 +461,7 @@ resolve_default_in_dir() {
     exit 1
   fi
 
-  printf '%s\n' "$candidate"
+  resolve_path "$candidate"
 }
 
 # Resolve the script path based on input, handling various scenarios
@@ -659,11 +669,11 @@ format_shell_scripts() {
     # Handle the currently executing script specially
     if [[ $shell_file == "$script_path" ]]; then
       log_info "Safely formatting currently executing script: $rel_path"
-      ((self_format_attempted++))
+      ((++self_format_attempted))
       if safe_format_file "$shell_file"; then
-        ((formatted_count++))
+        ((++formatted_count))
       else
-        ((failed_count++))
+        ((++failed_count))
       fi
       continue
     fi
@@ -677,10 +687,10 @@ format_shell_scripts() {
 
     if ((format_success)); then
       log_info "Successfully formatted: $rel_path"
-      ((formatted_count++))
+      ((++formatted_count))
     else
       log_error "Failed to format: $rel_path"
-      ((failed_count++))
+      ((++failed_count))
     fi
   done
 
@@ -755,8 +765,24 @@ run_json_sort() {
   return 1
 }
 
+# Print the current epoch time in milliseconds.
+# EPOCHREALTIME (bash 5) avoids a process spawn; GNU date covers bash 4 on
+# Linux; bun remains the portable last resort (macOS bash 3.2).
+now_ms() {
+  local now=${EPOCHREALTIME:-}
+  if [[ -n $now ]]; then
+    printf '%s\n' "$((10#${now%.*} * 1000 + 10#${now#*.} / 1000))"
+    return 0
+  fi
+  now=$(date +%s%3N 2>/dev/null || true)
+  if [[ $now =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "$now"
+    return 0
+  fi
+  bun -e 'console.log(Date.now())'
+}
+
 # Start timing execution if debug mode is enabled
-# Captures the current time with millisecond precision using Bun (cross-platform)
 # Globals:
 #   DEBUG: Flag indicating if debug mode is enabled
 #   START_TIME: Global variable to store start time in milliseconds
@@ -764,7 +790,7 @@ run_json_sort() {
 #   None
 start_timer() {
   if is_debug_enabled; then
-    START_TIME=$(bun -e 'console.log(Date.now())' | tr -cd '0-9')
+    START_TIME=$(now_ms)
   fi
 }
 
@@ -779,7 +805,7 @@ start_timer() {
 end_timer() {
   if is_debug_enabled; then
     local end_time
-    end_time=$(bun -e 'console.log(Date.now())' | tr -cd '0-9')
+    end_time=$(now_ms)
     local elapsed_ms
     elapsed_ms=$((10#$end_time - 10#$START_TIME))
 
@@ -995,6 +1021,7 @@ parse_args() {
         ;;
       +help | +h)
         usage
+        exit 0
         ;;
       +version | +v)
         echo "runcmd v${RUNCMD_VERSION}"
@@ -1004,6 +1031,7 @@ parse_args() {
         if [[ $# -lt 2 ]]; then
           log_error "Option '$1' requires a value."
           usage
+          exit 1
         fi
         shift
         REQUESTED_SCRIPT="$1"
@@ -1014,12 +1042,13 @@ parse_args() {
       +*)
         log_error "Unknown option: $1"
         usage
+        exit 1
         ;;
       *)
         BUN_ARGS+=("$1")
         ;;
     esac
-    shift || true
+    shift
   done
 }
 
@@ -1049,13 +1078,14 @@ load_env_file() {
     if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
       local key="${line%%=*}"
       local rest="${line#*=}"
-      # Export only if key is a valid identifier (already matched by regex) and value doesn't contain dangerous characters
-      if [[ $rest != *[![:graph:]]* ]] || [[ -z $rest ]]; then
-        # shellcheck disable=SC2163
-        export "$line"
+      rest="${rest%$'\r'}"
+      # Reject control characters: they cannot round-trip through the
+      # environment and usually indicate a corrupt or binary file.
+      if [[ $rest != *[[:cntrl:]]* ]]; then
+        export "$key=$rest"
         log_info "${export_prefix}${key}"
       else
-        log_warn "Skipping ${key}=... (value contains non-printable characters)"
+        log_warn "Skipping ${key}=... (value contains control characters)"
       fi
     fi
   done <"$env_file"
@@ -1080,11 +1110,17 @@ load_env_files() {
     loaded_any=1
   fi
 
+  # Runner executed from its own directory: both paths are the same file, so a
+  # second pass would duplicate exports and skip warnings.
+  if [[ $script_env_file -ef $current_env_file ]]; then
+    return 0
+  fi
+
   if load_env_file "$current_env_file" "Loading environment variables from current directory: $current_env_file" "Exported (overwrites): "; then
     loaded_any=1
   fi
 
-  if ((!loaded_any)); then
+  if ((! loaded_any)); then
     log_info "No .env files found in script directory or current directory"
   fi
 }

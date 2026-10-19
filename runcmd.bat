@@ -228,9 +228,12 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 :: ===================================================================================
 
 :handle_special_options
-    :: Handle special command line options (+e, +help, +version)
-    SET "first_arg=%~1"
+    :: Scan every argument for a special option, mirroring runcmd.sh
+    :: Parameter: %1.. - Remaining arguments (SHIFT-consumed by the loop)
     SET "exit_please=0"
+:special_options_loop
+    IF "%~1" == "" EXIT /B 0
+    SET "first_arg=%~1"
 
     :: Handle environment variable listing
     IF /I "%first_arg%" == "+e" (
@@ -261,14 +264,17 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     :: Handle check mode
     IF /I "%first_arg%" == "+check" (
         CALL :check_mode
+        IF !ERRORLEVEL! NEQ 0 EXIT /B !ERRORLEVEL!
         EXIT /B 99
     )
     IF /I "%first_arg%" == "+c" (
         CALL :check_mode
+        IF !ERRORLEVEL! NEQ 0 EXIT /B !ERRORLEVEL!
         EXIT /B 99
     )
 
-    EXIT /B 0
+    SHIFT
+    GOTO :special_options_loop
 
 :process_main_arguments
     :: Process and collect main arguments for script execution
@@ -276,6 +282,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     SET "_guard_process_args=1"
     SET "first_arg="
     SET "collected="
+    SET "rest_args="
 :process_args_loop
     :: Guard against accidental CALL
     IF NOT defined _guard_process_args (
@@ -283,9 +290,21 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
         EXIT /B 1
     )
     IF "%~1" == "" GOTO :process_args_done
-    IF /I "%~1" == "--env" SHIFT & SHIFT & GOTO :process_args_loop
-    IF /I "%~1" == "-e" SHIFT & SHIFT & GOTO :process_args_loop
-    IF NOT defined first_arg SET "first_arg=%~1"
+    IF /I "%~1" == "--env" (
+        SHIFT
+        SHIFT
+        GOTO :process_args_loop
+    )
+    IF /I "%~1" == "-e" (
+        SHIFT
+        SHIFT
+        GOTO :process_args_loop
+    )
+    IF NOT defined first_arg (
+        SET "first_arg=%~1"
+    ) ELSE (
+        SET "rest_args=!rest_args! %1"
+    )
     SET "collected=!collected! %1"
     SHIFT
     GOTO :process_args_loop
@@ -293,11 +312,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     SET "_guard_process_args="
     SET "main_args=%collected%"
     EXIT /B 0
-
-:arg_check
-    :: Handle +check flag - run code quality checks and exit
-    CALL :check_mode
-    EXIT /B 99
 
 :: ===================================================================================
 :: SCRIPT EXECUTION FUNCTIONS
@@ -309,7 +323,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     :: Check for explicit script path override (+r flag)
     IF defined SCRIPT_OVERRIDE (
         IF EXIST "!SCRIPT_OVERRIDE!" (
-            CALL :execute_file "!SCRIPT_OVERRIDE!" !main_args!
+            CALL :execute_file "!SCRIPT_OVERRIDE!" "!main_args!"
         ) ELSE (
             CALL :show_error "Script not found: !SCRIPT_OVERRIDE!"
             EXIT /B 1
@@ -318,17 +332,17 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     )
 
     :: Try current working directory first
-    CALL :find_and_execute "%CWD%\!DEFAULT_SCRIPT_NAME!" !main_args!
+    CALL :find_and_execute "%CWD%\!DEFAULT_SCRIPT_NAME!" "!main_args!"
     IF "!exit_please!" == "1" EXIT /B !ERRORLEVEL!
 
     :: Try script directory
-    CALL :find_and_execute "%SCRIPT_DIR%\!DEFAULT_SCRIPT_NAME!" !main_args!
+    CALL :find_and_execute "%SCRIPT_DIR%\!DEFAULT_SCRIPT_NAME!" "!main_args!"
     IF "!exit_please!" == "1" EXIT /B !ERRORLEVEL!
 
     :: Check if first argument is a file path
     CALL :is_file "!first_arg!"
     IF !ERRORLEVEL! EQU 0 (
-        CALL :execute_file !main_args!
+        CALL :execute_file "!first_arg!" "!rest_args!"
         EXIT /B !ERRORLEVEL!
     )
 
@@ -342,13 +356,12 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     :: Find and execute script with supported extensions
     :: Parameter: %1 - Base path, %2+ - Arguments
     SET "base_path=%~1"
-    CALL :collect_args %2 %3 %4 %5 %6 %7 %8 %9
-    SET "remaining_args=%collected%"
+    SET "remaining_args=%~2"
 
     :: Try each supported extension
     FOR %%E IN (js mjs ts py) DO (
         IF EXIST "!base_path!.%%E" (
-            CALL :execute_file "!base_path!.%%E" !remaining_args!
+            CALL :execute_file "!base_path!.%%E" "!remaining_args!"
             SET "exit_please=1"
             EXIT /B !ERRORLEVEL!
         )
@@ -360,8 +373,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     :: Parameter: %1 - File path, %2+ - Arguments
     SET "file_path=%~1"
     FOR /F %%i IN ("!file_path!") DO SET "file_ext=%%~xi"
-    CALL :collect_args %2 %3 %4 %5 %6 %7 %8 %9
-    SET "remaining_args=%collected%"
+    SET "remaining_args=%~2"
 
     :: Map extension to executor
     IF /I "!file_ext!" == ".js" GOTO :execute_with_bun
@@ -449,27 +461,6 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     )
     EXIT /B 1
 
-:collect_args
-    :: Collect all arguments into %collected%
-    :: Usage: CALL :collect_args [args...]
-    SET "collected="
-    SET "_guard_collect_args=1"
-    REM Fall through to collect_args_loop
-
-:collect_args_loop
-    :: Guard against accidental CALL to internal loop label
-    IF NOT defined _guard_collect_args (
-        CALL :show_error "Internal error: accidental CALL to :collect_args_loop"
-        EXIT /B 1
-    )
-    IF "%~1" == "" GOTO :collect_args_done
-    SET "collected=!collected! %1"
-    SHIFT
-    GOTO :collect_args_loop
-    :collect_args_done
-    SET "_guard_collect_args="
-    EXIT /B 0
-
 :: ===================================================================================
 :: UPDATE FUNCTIONS
 :: ===================================================================================
@@ -517,7 +508,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 :check_mode
     :: Run code quality checks using available tools
     SETLOCAL ENABLEDELAYEDEXPANSION
-    SET "exit_code=0"
+    SET "check_exit=0"
 
     ECHO [CHECK] Running code quality checks...
     ECHO.
@@ -534,7 +525,7 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     ECHO [CHECK] Running oxlint...
     CALL bunx oxlint --fix-dangerously .
     IF ERRORLEVEL 1 (
-        SET "exit_code=1"
+        SET "check_exit=1"
         ECHO [FAIL] oxlint reported issues
     ) ELSE (
         ECHO [PASS] oxlint passed
@@ -545,21 +536,22 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
     ECHO [CHECK] Running oxfmt --check...
     CALL bunx oxfmt --check .
     IF ERRORLEVEL 1 (
-        SET "exit_code=1"
+        SET "check_exit=1"
         ECHO [FAIL] oxfmt --check reported issues
     ) ELSE (
         ECHO [PASS] oxfmt --check passed
     )
     ECHO.
 
-    IF "!exit_code!" == "0" (
+    IF "!check_exit!" == "0" (
         ECHO [CHECK] All checks passed!
     ) ELSE (
         ECHO [CHECK] Some checks failed.
     )
     ECHO.
 
-    ENDLOCAL & EXIT /B 0
+    REM Expand check_exit before ENDLOCAL discards the scope.
+    ENDLOCAL & EXIT /B %check_exit%
 
 :show_help
     :: Display help message

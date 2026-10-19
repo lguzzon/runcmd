@@ -13,12 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix(runcmd.sh): `+help` now exits 0 (was 1); `+r` without a value and unknown `+...` options exit 1 instead of falling through to script execution
+- fix(runcmd.sh): `.env` values containing spaces are exported intact (guard rejected any non-graph character); `\r` stripped for CRLF files
+- fix(runcmd.sh): `.env` loaded once when the runner directory equals the current directory (duplicate exports + duplicate warnings)
+- fix(runcmd.sh): `format_shell_scripts` counters used `((x++))`, which returns the pre-increment value and aborts under `set -e` when the count is 0
+- fix(runcmd.sh): `version_lt` validates semver input; a malformed remote `version.txt` now logs and skips instead of reading as "up to date"
+- fix(runcmd.sh): timer helpers spawn `bun` twice per debug run; now use `EPOCHREALTIME` (bash 5), GNU `date +%s%3N`, then bun as fallback
+- fix(runcmd.bat): `+check` always exited 0; now propagates the failure status
+- fix(runcmd.bat): argument forwarding was capped at 8 args; `--env`/`-e` used top-level `&` so the loop dropped every argument; special options (+help/+version/+check) were only detected in the first argument
+- fix(git-flow): `--help` is honoured before git-flow availability checks (release, hotfix, sync)
+- fix(options): `--type/--branch/--bump/--version` without a value now error instead of silently setting `undefined`
 - fix: `parseArgs` keeps flags in the 2nd argv slot for branch commands — `start --name x` no longer swallows the flag as the subcommand
 
 ### Changed
 
+- refactor: drop the dead `:arg_check` and `:collect_args` batch helpers
 - refactor: split git-flow.js god module into lib/ + cli.js dispatcher
 - test: suite for git-flow libs, wire bun test runner, guard repo files
+- test: e2e pins for `+h` exit status, unknown-option rejection, `.env` spaces, single `.env` load
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 

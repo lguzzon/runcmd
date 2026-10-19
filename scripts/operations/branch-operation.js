@@ -54,6 +54,11 @@ export async function handleBranchOperation(action, opts, config) {
     typeLabel,
     printHelp: helpFn
   } = config
+  if (opts.help) {
+    helpFn()
+    return
+  }
+
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
     logError(`git-flow is required for ${typeLabel} operations`)
@@ -61,11 +66,6 @@ export async function handleBranchOperation(action, opts, config) {
   }
 
   ensureGitFlowInitialized()
-
-  if (opts.help) {
-    helpFn()
-    return
-  }
 
   if (action === 'start') {
     await handleStart({ defaultBump, defaultBase, prefix, typeLabel }, opts)

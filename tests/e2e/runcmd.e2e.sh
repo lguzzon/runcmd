@@ -247,6 +247,52 @@ else
   fail "+debug failed to run target (out=$OUT)"
 fi
 
+# --- 9b. RUN: option handling and .env fidelity ------------------------------
+note ""
+note "== Options & Env Fidelity =="
+
+OPT_DIR="$TMP_ROOT/options"
+mkdir -p "$OPT_DIR"
+HOME_OPT="$(fresh_home options)"
+cp "$RUNNER_SRC" "$OPT_DIR/runcmd.sh"
+cp "$VERSION_FILE" "$OPT_DIR/version.txt"
+printf 'console.log("SPACED=[" + process.env.SPACED + "]");\n' >"$OPT_DIR/runcmd.mjs"
+printf 'SPACED=hello world\n' >"$OPT_DIR/.env"
+
+OUT="$(run_cmd "$OPT_DIR" "$HOME_OPT" -- ./runcmd.sh +h)"
+RC=$?
+if [[ $RC -eq 0 && $OUT == *"Usage:"* ]]; then
+  pass "+h prints usage and exits 0"
+else
+  fail "+h should exit 0 with usage text (rc=$RC)"
+fi
+
+OUT="$(run_cmd "$OPT_DIR" "$HOME_OPT" -- ./runcmd.sh +bogus)"
+RC=$?
+if [[ $RC -eq 1 ]]; then
+  pass "unknown option is rejected with exit 1"
+else
+  fail "unknown option should exit 1 (got $RC)"
+fi
+
+# cwd == script dir: the runner must load .env once, so a single warning.
+printf 'GOOD=1\nBAD=a\tb\n' >"$OPT_DIR/.env"
+OUT="$(run_cmd "$OPT_DIR" "$HOME_OPT" -- ./runcmd.sh)"
+WARNINGS="$(printf '%s\n' "$OUT" | grep -c 'Skipping BAD=')"
+if [[ $WARNINGS -eq 1 ]]; then
+  pass ".env loaded once when cwd == script dir (1 warning)"
+else
+  fail ".env loaded $WARNINGS times when cwd == script dir (expected 1)"
+fi
+
+printf 'SPACED=hello world\n' >"$OPT_DIR/.env"
+OUT="$(run_cmd "$OPT_DIR" "$HOME_OPT" -- ./runcmd.sh)"
+if [[ $OUT == *'SPACED=[hello world]'* ]]; then
+  pass ".env value containing spaces is exported intact"
+else
+  fail ".env value with spaces was altered (out=$OUT)"
+fi
+
 # --- 10. RUN: +check mode (guarded; needs network for bunx) ------------------
 if [[ $RUNCMD_E2E_CHECK == "1" ]]; then
   note ""

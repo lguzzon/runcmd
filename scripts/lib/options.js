@@ -88,17 +88,17 @@ export function parseFlags(argv, defaults) {
     const arg = argv[i]
     switch (arg) {
       case '--type':
-        opts.type = argv[++i]
-        break
       case '--branch':
-        opts.branch = argv[++i]
-        break
       case '--bump':
-        opts.bump = argv[++i]
+      case '--version': {
+        const value = argv[++i]
+        if (value === undefined) {
+          console.error(`${arg} requires a value`)
+          process.exit(1)
+        }
+        opts[arg.slice(2)] = value
         break
-      case '--version':
-        opts.version = argv[++i]
-        break
+      }
       case '--push':
         opts.push = true
         break

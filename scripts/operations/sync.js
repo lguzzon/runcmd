@@ -54,6 +54,11 @@ Examples:
  * @returns {Promise<void>}
  */
 export async function handleSync(opts) {
+  if (opts.help) {
+    printHelp()
+    return
+  }
+
   const available = ensureGitFlowAvailable({ ...opts, autoInstall: false })
   if (!available) {
     logError('git-flow is required for sync')
@@ -61,12 +66,6 @@ export async function handleSync(opts) {
   }
 
   ensureGitFlowInitialized()
-
-  // Check for help flag before processing
-  if (opts.help) {
-    printHelp()
-    return
-  }
 
   const { dryRun, offline } = opts
 

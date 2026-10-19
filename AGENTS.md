@@ -148,6 +148,28 @@ bunx oxfmt --write . && bunx oxlint --fix-dangerously .
 shellcheck -s bash runcmd.sh
 ```
 
+### CI Workflows Locally
+
+[nektos/act](https://nektosact.com/) runs `.github/workflows/` on this machine, so a
+CI failure shows up before the push, not after. `publish.yml` is out of reach:
+it triggers on `workflow_run`, which act does not implement. `ci.yml` runs fully.
+
+```bash
+mise use -g act                       # install
+scripts/run-workflow-locally.sh       # every CI job, push event
+scripts/run-workflow-locally.sh -j website
+scripts/run-workflow-locally.sh -e pull_request
+scripts/run-workflow-locally.sh -l    # what can run here
+```
+
+Runner image and platform flags live in [`.actrc`](./.actrc). Docker must be
+reachable; the wrapper re-enters under `sg docker` when the current shell
+predates the docker group.
+
+act's image is not the GitHub image — it lacks tools the real runner ships
+preinstalled. A CI step that depends on one must install it when missing, or act
+fails where GitHub would pass. The shellcheck step in `ci.yml` does this.
+
 ### Environment Variables
 
 The `.env` files are automatically loaded (script directory `.env` loaded first, then current directory `.env` can override):

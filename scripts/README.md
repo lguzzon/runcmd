@@ -14,6 +14,7 @@ scripts/
 ├── release-init.js              # Standalone release/hotfix init script
 ├── release-finalize.js          # Standalone release/hotfix finalize script
 ├── release-finalize.test.js     # Tests for release-finalize
+├── run-workflow-locally.sh      # Run GitHub Actions locally with nektos/act
 ├── commands/            # Individual git-flow command implementations
 │   ├── init.js         # Initialize git-flow in repository
 │   ├── start.js        # Start new branches (feature, release, hotfix, support)

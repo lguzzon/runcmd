@@ -57,7 +57,7 @@ chmod +x runcmd.sh
 <details>
 <summary><b>Windows</b> — runcmd.bat</summary>
 
-Save [`runcmd.bat`](https://lguzzon.github.io/runcmd/runcmd.bat) to your project directory and run:
+Save [`runcmd.bat`](https://lguzzon.github.io/runcmd/runcmd.bat), [`runcmd-update.js`](https://lguzzon.github.io/runcmd/runcmd-update.js) and [`runcmd-update.manifest.js`](https://lguzzon.github.io/runcmd/runcmd-update.manifest.js) to your project directory and run:
 
 ```cmd
 runcmd.bat

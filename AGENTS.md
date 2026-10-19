@@ -73,8 +73,8 @@ This project uses NXTG-Forge for AI-powered development governance.
 
 The project has three core runner files:
 
-1. **runcmd.sh** (1155 lines): Unix/macOS bash script with comprehensive features
-2. **runcmd.bat** (610 lines): Windows batch equivalent
+1. **runcmd.sh** (1195 lines): Unix/macOS bash script with comprehensive features
+2. **runcmd.bat** (615 lines): Windows batch equivalent
 3. **runcmd.mjs**: Target script that the runner executes (this is the user's actual script)
 
 The runners are designed to be copied and the `.mjs` file modified to contain your script logic. The runner scripts handle all boilerplate.
@@ -262,14 +262,14 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 
 > **Line ranges are approximate.** The source file evolves; search function names as the authoritative reference.
 
-- Path resolution utilities (≈lines 212-535): `resolve_path`, `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`, `run_shfmt`
-- Script discovery (≈lines 280-480): `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`
-- Version management and update check (≈lines 303-380): `version_lt`, `check_for_updates`
-- Tooling integration (≈lines 536-745): `run_shfmt`, `safe_format_file`, `format_shell_scripts`, `run_lint`, `run_oxfmt`, `run_json_sort`
-- Safe file operations (≈lines 546-695): `safe_format_file` with atomic updates, `format_shell_scripts`
-- Execution orchestration (≈lines 884-912): `execute_script`
-- Environment loading (≈lines 1026-1111): `load_env_file`, `load_env_files`
-- Main entry point (≈lines 1127-1155): `main` function
+- Path resolution utilities (≈lines 211-570): `resolve_path`, `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`, `run_shfmt`
+- Script discovery (≈lines 279-560): `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`
+- Version management and update check (≈lines 302-452): `version_lt`, `check_for_updates`
+- Tooling integration (≈lines 561-927): `run_shfmt`, `safe_format_file`, `format_shell_scripts`, `run_lint`, `run_oxfmt`, `run_json_sort`
+- Safe file operations (≈lines 571-710): `safe_format_file` with atomic updates, `format_shell_scripts`
+- Execution orchestration (≈lines 928-1067): `execute_script`
+- Environment loading (≈lines 1068-1166): `load_env_file`, `load_env_files`
+- Main entry point (≈lines 1167-1195): `main` function
 
 ## Dependencies
 
@@ -308,8 +308,8 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 
 ### Code Quality Enforcement
 
-- **oxlint** — JS/TS linting (replaces Biome for lint)
-- **oxfmt** — JS/TS formatting (replaces Biome for format)
+- **oxlint** — JS/TS linting
+- **oxfmt** — JS/TS formatting
 - **shellcheck** — shell script validation
 - **shfmt** — shell script formatting
 - Pre-commit hook at `.githooks/pre-commit` runs all checks automatically

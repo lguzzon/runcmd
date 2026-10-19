@@ -39,7 +39,7 @@ const {
         const toggle = document.querySelector('[data-theme-toggle]')
         if (!toggle) return
 
-        const updateState = (isDark) => {
+        const updateState = (isDark: boolean) => {
           document.documentElement.classList.toggle('dark', isDark)
           document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
           try {

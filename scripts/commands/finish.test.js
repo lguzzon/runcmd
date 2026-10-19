@@ -250,7 +250,9 @@ describe('handleFinish — flag construction (release/hotfix)', () => {
       squash: true
     })
     const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
-    expect(gf.args).toBe('release finish --push --squash -T v1.2.0 -m "msg" v1.2.0')
+    expect(gf.args).toBe(
+      'release finish --push --squash -T v1.2.0 -m "msg" v1.2.0'
+    )
   })
 })
 

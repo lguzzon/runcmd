@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bun test scripts/ --isolate",
+    "test": "bun test --isolate",
     "check:types": "bunx tsc --project tsconfig.json --noEmit"
   },
   "devDependencies": {

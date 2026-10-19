@@ -90,6 +90,36 @@ describe('handleStart orchestration', () => {
     ).rejects.toThrow(GuardError)
   })
 
+  test('throws GuardError when the version is already tagged', async () => {
+    installRunGit((args) => {
+      if (args.includes('show-ref --verify --quiet refs/heads/main'))
+        return 'abc'
+      if (args.includes('show-ref --verify --quiet refs/heads/develop'))
+        return 'abc'
+      if (args.startsWith('tag -l')) return 'v1.2.4'
+      return ''
+    })
+    // git-flow tags v<version> at finish and refuses to reuse an existing tag,
+    // so start must not leave an unfinishable branch behind.
+    await expect(
+      ru.handleStart(
+        {
+          defaultBump: 'patch',
+          defaultBase: 'develop',
+          prefix: 'release/',
+          typeLabel: 'release'
+        },
+        {
+          version: '1.2.4',
+          yes: true,
+          offline: true,
+          dryRun: false,
+          noChangelog: true
+        }
+      )
+    ).rejects.toThrow(GuardError)
+  })
+
   test('falls back to v{newVersion} when --name omitted', async () => {
     await ru.handleStart(
       {

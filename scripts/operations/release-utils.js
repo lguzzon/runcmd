@@ -188,6 +188,9 @@ export async function handleStart(config, opts) {
 
   const branchName = buildBranchName(name, `v${newVersion}`, prefix)
   ensureBranchMissing(branchName)
+  // git-flow tags `v<version>` at finish and refuses to reuse an existing tag,
+  // so reject it here rather than leaving an unfinishable branch behind.
+  ensureTagMissing(`v${newVersion}`)
 
   const baseBranch = base || defaultBase
   if (!offline) {

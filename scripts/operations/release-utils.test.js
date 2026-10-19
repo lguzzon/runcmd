@@ -143,10 +143,10 @@ describe('buildFinishCommand', () => {
         push: true,
         offline: false
       })
-    ).toBe('release finish -p -T v1.2.0 -m "Release 1.2.0" v1.2.0')
+    ).toBe('release finish --push -T v1.2.0 -m "Release 1.2.0" v1.2.0')
   })
 
-  test('omits -p when offline (push ignored in offline mode)', () => {
+  test('omits --push when offline (push ignored in offline mode)', () => {
     expect(
       ru.buildFinishCommand({
         typeLabel: 'hotfix',
@@ -159,7 +159,7 @@ describe('buildFinishCommand', () => {
     ).toBe('hotfix finish -T v1.1.1 -m "Hotfix 1.1.1" v1.1.1')
   })
 
-  test('omits -p when push is false', () => {
+  test('omits --push when push is false', () => {
     expect(
       ru.buildFinishCommand({
         typeLabel: 'release',

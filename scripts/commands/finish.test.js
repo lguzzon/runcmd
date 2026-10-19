@@ -212,7 +212,7 @@ describe('handleFinish — offline behaviour', () => {
 })
 
 describe('handleFinish — flag construction (release/hotfix)', () => {
-  test('release with --push builds "<type> finish -p -T vX.Y.Z -m "msg" <name>"', async () => {
+  test('release with --push builds "<type> finish --push -T vX.Y.Z -m "msg" <name>"', async () => {
     await safeHandle({
       type: 'release',
       name: 'v1.2.0',
@@ -222,7 +222,7 @@ describe('handleFinish — flag construction (release/hotfix)', () => {
     })
     const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
     expect(gf.args).toBe(
-      'release finish -p -T v1.2.0 -m "Release 1.2.0" v1.2.0'
+      'release finish --push -T v1.2.0 -m "Release 1.2.0" v1.2.0'
     )
   })
 
@@ -250,15 +250,15 @@ describe('handleFinish — flag construction (release/hotfix)', () => {
       squash: true
     })
     const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
-    expect(gf.args).toBe('release finish -p --squash -T v1.2.0 -m "msg" v1.2.0')
+    expect(gf.args).toBe('release finish --push --squash -T v1.2.0 -m "msg" v1.2.0')
   })
 })
 
 describe('handleFinish — feature has no -T/-m flags', () => {
-  test('feature build only adds -p when --push', async () => {
+  test('feature build only adds --push when --push', async () => {
     await safeHandle({ type: 'feature', name: 'new-auth', push: true })
     const gf = gitCalls.find((c) => c.fn === 'runGitFlow')
-    expect(gf.args).toBe('feature finish -p new-auth')
+    expect(gf.args).toBe('feature finish --push new-auth')
   })
 
   test('feature with --squash only', async () => {

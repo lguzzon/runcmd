@@ -94,7 +94,8 @@ export async function handleFinish(opts) {
   }
 
   const flags = []
-  if (push && !offline) flags.push('-p')
+  // git-flow-next: `-p` is --preserve-merges; push is the long flag only.
+  if (push && !offline) flags.push('--push')
   if (squash) flags.push('--squash')
   if (tag) flags.push(`-T ${tag}`)
   if (message) flags.push(`-m "${message}"`)

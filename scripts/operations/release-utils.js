@@ -123,7 +123,7 @@ export function buildBranchName(name, fallback, prefix) {
 
 /**
  * Assemble the git-flow finish command string from the resolved flags.
- * Pure: no I/O, no env lookup. `-p` only included when push is on and
+ * Pure: no I/O, no env lookup. `--push` only included when push is on and
  * offline is false. `-T` and `-m` always included when their arg is set.
  *
  * @param {{ typeLabel: string, name: string, tag?: string, message?: string, push?: boolean, offline?: boolean }} args
@@ -138,7 +138,8 @@ export function buildFinishCommand({
   offline
 }) {
   const flags = []
-  if (push && !offline) flags.push('-p')
+  // git-flow-next: `-p` is --preserve-merges; push is the long flag only.
+  if (push && !offline) flags.push('--push')
   if (tag) flags.push(`-T ${tag}`)
   if (message) flags.push(`-m "${message}"`)
   const cmdName = name

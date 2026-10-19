@@ -1,3 +1,26 @@
+## v1.12.0 - 2026-10-19
+- fix(runcmd): improve option parsing, .env handling, and shell robustness
+- bd init: initialize beads issue tracking
+- chore: record session governance bookkeeping
+- docs: normalize website/src/styles AGENTS.md title
+- docs: make AGENTS.md the canonical guidance file, CLAUDE.md a thin pointer
+- docs: review and simplify CLAUDE.md, AGENTS.md, CLAUDE.local.md
+- test: add end-to-end suite for the runcmd runner
+- ci: add test and type-check workflow, update governance bookkeeping
+- chore: record session governance bookkeeping
+- feat(types): add strict tsconfig with checkJs, fix all tsc errors in source files
+- docs: add JSDoc to 67 public exports; strip stale website claims
+- docs: re-sync AGENTS.md + SPEC.md to actual module exports
+- test: cover all previously-untested git-flow command modules
+- chore: gap-analysis quick wins — layering, gitignore, changelog
+- chore: session log sync
+- chore: session log sync
+- docs: sync version refs to 1.11.4
+- feat: verify self-update payloads against update.sha256 manifest
+- fix: parseArgs keeps flags in 2nd slot for branch commands; full git-flow refactor suite green
+- test: add suite for git-flow libs, wire runner, guard repo files
+- chore: add NXTG-Forge governance + test suite for git-flow libs
+- refactor: split git-flow.js god module, fix SOLID violations
 # Changelog
 
 All notable changes to this project will be documented in this file.

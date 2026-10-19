@@ -62,6 +62,7 @@ beforeEach(() => {
   installRunGit(defaultRunGit)
   writeFileSync(join(dir, 'version.txt'), '1.2.3\n')
   writeFileSync(join(dir, 'CHANGELOG.md'), '# Changelog\n')
+  writeFileSync(join(dir, 'README.md'), '# runcmd\n\n*Version 1.2.3*\n')
 })
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,36 @@ describe('handleStart orchestration', () => {
       '\n'
     )[0]
     expect(content).toBe('1.2.3')
+  })
+
+  test('syncs README.md and stages it with the bump commit', async () => {
+    writeFileSync(
+      join(dir, 'README.md'),
+      '# runcmd\n\n[![Version](https://img.shields.io/badge/version-1.2.2-blue)](version.txt)\n\n*Version 1.2.2*\n'
+    )
+    await ru.handleStart(
+      {
+        defaultBump: 'patch',
+        defaultBase: 'develop',
+        prefix: 'release/',
+        typeLabel: 'release'
+      },
+      {
+        name: 'v1.2.3',
+        version: '1.2.3',
+        yes: true,
+        offline: true,
+        dryRun: false,
+        noChangelog: true
+      }
+    )
+    const readme = readFileSync(join(dir, 'README.md'), 'utf-8')
+    expect(readme).toContain('badge/version-1.2.3-blue')
+    expect(readme).toContain('*Version 1.2.3*')
+    const addCall = gitCalls.find((c) => c.args.startsWith('add '))
+    expect(addCall.args).toContain('README.md')
+    expect(addCall.args).toContain('version.txt')
+    expect(addCall.args).toContain('CHANGELOG.md')
   })
 })
 

@@ -14,6 +14,7 @@ import {
 } from '../git-flow.js'
 import { CHANGELOG_FILE, appendChangelog } from '../lib/changelog.js'
 import { promptText } from '../lib/prompts.js'
+import { README_FILE, updateReadmeVersion } from '../lib/readme.js'
 import { GuardError } from '../lib/validators.js'
 import {
   VERSION_FILE,
@@ -54,12 +55,8 @@ export function updateVersionFile(version, { dryRun }) {
  */
 export function commitChanges(version, type, { dryRun }) {
   const message = `chore: bump version to ${version} for ${type}`
-  runGit(
-    `add ${VERSION_FILE}${existsSync(CHANGELOG_FILE) ? ` ${CHANGELOG_FILE}` : ''}`,
-    {
-      dryRun
-    }
-  )
+  const files = [VERSION_FILE, CHANGELOG_FILE, README_FILE].filter(existsSync)
+  runGit(`add ${files.join(' ')}`, { dryRun })
   runGit(`commit -m "${message}"`, { dryRun })
 }
 
@@ -152,7 +149,7 @@ export function buildFinishCommand({
 
 /**
  * Start a release/hotfix branch: bump version, update version.txt,
- * generate changelog, create the branch.
+ * sync README.md, generate changelog, create the branch.
  * @param {{ defaultBump: string, defaultBase: string, prefix: string, typeLabel: string }} config - Branch-family config
  * @param {{ name?: string, version?: string, bump?: string, push?: boolean, dryRun?: boolean, yes?: boolean, noChangelog?: boolean, offline?: boolean, base?: string }} opts
  * @returns {Promise<void>}
@@ -205,6 +202,7 @@ export async function handleStart(config, opts) {
   )
 
   const versionChanged = updateVersionFile(newVersion, { dryRun })
+  const readmeChanged = updateReadmeVersion(newVersion, { dryRun })
   let changelogChanged = false
   if (!noChangelog) {
     changelogChanged = appendChangelog(newVersion, { dryRun })
@@ -225,8 +223,10 @@ export async function handleStart(config, opts) {
   if (dryRun) {
     logWarn('Dry-run completed. No changes were applied.')
   } else {
-    if (!versionChanged && !changelogChanged) {
-      logWarn('No files were changed (version/changelog). Check your inputs.')
+    if (!versionChanged && !changelogChanged && !readmeChanged) {
+      logWarn(
+        'No files were changed (version/changelog/README). Check your inputs.'
+      )
     }
   }
 }

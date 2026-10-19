@@ -42,6 +42,7 @@ export { ensureGitFlowAvailable } from './lib/installer.js'
 // Re-export shared utilities (these are also consumed by release scripts)
 export * from './lib/changelog.js'
 export * from './lib/prompts.js'
+export * from './lib/readme.js'
 export * from './lib/version.js'
 export {
   parseFlags,

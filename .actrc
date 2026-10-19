@@ -1,0 +1,11 @@
+# nektos/act — run this repo's GitHub workflows on this machine.
+#
+#   mise use -g act        install act
+#   act -l                 list jobs and the events act can drive
+#   scripts/run-workflow-locally.sh   run the CI workflow
+#
+# The runner image tracks GitHub's ubuntu-latest (ubuntu-24.04). Pin the tag
+# rather than act-latest so a local run and CI agree on the base image.
+-P ubuntu-latest=catthehacker/ubuntu:act-24.04
+--container-architecture linux/amd64
+--pull=false

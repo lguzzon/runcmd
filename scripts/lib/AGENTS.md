@@ -1,6 +1,6 @@
 # scripts/lib
 
-Utility library directory providing version management, changelog generation, CLI prompt functionality, git operations, validation guards, logging, git-flow installation, and shared option parsing for the release tooling.
+Utility library directory providing version management, changelog generation, README version syncing, CLI prompt functionality, git operations, validation guards, logging, git-flow installation, and shared option parsing for the release tooling.
 
 ## Contents
 
@@ -17,6 +17,8 @@ Utility library directory providing version management, changelog generation, CL
 [options.js](./options.js) — Shared CLI flag parser (`parseFlags`) and default option shapes (`releaseInitDefaults`, `releaseFinalizeDefaults`) for `release-init.js` and `release-finalize.js`. Unknown flags are ignored for backward compatibility; `CI=true` forces `opts.yes=true`.
 
 [prompts.js](./prompts.js) — CLI prompting utilities: async/sync text input, yes/no prompts with CI bypass. Requires Bun runtime.
+
+[readme.js](./readme.js) — README.md version sync: rewrites the shields.io `version-X.Y.Z-blue` badge and the `*Version X.Y.Z*` footer to the released version. README is hand-maintained, so the release flow carries it.
 
 [validators.js](./validators.js) — Pre-flight guards: `ensureCleanTree`, `ensureBranchExists`, `ensureBranchMissing`, `detectMainBranch`, plus `checkout`/`pullBranch`/`pushBranch`/`mergeBranch`/`stashPush`/`stashPop`/`ensureTagMissing`/`getBranchType`/`getGitFlowConfig`. Throws `GuardError` on invariant violations.
 
@@ -49,6 +51,12 @@ Utility library directory providing version management, changelog generation, CL
 - Yes detection: `ans.toLowerCase().startsWith("y")`
 - Prompt format: `[Y/n]` or `[y/N]` based on default
 - Sync read buffer: 1024 bytes
+
+**readme.js:**
+
+- Rewrites exactly two references: the `badge/version-X.Y.Z-blue` badge and the `*Version X.Y.Z*` footer line
+- Returns false without writing when README.md is missing, already current, or on dry-run
+- Never throws: a missing README.md is a warning, not a guard failure
 
 **validators.js:**
 

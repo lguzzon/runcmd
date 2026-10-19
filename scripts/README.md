@@ -37,6 +37,8 @@ scripts/
 │   ├── options.js          # Shared flag parser and option defaults
 │   ├── options.test.js     # Tests for options
 │   ├── prompts.js          # User interaction utilities
+│   ├── readme.js           # README version badge/footer sync
+│   ├── readme.test.js      # Tests for readme
 │   ├── validators.js       # Precondition guards, branch ops, validation
 │   ├── validators.test.js  # Tests for validators
 │   ├── version.js          # Semver utilities
@@ -265,6 +267,7 @@ scripts:
 - [`logger.js`](lib/logger.js) — colored log helpers and ANSI constants
 - [`options.js`](lib/options.js) — shared flag parser and option defaults
 - [`prompts.js`](lib/prompts.js) — async/sync text and yes/no prompts
+- [`readme.js`](lib/readme.js) — README.md version badge/footer sync
 - [`validators.js`](lib/validators.js) — precondition guards, branch ops, validation
 - [`version.js`](lib/version.js) — semver parse/increment/compare/validate
 

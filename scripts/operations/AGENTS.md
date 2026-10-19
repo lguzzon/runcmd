@@ -1,6 +1,6 @@
 # scripts/operations
 
-Implements Git Flow operational commands for branch lifecycle management: cloning repos with git-flow initialization, managing hotfix and release branches with version bumping/changelog generation, and syncing base branches with remote.
+Implements Git Flow operational commands for branch lifecycle management: cloning repos with git-flow initialization, managing hotfix and release branches with version bumping, changelog generation and README version syncing, and syncing base branches with remote.
 
 ## Contents
 
@@ -27,6 +27,7 @@ All scripts enforce:
 
 - **Version file**: `version.txt` in project root
 - **Changelog file**: `CHANGELOG.md` in project root
+- **Readme file**: `README.md` in project root (version badge and footer kept in sync by `start`)
 - **Semver validation**: `x.y.z` format via `validateVersion()`
 - **Branch naming**: `hotfix/v${version}`, `release/v${version}`
 - **Commit messages**: `chore: bump version to ${version} for ${type}`
@@ -40,6 +41,7 @@ All scripts enforce:
 | `../lib/version.js`   | `validateVersion`, `parseVersion`, `incrementVersion`, `compareVersions`, `readVersion`                                           |
 | `../lib/changelog.js` | `appendChangelog`, `commitChangelog`                                                                                              |
 | `../lib/prompts.js`   | `promptText`                                                                                                                      |
+| `../lib/readme.js`    | `updateReadmeVersion`, `README_FILE`                                                                                              |
 
 ## Subdirectories
 

@@ -259,8 +259,9 @@ Accessible via `bun scripts/git-flow.js`:
 
 ### Hotfix, in two commands
 
-`hotfix start` forks from `main`, bumps `version.txt`, prepends a `## vX.Y.Z`
-section to `CHANGELOG.md`, and commits the bump. `hotfix finish` merges into
+`hotfix start` forks from `main`, bumps `version.txt`, syncs the version badge
+and footer in `README.md`, prepends a `## vX.Y.Z` section to `CHANGELOG.md`, and
+commits the bump. `hotfix finish` merges into
 `main`, tags, merges `main` back into `develop`, and lets git-flow delete the
 branch.
 

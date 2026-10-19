@@ -252,9 +252,29 @@ Accessible via `bun scripts/git-flow.js`:
 | `publish <type> <name>`                         | Push branch to remote                |
 | `delete <type> <name>`                          | Delete branch                        |
 | `release start --bump <major\|minor\|patch>`    | Create release branch                |
+| `hotfix start --bump patch`                     | Cut a hotfix branch off `main`       |
 | `hotfix finish --tag <version> --message <msg>` | Complete hotfix                      |
 | `sync --dry-run`                                | Sync main/master with develop        |
 | `clone <url> [dir]`                             | Clone and initialize git-flow        |
+
+### Hotfix, in two commands
+
+`hotfix start` forks from `main`, bumps `version.txt`, prepends a `## vX.Y.Z`
+section to `CHANGELOG.md`, and commits the bump. `hotfix finish` merges into
+`main`, tags, merges `main` back into `develop`, and lets git-flow delete the
+branch.
+
+```bash
+bun scripts/git-flow.js hotfix start --bump patch --yes   # -> hotfix/v2.0.1
+git commit -am "fix(core): ..."                           # the actual fix
+bun scripts/git-flow.js hotfix finish --tag v2.0.1 \
+  --message "Hotfix 2.0.1" --yes --push
+```
+
+`start` refuses a version whose `vX.Y.Z` tag already exists, so a released
+version cannot be re-cut into a branch that could never be finished.
+`--keep-branch` forwards `-k` to git-flow; without it the branch is deleted at
+finish. Add `--dry-run` to either action to print every git command first.
 
 ## Workflow & Conventions
 

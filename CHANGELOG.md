@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 
+## v2.0.1 - 2026-10-19
+- docs: document running the GitHub workflows locally
+- fix(ci): install git-flow and shellcheck so the suite stops killing the runner
+- ci: run the workflows locally with act
+- Merge branch 'main' into develop
+
 ## v2.0.0 - 2026-10-19
 - chore: ignore the .empryo directory
 - docs: sync AGENTS.md and the Windows install steps to reality

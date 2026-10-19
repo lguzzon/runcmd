@@ -30,9 +30,10 @@ export function collectCommitsSince(ref) {
 }
 
 /**
- * Prepend a `## v<version>` section to CHANGELOG.md with commits since the
- * last tag. Skips (returns false) when the version is already present or on
- * dry-run.
+ * Insert a `## v<version>` section into CHANGELOG.md with commits since the
+ * last tag. The section goes before the first released `## v...` heading so
+ * the file header and `## [Unreleased]` block stay on top. Skips (returns
+ * false) when the version is already present or on dry-run.
  * @param {string} version - Version without leading `v`
  * @param {{ dryRun?: boolean }} opts
  * @returns {boolean} true when the file was written
@@ -48,12 +49,16 @@ export function appendChangelog(version, opts) {
   const lastTag = getLastTag()
   const commits = collectCommitsSince(lastTag)
   const date = new Date().toISOString().slice(0, 10)
-  const sectionLines = [
-    `## v${version} - ${date}`,
-    commits.length ? commits.join('\n') : '- Internal changes',
-    ''
-  ]
-  const nextContent = `${sectionLines.join('\n')}${existing}`
+  const body = commits.length ? commits.join('\n') : '- Internal changes'
+  const section = `## v${version} - ${date}\n${body}\n`
+  const lines = existing.split('\n')
+  const firstRelease = lines.findIndex((line) => line.startsWith('## v'))
+  const nextContent =
+    firstRelease === -1
+      ? `${existing}${existing && !existing.endsWith('\n\n') ? '\n' : ''}${section}`
+      : `${lines.slice(0, firstRelease).join('\n')}\n${section}\n${lines
+          .slice(firstRelease)
+          .join('\n')}`
   if (opts.dryRun) {
     logInfo(`[dry-run] would update CHANGELOG.md with v${version}`)
     return false

@@ -230,6 +230,33 @@ describe('appendChangelog', () => {
     expect(newIdx).toBeLessThan(oldIdx)
   })
 
+  test('inserts below the file header and Unreleased block', () => {
+    installRunGit(() => null)
+    const original = [
+      '# Changelog',
+      '',
+      '## [Unreleased]',
+      '',
+      '### Fixed',
+      '',
+      '- pending',
+      '',
+      '## v1.0.0 - 2026-01-01',
+      '- first',
+      ''
+    ].join('\n')
+    writeFileSync(join(dir, 'CHANGELOG.md'), original, 'utf-8')
+    changelog.appendChangelog('1.1.0', { dryRun: false })
+    const content = readFileSync(join(dir, 'CHANGELOG.md'), 'utf-8')
+    expect(content.startsWith('# Changelog\n')).toBe(true)
+    expect(content.indexOf('## [Unreleased]')).toBeLessThan(
+      content.indexOf('## v1.1.0 -')
+    )
+    expect(content.indexOf('## v1.1.0 -')).toBeLessThan(
+      content.indexOf('## v1.0.0 -')
+    )
+  })
+
   test('preserves existing content byte-for-byte when prepending', () => {
     installRunGit(() => null)
     const original = '## v1.0.0 - 2026-01-01\n- first\n- second\n\n'

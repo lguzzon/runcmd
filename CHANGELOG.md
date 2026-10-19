@@ -1,26 +1,3 @@
-## v1.12.0 - 2026-10-19
-- fix(runcmd): improve option parsing, .env handling, and shell robustness
-- bd init: initialize beads issue tracking
-- chore: record session governance bookkeeping
-- docs: normalize website/src/styles AGENTS.md title
-- docs: make AGENTS.md the canonical guidance file, CLAUDE.md a thin pointer
-- docs: review and simplify CLAUDE.md, AGENTS.md, CLAUDE.local.md
-- test: add end-to-end suite for the runcmd runner
-- ci: add test and type-check workflow, update governance bookkeeping
-- chore: record session governance bookkeeping
-- feat(types): add strict tsconfig with checkJs, fix all tsc errors in source files
-- docs: add JSDoc to 67 public exports; strip stale website claims
-- docs: re-sync AGENTS.md + SPEC.md to actual module exports
-- test: cover all previously-untested git-flow command modules
-- chore: gap-analysis quick wins — layering, gitignore, changelog
-- chore: session log sync
-- chore: session log sync
-- docs: sync version refs to 1.11.4
-- feat: verify self-update payloads against update.sha256 manifest
-- fix: parseArgs keeps flags in 2nd slot for branch commands; full git-flow refactor suite green
-- test: add suite for git-flow libs, wire runner, guard repo files
-- chore: add NXTG-Forge governance + test suite for git-flow libs
-- refactor: split git-flow.js god module, fix SOLID violations
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -47,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(git-flow): `--help` is honoured before git-flow availability checks (release, hotfix, sync)
 - fix(options): `--type/--branch/--bump/--version` without a value now error instead of silently setting `undefined`
 - fix: `parseArgs` keeps flags in the 2nd argv slot for branch commands — `start --name x` no longer swallows the flag as the subcommand
+- fix(git-flow): `finish` passed `-p`, which git-flow-next 2.1.0 reads as `--preserve-merges`; the merge, tag, and branches were never pushed. Now uses `--push`
+- fix(changelog): `appendChangelog` prepended the new section above the `# Changelog` header; it now inserts before the first released `## v...` heading
 
 ### Changed
 
@@ -56,6 +35,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - test: e2e pins for `+h` exit status, unknown-option rejection, `.env` spaces, single `.env` load
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
+
+## v1.12.0 - 2026-10-19
+
+- fix(runcmd): improve option parsing, .env handling, and shell robustness
+- bd init: initialize beads issue tracking
+- chore: record session governance bookkeeping
+- docs: normalize website/src/styles AGENTS.md title
+- docs: make AGENTS.md the canonical guidance file, CLAUDE.md a thin pointer
+- docs: review and simplify CLAUDE.md, AGENTS.md, CLAUDE.local.md
+- test: add end-to-end suite for the runcmd runner
+- ci: add test and type-check workflow, update governance bookkeeping
+- chore: record session governance bookkeeping
+- feat(types): add strict tsconfig with checkJs, fix all tsc errors in source files
+- docs: add JSDoc to 67 public exports; strip stale website claims
+- docs: re-sync AGENTS.md + SPEC.md to actual module exports
+- test: cover all previously-untested git-flow command modules
+- chore: gap-analysis quick wins — layering, gitignore, changelog
+- chore: session log sync
+- chore: session log sync
+- docs: sync version refs to 1.11.4
+- feat: verify self-update payloads against update.sha256 manifest
+- fix: parseArgs keeps flags in 2nd slot for branch commands; full git-flow refactor suite green
+- test: add suite for git-flow libs, wire runner, guard repo files
+- chore: add NXTG-Forge governance + test suite for git-flow libs
+- refactor: split git-flow.js god module, fix SOLID violations
 
 ## v1.11.4 - 2026-09-08
 

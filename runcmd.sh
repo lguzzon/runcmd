@@ -282,6 +282,14 @@ readonly BUN_INSTALL="$HOME/.bun"
 readonly BUN_INSTALL_SCRIPT="https://bun.sh/install"
 readonly DEFAULT_SCRIPT="${script_name}.mjs"
 
+# Discover a locally installed Bun even when ~/.bun/bin is not on PATH: the
+# installer only edits interactive shell profiles, so without this every run
+# would attempt a network reinstall — or abort offline with Bun present.
+if ! command_exists bun && [[ -x "$BUN_INSTALL/bin/bun" ]]; then
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  hash -r
+fi
+
 current_dir=$(pwd)
 readonly current_dir
 

@@ -157,20 +157,44 @@ describe('runUpdateCheck', () => {
     expect(fs.readFileSync(tempFile, 'utf8')).toBe(env.newScript)
   })
 
+  test('a failed fetch records the check, so the next attempt is 7 days out', async () => {
+    const env = makeEnv()
+    const fetchImpl = async (url) => {
+      if (url.endsWith('/version.txt')) return { ok: false, status: 404 }
+      throw new Error('unexpected fetch: ' + url)
+    }
+
+    const result = await runUpdateCheck({
+      fetchImpl,
+      log: env.log,
+      scriptPath: env.scriptPath,
+      currentVersion: '1.0.0',
+      stateFile: env.stateFile
+    })
+
+    expect(result).toEqual({ status: 'check-failed' })
+    expect(env.lines).toEqual([])
+    expect(fs.existsSync(env.scriptPath + '.new')).toBe(false)
+    const state = JSON.parse(fs.readFileSync(env.stateFile, 'utf8'))
+    expect(state.last_check).toBeGreaterThan(0)
+  })
+
   test('a renamed runner copy fails closed instead of fetching runcmd.*', async () => {
     const env = makeEnv()
     const renamedPath = path.join(env.root, 'runner', 'renamed.sh')
 
-    await expect(
-      runUpdateCheck({
-        fetchImpl: env.fetchImpl,
-        log: env.log,
-        scriptPath: renamedPath,
-        currentVersion: '1.0.0',
-        stateFile: env.stateFile
-      })
-    ).rejects.toThrow('unexpected fetch')
+    const result = await runUpdateCheck({
+      fetchImpl: env.fetchImpl,
+      log: env.log,
+      scriptPath: renamedPath,
+      currentVersion: '1.0.0',
+      stateFile: env.stateFile
+    })
 
+    expect(result).toEqual({ status: 'check-failed' })
+    expect(
+      JSON.parse(fs.readFileSync(env.stateFile, 'utf8')).last_check
+    ).toBeGreaterThan(0)
     expect(fs.existsSync(env.scriptPath + '.new')).toBe(false)
   })
 })

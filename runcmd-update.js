@@ -10,6 +10,21 @@ const {
 const UPDATE_URL_BASE = 'https://lguzzon.github.io/runcmd'
 const CHECK_INTERVAL = 7 * 24 * 3600 * 1000 // 7 days in ms
 
+// Fetch failures are retriable network conditions, unlike a checksum
+// mismatch, which refuses the update and writes nothing.
+class FetchError extends Error {}
+
+async function fetchText(url, timeoutMs, fetchImpl) {
+  let res
+  try {
+    res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) })
+  } catch (e) {
+    throw new FetchError('network error fetching ' + url + ': ' + e.message)
+  }
+  if (!res.ok) throw new FetchError('HTTP ' + res.status + ' fetching ' + url)
+  return res.text()
+}
+
 /**
  * Run one update check cycle.
  * Side effects: state file writes, the `.new` temp script, and the
@@ -23,7 +38,7 @@ const CHECK_INTERVAL = 7 * 24 * 3600 * 1000 // 7 days in ms
  * @param {string} [opts.scriptPath] path of the running runner script
  * @param {string} [opts.currentVersion] version of the running runner script
  * @param {string} [opts.stateFile] path to state.json
- * @returns {Promise<{status: 'skipped'|'up-to-date'|'update-ready', version?: string, tempFile?: string}>}
+ * @returns {Promise<{status: 'skipped'|'up-to-date'|'update-ready'|'check-failed', version?: string, tempFile?: string}>}
  */
 async function runUpdateCheck(opts = {}) {
   const {
@@ -52,70 +67,82 @@ async function runUpdateCheck(opts = {}) {
   if (now - state.last_check < CHECK_INTERVAL) return { status: 'skipped' }
 
   console.error('[INFO] Checking for updates...')
-  const res = await fetchImpl(UPDATE_URL_BASE + '/version.txt', {
-    signal: AbortSignal.timeout(5000)
-  })
-  if (!res.ok) throw new Error('Failed to fetch version')
-  const remoteVersion = (await res.text()).trim()
 
-  if (compareVersions(currentVersion, remoteVersion) >= 0) {
-    console.error('[INFO] Runcmd is up to date ' + currentVersion)
+  try {
+    const remoteVersion = (
+      await fetchText(UPDATE_URL_BASE + '/version.txt', 5000, fetchImpl)
+    ).trim()
+
+    if (compareVersions(currentVersion, remoteVersion) >= 0) {
+      console.error('[INFO] Runcmd is up to date ' + currentVersion)
+      state.last_check = now
+      fs.writeFileSync(stateFile, JSON.stringify(state))
+      return { status: 'up-to-date', version: currentVersion }
+    }
+
+    console.error(
+      '[INFO] New version available: ' + remoteVersion + '. Updating...'
+    )
+    const newContent = await fetchText(
+      UPDATE_URL_BASE + '/' + target,
+      10000,
+      fetchImpl
+    )
+
+    if (!newContent.includes(target)) throw new Error('Invalid update content')
+
+    // Fail-closed: verify SHA256 from update.sha256 manifest before
+    // overwriting the running runner script. Manifest travels over the same
+    // TLS channel as the payload — same posture as installer.js until a
+    // signed manifest ships.
+    const manifest = await fetchText(
+      UPDATE_URL_BASE + '/update.sha256',
+      5000,
+      fetchImpl
+    )
+    const expected = expectedHashFor(manifest, target)
+    if (!expected) throw new Error(target + ' missing from update manifest')
+    const actual = createHash('sha256').update(newContent).digest('hex')
+    if (actual !== expected) {
+      throw new Error(
+        'Update checksum mismatch (expected ' +
+          expected +
+          ', got ' +
+          actual +
+          '). Aborting.'
+      )
+    }
+
+    // Write new content to a temporary file
+    const tempFile = scriptPath + '.new'
+    fs.writeFileSync(tempFile, newContent)
+
+    // Record the target version beside the runner as part of the UPDATE_READY
+    // handshake: both runners read the installed version from version.txt, so
+    // without this the same update is re-downloaded on every check interval.
+    // The runner restores the previous version if the swap fails.
+    fs.writeFileSync(
+      path.join(path.dirname(scriptPath), 'version.txt'),
+      remoteVersion + '\n'
+    )
+
+    // Signal the runner script to swap itself
+    log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
+
     state.last_check = now
     fs.writeFileSync(stateFile, JSON.stringify(state))
-    return { status: 'up-to-date', version: currentVersion }
-  }
-
-  console.error(
-    '[INFO] New version available: ' + remoteVersion + '. Updating...'
-  )
-  const scriptRes = await fetchImpl(UPDATE_URL_BASE + '/' + target, {
-    signal: AbortSignal.timeout(10000)
-  })
-  if (!scriptRes.ok) throw new Error('Failed to fetch update')
-  const newContent = await scriptRes.text()
-
-  if (!newContent.includes(target)) throw new Error('Invalid update content')
-
-  // Fail-closed: verify SHA256 from update.sha256 manifest before overwriting
-  // the running runner script. Manifest travels over the same TLS channel as
-  // the payload — same posture as installer.js until a signed manifest ships.
-  const manifestRes = await fetchImpl(UPDATE_URL_BASE + '/update.sha256', {
-    signal: AbortSignal.timeout(5000)
-  })
-  if (!manifestRes.ok) throw new Error('Failed to fetch update manifest')
-  const manifest = await manifestRes.text()
-  const expected = expectedHashFor(manifest, target)
-  if (!expected) throw new Error(target + ' missing from update manifest')
-  const actual = createHash('sha256').update(newContent).digest('hex')
-  if (actual !== expected) {
-    throw new Error(
-      'Update checksum mismatch (expected ' +
-        expected +
-        ', got ' +
-        actual +
-        '). Aborting.'
+    return { status: 'update-ready', version: remoteVersion, tempFile }
+  } catch (e) {
+    if (!(e instanceof FetchError)) throw e
+    // A failed or timed-out fetch still records the check, so the next
+    // attempt is no sooner than seven days later.
+    state.last_check = now
+    fs.writeFileSync(stateFile, JSON.stringify(state))
+    console.error(
+      '[WARN] Update check failed (' + e.message + '); retrying in 7 days.'
     )
+    return { status: 'check-failed' }
   }
-
-  // Write new content to a temporary file
-  const tempFile = scriptPath + '.new'
-  fs.writeFileSync(tempFile, newContent)
-
-  // Record the target version beside the runner as part of the UPDATE_READY
-  // handshake: both runners read the installed version from version.txt, so
-  // without this the same update is re-downloaded on every check interval.
-  // The runner restores the previous version if the swap fails.
-  fs.writeFileSync(
-    path.join(path.dirname(scriptPath), 'version.txt'),
-    remoteVersion + '\n'
-  )
-
-  // Signal the runner script to swap itself
-  log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
-
-  state.last_check = now
-  fs.writeFileSync(stateFile, JSON.stringify(state))
-  return { status: 'update-ready', version: remoteVersion, tempFile }
 }
 
 async function main() {

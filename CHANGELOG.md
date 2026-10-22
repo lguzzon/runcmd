@@ -36,6 +36,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 
+## v2.1.1 - 2026-10-22
+- fix(model): sync restores the starting branch; delete is local-only
+- fix(update): record the check when a fetch fails; find local Bun off PATH
+- refactor(update): single JS update path for both runners
+- refactor(tests): shared gitFlowDouble/coreDouble factories for mock.module
+- docs(runner): correct the step-5 comment; ADR-1 convention already governs all exit sites
+- docs(changelog): drop internal merge entries; close the plan's workflow boxes
+- docs: drop line-count claims for the runner scripts
+- refactor(runner): inline run_json_sort and ensure_curl_installed; tick 30 verified plan items
+- chore(hooks): block commit when scripts/ tests fail; document --isolate
+- docs(plan): tick 10 already-fixed findings verified against current tree
+- docs(plan): tick line-count, _flag, and requireTypeAndName items; refresh final diff stat
+- refactor(commands): use requireTypeAndName guard in all branch handlers
+- refactor(start): use requireTypeAndName guard instead of inline logError
+- fix(runner): audit round — 10 findings
+- docs(product-model): map current product behavior
+- chore: ignore local AI tool directories
+- Merge branch 'main' into develop
+
 ## v2.1.0 - 2026-10-19
 - docs: record the README sync in the module docs
 - docs: sync the README badge and footer to 2.0.2

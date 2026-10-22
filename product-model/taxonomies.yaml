@@ -1,0 +1,10 @@
+scenarioKinds:
+  - id: primary
+    name: Primary
+    description: The main path through the capability.
+  - id: validation
+    name: Validation
+    description: A refusal of invalid input the product distinguishes.
+  - id: edge
+    name: Edge
+    description: A conflict or an unavailable external dependency the product distinguishes.

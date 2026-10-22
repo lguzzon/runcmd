@@ -6,22 +6,25 @@ const { createHash } = require('crypto')
 const { runUpdateCheck } = require('./runcmd-update.js')
 
 const REMOTE_VERSION = '2.0.0'
-const NEW_SCRIPT = ':: fake new runcmd.bat\r\n@ECHO OFF\r\n'
-const NEW_HASH = createHash('sha256').update(NEW_SCRIPT).digest('hex')
 
-function makeEnv({ remoteVersion = REMOTE_VERSION } = {}) {
+function makeEnv({
+  remoteVersion = REMOTE_VERSION,
+  target = 'runcmd.bat'
+} = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'runcmd-update-'))
   const runnerDir = path.join(root, 'runner')
   fs.mkdirSync(runnerDir)
-  const scriptPath = path.join(runnerDir, 'runcmd.bat')
-  fs.writeFileSync(scriptPath, ':: old runcmd.bat\r\n')
+  const scriptPath = path.join(runnerDir, target)
+  fs.writeFileSync(scriptPath, ':: old ' + target + '\r\n')
   fs.writeFileSync(path.join(runnerDir, 'version.txt'), '1.0.0\n')
   const stateFile = path.join(root, 'state', 'state.json')
   const lines = []
+  const newScript = ':: fake new ' + target + '\r\n@ECHO OFF\r\n'
+  const newHash = createHash('sha256').update(newScript).digest('hex')
   const responses = {
     'https://lguzzon.github.io/runcmd/version.txt': remoteVersion,
-    'https://lguzzon.github.io/runcmd/runcmd.bat': NEW_SCRIPT,
-    'https://lguzzon.github.io/runcmd/update.sha256': `# manifest\n${NEW_HASH}  runcmd.bat\n`
+    ['https://lguzzon.github.io/runcmd/' + target]: newScript,
+    'https://lguzzon.github.io/runcmd/update.sha256': `# manifest\n${newHash}  ${target}\n`
   }
   const fetchImpl = async (url) => {
     if (!(url in responses)) throw new Error('unexpected fetch: ' + url)
@@ -32,6 +35,7 @@ function makeEnv({ remoteVersion = REMOTE_VERSION } = {}) {
     scriptPath,
     stateFile,
     fetchImpl,
+    newScript,
     log: (line) => lines.push(line),
     lines
   }
@@ -55,7 +59,7 @@ describe('runUpdateCheck', () => {
       tempFile
     })
     expect(env.lines).toEqual([`UPDATE_READY|${tempFile}|${REMOTE_VERSION}`])
-    expect(fs.readFileSync(tempFile, 'utf8')).toBe(NEW_SCRIPT)
+    expect(fs.readFileSync(tempFile, 'utf8')).toBe(env.newScript)
     expect(
       fs.readFileSync(path.join(env.root, 'runner', 'version.txt'), 'utf8')
     ).toBe(REMOTE_VERSION + '\n')
@@ -107,7 +111,7 @@ describe('runUpdateCheck', () => {
     const env = makeEnv()
     const responses = {
       'https://lguzzon.github.io/runcmd/version.txt': REMOTE_VERSION,
-      'https://lguzzon.github.io/runcmd/runcmd.bat': NEW_SCRIPT,
+      'https://lguzzon.github.io/runcmd/runcmd.bat': env.newScript,
       'https://lguzzon.github.io/runcmd/update.sha256': `# manifest\n${'0'.repeat(64)}  runcmd.bat\n`
     }
     const fetchImpl = async (url) => ({
@@ -131,6 +135,43 @@ describe('runUpdateCheck', () => {
       fs.readFileSync(path.join(env.root, 'runner', 'version.txt'), 'utf8')
     ).toBe('1.0.0\n')
     expect(fs.existsSync(env.stateFile)).toBe(false)
+  })
+
+  test('derives the update target from the runner basename (runcmd.sh)', async () => {
+    const env = makeEnv({ target: 'runcmd.sh' })
+    const result = await runUpdateCheck({
+      fetchImpl: env.fetchImpl,
+      log: env.log,
+      scriptPath: env.scriptPath,
+      currentVersion: '1.0.0',
+      stateFile: env.stateFile
+    })
+
+    const tempFile = env.scriptPath + '.new'
+    expect(result).toEqual({
+      status: 'update-ready',
+      version: REMOTE_VERSION,
+      tempFile
+    })
+    expect(env.lines).toEqual([`UPDATE_READY|${tempFile}|${REMOTE_VERSION}`])
+    expect(fs.readFileSync(tempFile, 'utf8')).toBe(env.newScript)
+  })
+
+  test('a renamed runner copy fails closed instead of fetching runcmd.*', async () => {
+    const env = makeEnv()
+    const renamedPath = path.join(env.root, 'runner', 'renamed.sh')
+
+    await expect(
+      runUpdateCheck({
+        fetchImpl: env.fetchImpl,
+        log: env.log,
+        scriptPath: renamedPath,
+        currentVersion: '1.0.0',
+        stateFile: env.stateFile
+      })
+    ).rejects.toThrow('unexpected fetch')
+
+    expect(fs.existsSync(env.scriptPath + '.new')).toBe(false)
   })
 })
 

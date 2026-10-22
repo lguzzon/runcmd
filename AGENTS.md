@@ -309,8 +309,8 @@ The `runcmd.sh` is organized into functional sections (see line comments for bou
 
 - Path resolution utilities (≈lines 211-570): `resolve_path`, `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`, `run_shfmt`
 - Script discovery (≈lines 279-560): `resolve_default_script`, `resolve_default_in_dir`, `resolve_script_path`
-- Version management and update check (≈lines 302-452): `version_lt`, `check_for_updates`
-- Tooling integration (≈lines 561-927): `run_shfmt`, `safe_format_file`, `format_shell_scripts`, `run_lint`, `run_oxfmt`, `run_json_sort`
+- Version management and update check (≈lines 320-351): `check_for_updates` (thin dispatcher; decision logic lives in `runcmd-update.js`)
+- Tooling integration (≈lines 561-927): `run_shfmt`, `safe_format_file`, `format_shell_scripts`, `run_lint`, `run_oxfmt`
 - Safe file operations (≈lines 571-710): `safe_format_file` with atomic updates, `format_shell_scripts`
 - Execution orchestration (≈lines 928-1067): `execute_script`
 - Environment loading (≈lines 1068-1166): `load_env_file`, `load_env_files`

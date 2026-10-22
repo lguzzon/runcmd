@@ -281,11 +281,6 @@ readonly RUNCMD_VERSION
 readonly BUN_INSTALL="$HOME/.bun"
 readonly BUN_INSTALL_SCRIPT="https://bun.sh/install"
 readonly DEFAULT_SCRIPT="${script_name}.mjs"
-# Update Configuration
-readonly UPDATE_URL_BASE="https://lguzzon.github.io/runcmd"
-readonly RUNCMD_HOME="$HOME/.runcmd"
-readonly RUNCMD_STATE="$RUNCMD_HOME/state.json"
-readonly UPDATE_CHECK_INTERVAL=$((7 * 24 * 3600)) # 7 days in seconds
 
 current_dir=$(pwd)
 readonly current_dir
@@ -314,156 +309,45 @@ resolve_default_script() {
   exit 1
 }
 
-# Compare two semantic versions (x.y.z)
-# Args:
-#   $1: Version A (local)
-#   $2: Version B (remote)
-# Returns:
-#   0 if A < B (true/success)
-#   1 if A >= B (false/failure)
-version_lt() {
-  # Reject malformed input instead of comparing garbage as zero: a bad remote
-  # version must never look like "no update needed".
-  local semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-  if [[ ! $1 =~ $semver || ! $2 =~ $semver ]]; then
-    return 1
-  fi
-
-  # Parse versions into arrays
-  local ver1
-  IFS='.' read -ra ver1 <<<"$1"
-  local ver2
-  IFS='.' read -ra ver2 <<<"$2"
-
-  for ((i = 0; i < 3; i++)); do
-    if ((ver1[i] < ver2[i])); then return 0; fi
-    if ((ver1[i] > ver2[i])); then return 1; fi
-  done
-
-  return 1 # A >= B
-}
-
 # Check for updates from GitHub Pages
-# Checks weekly for a new version and self-updates if available.
-# Uses state file in ~/.runcmd/state.json to track last check time and current version.
-#
-# Process:
-#   1. Ensure state directory exists
-#   2. Check if update check is needed (time based)
-#   3. Fetch remote version.txt
-#   4. Compare versions
-#   5. If newer, download and replace self
-#   6. Update state file
+# Delegates the whole decision — interval gating, remote version fetch,
+# SHA256 manifest verification, and staging the replacement beside the
+# runner — to runcmd-update.js, the single update path shared with
+# runcmd.bat. This side keeps only the Unix-specific atomic swap.
+# Handshake (one line on the JS process's stdout): UPDATE_READY|<temp>|<version>
+# Returns:
+#   0 always — a failed update degrades to a warning, never a broken runner
 check_for_updates() {
-  # Skip update check if explicitly disabled or in debug/CI environments
   [[ ${RUNCMD_NO_UPDATE:-0} == "1" ]] && return 0
+  command_exists bun || return 0
 
-  mkdir -p "$RUNCMD_HOME"
+  local handshake
+  handshake=$(bun "$script_dir/runcmd-update.js" "$script_path" "$RUNCMD_VERSION" | grep '^UPDATE_READY|' || true)
+  [[ -z $handshake ]] && return 0
 
-  # Initialize or read state
-  local last_check=0
-  local current_version="$RUNCMD_VERSION"
+  local temp_script new_version
+  IFS='|' read -r _ temp_script new_version <<<"$handshake"
 
-  if [[ -f $RUNCMD_STATE ]]; then
-    # Simple JSON parsing using Bun since we want to avoid complex dependencies for this core function
-    if command_exists bun; then
-      last_check=$(_RUNCMD_STATE="$RUNCMD_STATE" bun -e "try { console.log(require(process.env._RUNCMD_STATE).last_check || 0) } catch(e) { console.log(0) }" 2>/dev/null || echo 0)
-    fi
-  fi
-
-  local now
-  now=$(date +%s)
-
-  if (((now - last_check) < UPDATE_CHECK_INTERVAL)); then
+  # Second line of defense before the swap: runcmd-update.js already verified
+  # the manifest checksum; this re-checks syntax and identity so a broken
+  # download can never replace a working runner.
+  if ! grep -q "runcmd.sh" "$temp_script" || ! bash -n "$temp_script"; then
+    log_error "Downloaded update appears invalid."
+    rm -f "$temp_script"
+    # runcmd-update.js already advanced version.txt to the new version; put it
+    # back so the next check retries instead of going silently up to date.
+    printf '%s\n' "$RUNCMD_VERSION" >"$script_dir/version.txt"
     return 0
   fi
 
-  if ! command_exists curl; then
-    log_info "Skipping update check: curl not found."
-    return 0
-  fi
-
-  log_info "Checking for updates..."
-
-  # Fetch remote version
-  local remote_version
-  remote_version=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/version.txt" || echo "")
-
-  if [[ -z $remote_version ]]; then
-    log_info "Failed to check for updates (network issue or timeout)."
-    # Update last check anyway to prevent retry on every run
-    # Write state safely
-    echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
-    return 0
-  fi
-
-  # Clean up version string
-  remote_version=$(echo "$remote_version" | tr -d '[:space:]')
-
-  if [[ ! $remote_version =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-    log_error "Malformed remote version '$remote_version'. Skipping update."
-    echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
-    return 0
-  fi
-
-  # version_lt returns 0 (true) if current < remote
-  if version_lt "$current_version" "$remote_version"; then
-    # Perform update
-    log_info "New version available: $remote_version (current: $current_version). Updating..."
-
-    local temp_script
-    # Create the temp file next to the target so the final mv is a
-    # same-filesystem atomic rename (/tmp may be another device).
-    if ! temp_script=$(mktemp "${script_path}.update.XXXXXX"); then
-      log_error "Failed to create temp file next to '$script_path'. Skipping update."
-      return 0
-    fi
-
-    if curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
-      # Fail-closed: verify SHA256 from update.sha256 manifest before
-      # overwriting the running shell script. Manifest travels over the same
-      # TLS channel as the payload — same posture as installer.js until a
-      # signed manifest ships.
-      local expected_hash actual_hash hash_cmd
-      if command_exists sha256sum; then
-        hash_cmd="sha256sum"
-      else
-        # macOS ships shasum, not sha256sum.
-        hash_cmd="shasum -a 256"
-      fi
-      # Look up runcmd.sh's manifest entry by name so line order stays
-      # irrelevant; tolerate sha256sum's optional '*' binary marker.
-      expected_hash=$(curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/update.sha256" 2>/dev/null | awk -v want="runcmd.sh" '{ gsub(/^\*/,"",$2); if ($2 == want && $1 ~ /^[0-9a-fA-F]{64}$/) { print tolower($1); exit } }' || true)
-      actual_hash=$($hash_cmd "$temp_script" 2>/dev/null | awk '{print $1}')
-
-      if [[ -z $expected_hash ]]; then
-        log_error "Update manifest missing or malformed. Aborting."
-      elif [[ -z $actual_hash ]] || [[ $actual_hash != "$expected_hash" ]]; then
-        log_error "Update checksum mismatch (expected $expected_hash, got $actual_hash). Aborting."
-      elif grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
-        # Atomic swap: mv renames a fresh inode over the old path, so the bash
-        # process keeps executing the old (now unlinked) script instead of
-        # reading a truncated file.
-        local target_mode
-        target_mode=$(file_mode "$script_path")
-        mv "$temp_script" "$script_path"
-        chmod "$target_mode" "$script_path"
-
-        log_info "Updated to version $remote_version."
-        current_version="$remote_version"
-      else
-        log_error "Downloaded update appears invalid."
-      fi
-      rm -f "$temp_script"
-    else
-      log_error "Failed to download update."
-    fi
-  else
-    log_info "Runcmd is up to date ($current_version)."
-  fi
-
-  # Update state
-  echo "{\"last_check\": $now, \"current_version\": \"$current_version\"}" >"$RUNCMD_STATE"
+  local target_mode
+  target_mode=$(file_mode "$script_path")
+  # Atomic swap: mv renames a fresh inode over the old path, so this bash
+  # process keeps executing the old (now unlinked) script instead of reading
+  # a truncated file.
+  mv "$temp_script" "$script_path"
+  chmod "$target_mode" "$script_path"
+  log_info "Updated to version $new_version."
 }
 
 # Resolve the default script path within a specified directory

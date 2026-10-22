@@ -14,6 +14,9 @@ const CHECK_INTERVAL = 7 * 24 * 3600 * 1000 // 7 days in ms
  * Run one update check cycle.
  * Side effects: state file writes, the `.new` temp script, and the
  * runner-adjacent version.txt are all on the real (or injected) fs.
+ * The update target is derived from the runner's basename, so this one
+ * path serves runcmd.sh and runcmd.bat; a renamed copy fetches its own
+ * name, misses, and fails closed instead of clobbering the original.
  * @param {object} [opts] injection points for tests
  * @param {typeof fetch} [opts.fetchImpl] fetch replacement
  * @param {(line: string) => void} [opts.log] UPDATE_READY sink
@@ -30,6 +33,10 @@ async function runUpdateCheck(opts = {}) {
     currentVersion = process.argv[3],
     stateFile = path.join(os.homedir(), '.runcmd', 'state.json')
   } = opts
+
+  if (process.env.RUNCMD_NO_UPDATE === '1') return { status: 'skipped' }
+
+  const target = path.basename(scriptPath)
 
   const home = path.dirname(stateFile)
   if (!fs.existsSync(home)) fs.mkdirSync(home, { recursive: true })
@@ -61,25 +68,24 @@ async function runUpdateCheck(opts = {}) {
   console.error(
     '[INFO] New version available: ' + remoteVersion + '. Updating...'
   )
-  const scriptRes = await fetchImpl(UPDATE_URL_BASE + '/runcmd.bat', {
+  const scriptRes = await fetchImpl(UPDATE_URL_BASE + '/' + target, {
     signal: AbortSignal.timeout(10000)
   })
   if (!scriptRes.ok) throw new Error('Failed to fetch update')
   const newContent = await scriptRes.text()
 
-  if (!newContent.includes('runcmd.bat'))
-    throw new Error('Invalid update content')
+  if (!newContent.includes(target)) throw new Error('Invalid update content')
 
   // Fail-closed: verify SHA256 from update.sha256 manifest before overwriting
-  // the running batch script. Manifest travels over the same TLS channel as
+  // the running runner script. Manifest travels over the same TLS channel as
   // the payload — same posture as installer.js until a signed manifest ships.
   const manifestRes = await fetchImpl(UPDATE_URL_BASE + '/update.sha256', {
     signal: AbortSignal.timeout(5000)
   })
   if (!manifestRes.ok) throw new Error('Failed to fetch update manifest')
   const manifest = await manifestRes.text()
-  const expected = expectedHashFor(manifest, 'runcmd.bat')
-  if (!expected) throw new Error('runcmd.bat missing from update manifest')
+  const expected = expectedHashFor(manifest, target)
+  if (!expected) throw new Error(target + ' missing from update manifest')
   const actual = createHash('sha256').update(newContent).digest('hex')
   if (actual !== expected) {
     throw new Error(
@@ -96,15 +102,15 @@ async function runUpdateCheck(opts = {}) {
   fs.writeFileSync(tempFile, newContent)
 
   // Record the target version beside the runner as part of the UPDATE_READY
-  // handshake: runcmd.bat reads the installed version from version.txt, so
+  // handshake: both runners read the installed version from version.txt, so
   // without this the same update is re-downloaded on every check interval.
-  // The batch runner restores the previous version if the move fails.
+  // The runner restores the previous version if the swap fails.
   fs.writeFileSync(
     path.join(path.dirname(scriptPath), 'version.txt'),
     remoteVersion + '\n'
   )
 
-  // Signal the batch script to update
+  // Signal the runner script to swap itself
   log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
 
   state.last_check = now

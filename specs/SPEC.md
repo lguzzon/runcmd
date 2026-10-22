@@ -764,7 +764,7 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | `runcmd.sh`    | Runner        | Shell script with debug flags, environment loading, Bun auto-install        |
 | `runcmd.bat`   | Runner        | Windows batch script with equivalent functionality                           |
 | `runcmd.mjs`   | Runner        | Default target script, logs CWD and CLI args                                 |
-| `runcmd-update.js` | Updater   | Windows self-update check (`runUpdateCheck`, `main`, `compareVersions`)       |
+| `runcmd-update.js` | Updater   | Self-update check shared by both runners (`runUpdateCheck`, `main`, `compareVersions`) |
 | `runcmd-update.manifest.js` | Updater | `parseManifestLine`, `expectedHashFor` (sha256 manifest lookup)             |
 | `runcmd-update.manifest.test.js` | Test | Tests for the manifest parser                                               |
 | `runcmd-update.test.js` | Test       | Tests for the updater and the Windows restart contract                      |

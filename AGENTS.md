@@ -73,8 +73,8 @@ This project uses NXTG-Forge for AI-powered development governance.
 
 The project has three core runner files:
 
-1. **runcmd.sh** (1226 lines): Unix/macOS bash script with comprehensive features
-2. **runcmd.bat** (675 lines): Windows batch equivalent
+1. **runcmd.sh**: Unix/macOS bash script with comprehensive features
+2. **runcmd.bat**: Windows batch equivalent
 3. **runcmd.mjs**: Target script that the runner executes (this is the user's actual script)
 
 The runners are designed to be copied and the `.mjs` file modified to contain your script logic. The runner scripts handle all boilerplate.

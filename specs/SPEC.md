@@ -61,11 +61,11 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Runner Scripts
 
-**runcmd.sh** (Unix/macOS runner, 1226 lines)
+**runcmd.sh** (Unix/macOS runner)
 
 - Exported behaviors: debug flags (+debug/+nodebug), environment loading, Bun auto-install, script resolution, update checking, check mode (+check), version print (+version)
 
-**runcmd.bat** (Windows runner, 675 lines)
+**runcmd.bat** (Windows runner)
 
 - Exported behaviors: Equivalent Unix functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing, multi-level debug (+d/+dd/+ddd/+d0)
 

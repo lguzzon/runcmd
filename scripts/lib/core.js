@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { ensureGitFlowAvailable } from './installer.js'
-import { ensureGitFlowInitialized } from './validators.js'
 import { logError } from './logger.js'
+import { ensureGitFlowInitialized } from './validators.js'
 
 /**
  * Options shared by command handlers (spread into the availability probe).
@@ -36,4 +36,19 @@ export function requireValidCommand(opts, { commandName, helpFn }) {
   }
 
   return true
+}
+
+/**
+ * Require the `<type> <name>` positional pair shared by the branch
+ * commands (start/finish/publish/track/delete). Exits with status 1
+ * when either part is missing.
+ * @param {{ type?: string, name?: string }} opts
+ * @returns {{ type: string, name: string }} The validated pair
+ */
+export function requireTypeAndName(opts) {
+  if (!opts.type || !opts.name) {
+    logError('Both <type> and <name> are required')
+    process.exit(1)
+  }
+  return { type: opts.type, name: opts.name }
 }

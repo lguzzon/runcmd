@@ -1,12 +1,11 @@
 #!/usr/bin/env bun
-import { requireValidCommand } from '../lib/core.js'
+import { requireTypeAndName, requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
   ensureBranchExists,
   ensureBranchMissing,
   ensureCleanTree,
-  logError,
   logInfo,
   logSuccess,
   logWarn,
@@ -56,12 +55,9 @@ export async function handleStart(opts) {
 
   ensureCleanTree()
 
-  const { type, name, base, fetch, force, dryRun, offline } = opts
+  const { base, fetch, force, dryRun, offline } = opts
 
-  if (!type || !name) {
-    logError('Both <type> and <name> are required')
-    process.exit(1)
-  }
+  const { type, name } = requireTypeAndName(opts)
 
   if (!validateBranchName(name, type)) {
     process.exit(1)

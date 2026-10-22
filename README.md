@@ -65,6 +65,8 @@ runcmd.bat +d      # debug mode
 runcmd.bat +check  # format and lint
 ```
 
+On Windows the runner resolves `.js`, `.mjs`, `.ts` and `.py` scripts. `.js`, `.mjs` and `.ts` run under Bun; `.py` runs through `mise exec python@latest`.
+
 </details>
 
 <details>

@@ -43,3 +43,4 @@ Main (or master) and develop are current with the remote and with each other, an
 ## Edge cases
 
 - --dry-run prints the actions without executing them; --offline skips remote operations.
+- A merge conflict aborts the sync after the original checkout and the stashed changes are restored, and the conflict is reported for manual resolution.

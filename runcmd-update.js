@@ -8,85 +8,113 @@ const {
 } = require('./runcmd-update.manifest.js')
 
 const UPDATE_URL_BASE = 'https://lguzzon.github.io/runcmd'
-const RUNCMD_HOME = path.join(os.homedir(), '.runcmd')
-const STATE_FILE = path.join(RUNCMD_HOME, 'state.json')
 const CHECK_INTERVAL = 7 * 24 * 3600 * 1000 // 7 days in ms
-const CURRENT_SCRIPT = process.argv[2]
-const CURRENT_VERSION = process.argv[3]
+
+/**
+ * Run one update check cycle.
+ * Side effects: state file writes, the `.new` temp script, and the
+ * runner-adjacent version.txt are all on the real (or injected) fs.
+ * @param {object} [opts] injection points for tests
+ * @param {typeof fetch} [opts.fetchImpl] fetch replacement
+ * @param {(line: string) => void} [opts.log] UPDATE_READY sink
+ * @param {string} [opts.scriptPath] path of the running runner script
+ * @param {string} [opts.currentVersion] version of the running runner script
+ * @param {string} [opts.stateFile] path to state.json
+ * @returns {Promise<{status: 'skipped'|'up-to-date'|'update-ready', version?: string, tempFile?: string}>}
+ */
+async function runUpdateCheck(opts = {}) {
+  const {
+    fetchImpl = fetch,
+    log = console.log,
+    scriptPath = process.argv[2],
+    currentVersion = process.argv[3],
+    stateFile = path.join(os.homedir(), '.runcmd', 'state.json')
+  } = opts
+
+  const home = path.dirname(stateFile)
+  if (!fs.existsSync(home)) fs.mkdirSync(home, { recursive: true })
+
+  let state = { last_check: 0 }
+  try {
+    state = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  } catch (e) {
+    console.error('[WARN] Could not read update state:', e.message)
+  }
+
+  const now = Date.now()
+  if (now - state.last_check < CHECK_INTERVAL) return { status: 'skipped' }
+
+  console.error('[INFO] Checking for updates...')
+  const res = await fetchImpl(UPDATE_URL_BASE + '/version.txt', {
+    signal: AbortSignal.timeout(5000)
+  })
+  if (!res.ok) throw new Error('Failed to fetch version')
+  const remoteVersion = (await res.text()).trim()
+
+  if (compareVersions(currentVersion, remoteVersion) >= 0) {
+    console.error('[INFO] Runcmd is up to date ' + currentVersion)
+    state.last_check = now
+    fs.writeFileSync(stateFile, JSON.stringify(state))
+    return { status: 'up-to-date', version: currentVersion }
+  }
+
+  console.error(
+    '[INFO] New version available: ' + remoteVersion + '. Updating...'
+  )
+  const scriptRes = await fetchImpl(UPDATE_URL_BASE + '/runcmd.bat', {
+    signal: AbortSignal.timeout(10000)
+  })
+  if (!scriptRes.ok) throw new Error('Failed to fetch update')
+  const newContent = await scriptRes.text()
+
+  if (!newContent.includes('runcmd.bat'))
+    throw new Error('Invalid update content')
+
+  // Fail-closed: verify SHA256 from update.sha256 manifest before overwriting
+  // the running batch script. Manifest travels over the same TLS channel as
+  // the payload — same posture as installer.js until a signed manifest ships.
+  const manifestRes = await fetchImpl(UPDATE_URL_BASE + '/update.sha256', {
+    signal: AbortSignal.timeout(5000)
+  })
+  if (!manifestRes.ok) throw new Error('Failed to fetch update manifest')
+  const manifest = await manifestRes.text()
+  const expected = expectedHashFor(manifest, 'runcmd.bat')
+  if (!expected) throw new Error('runcmd.bat missing from update manifest')
+  const actual = createHash('sha256').update(newContent).digest('hex')
+  if (actual !== expected) {
+    throw new Error(
+      'Update checksum mismatch (expected ' +
+        expected +
+        ', got ' +
+        actual +
+        '). Aborting.'
+    )
+  }
+
+  // Write new content to a temporary file
+  const tempFile = scriptPath + '.new'
+  fs.writeFileSync(tempFile, newContent)
+
+  // Record the target version beside the runner as part of the UPDATE_READY
+  // handshake: runcmd.bat reads the installed version from version.txt, so
+  // without this the same update is re-downloaded on every check interval.
+  // The batch runner restores the previous version if the move fails.
+  fs.writeFileSync(
+    path.join(path.dirname(scriptPath), 'version.txt'),
+    remoteVersion + '\n'
+  )
+
+  // Signal the batch script to update
+  log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
+
+  state.last_check = now
+  fs.writeFileSync(stateFile, JSON.stringify(state))
+  return { status: 'update-ready', version: remoteVersion, tempFile }
+}
 
 async function main() {
   try {
-    if (!fs.existsSync(RUNCMD_HOME))
-      fs.mkdirSync(RUNCMD_HOME, { recursive: true })
-
-    let state = { last_check: 0 }
-    try {
-      state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
-    } catch (e) {
-      console.error('[WARN] Could not read update state:', e.message)
-    }
-
-    const now = Date.now()
-    if (now - state.last_check < CHECK_INTERVAL) return
-
-    console.error('[INFO] Checking for updates...')
-    const res = await fetch(UPDATE_URL_BASE + '/version.txt', {
-      signal: AbortSignal.timeout(5000)
-    })
-    if (!res.ok) throw new Error('Failed to fetch version')
-    const remoteVersion = (await res.text()).trim()
-
-    if (compareVersions(CURRENT_VERSION, remoteVersion) >= 0) {
-      console.error('[INFO] Runcmd is up to date ' + CURRENT_VERSION)
-      state.last_check = now
-      fs.writeFileSync(STATE_FILE, JSON.stringify(state))
-      return
-    }
-
-    console.error(
-      '[INFO] New version available: ' + remoteVersion + '. Updating...'
-    )
-    const scriptRes = await fetch(UPDATE_URL_BASE + '/runcmd.bat', {
-      signal: AbortSignal.timeout(10000)
-    })
-    if (!scriptRes.ok) throw new Error('Failed to fetch update')
-    const newContent = await scriptRes.text()
-
-    if (!newContent.includes('runcmd.bat'))
-      throw new Error('Invalid update content')
-
-    // Fail-closed: verify SHA256 from update.sha256 manifest before overwriting
-    // the running batch script. Manifest travels over the same TLS channel as
-    // the payload — same posture as installer.js until a signed manifest ships.
-    const manifestRes = await fetch(UPDATE_URL_BASE + '/update.sha256', {
-      signal: AbortSignal.timeout(5000)
-    })
-    if (!manifestRes.ok) throw new Error('Failed to fetch update manifest')
-    const manifest = await manifestRes.text()
-    const expected = expectedHashFor(manifest, 'runcmd.bat')
-    if (!expected) throw new Error('runcmd.bat missing from update manifest')
-    const actual = createHash('sha256').update(newContent).digest('hex')
-    if (actual !== expected) {
-      throw new Error(
-        'Update checksum mismatch (expected ' +
-          expected +
-          ', got ' +
-          actual +
-          '). Aborting.'
-      )
-    }
-
-    // Write new content to a temporary file
-    const tempFile = CURRENT_SCRIPT + '.new'
-    fs.writeFileSync(tempFile, newContent)
-
-    // Signal the batch script to update
-    console.log('UPDATE_READY|' + tempFile + '|' + remoteVersion)
-
-    // Update state - only update last_check, not current_version
-    // (the version is recorded by the new script after a successful move)
-    state.last_check = now
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state))
+    await runUpdateCheck()
   } catch (e) {
     console.error('[WARN] Update check failed:', e.message)
   }
@@ -109,4 +137,10 @@ if (require.main === module) {
   main()
 }
 
-module.exports = { main, compareVersions, parseManifestLine, expectedHashFor }
+module.exports = {
+  main,
+  runUpdateCheck,
+  compareVersions,
+  parseManifestLine,
+  expectedHashFor
+}

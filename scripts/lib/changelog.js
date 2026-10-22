@@ -2,9 +2,16 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { logInfo } from './logger.js'
 import { runGit } from './git.js'
+import { repoRoot } from './paths.js'
 
-const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
-export const CHANGELOG_FILE = `${PROJECT_ROOT}/CHANGELOG.md`
+/**
+ * Absolute path of CHANGELOG.md, resolved at call time against the
+ * repository root.
+ * @returns {string} Path to CHANGELOG.md
+ */
+export function changelogFile() {
+  return `${repoRoot()}/CHANGELOG.md`
+}
 
 /**
  * Get the most recent reachable tag via `git describe`.
@@ -39,9 +46,8 @@ export function collectCommitsSince(ref) {
  * @returns {boolean} true when the file was written
  */
 export function appendChangelog(version, opts) {
-  const existing = existsSync(CHANGELOG_FILE)
-    ? readFileSync(CHANGELOG_FILE, 'utf-8')
-    : ''
+  const file = changelogFile()
+  const existing = existsSync(file) ? readFileSync(file, 'utf-8') : ''
   if (existing.includes(`## v${version}`)) {
     logInfo('Changelog already contains this version. Skipping.')
     return false
@@ -63,7 +69,7 @@ export function appendChangelog(version, opts) {
     logInfo(`[dry-run] would update CHANGELOG.md with v${version}`)
     return false
   }
-  writeFileSync(CHANGELOG_FILE, nextContent, 'utf-8')
+  writeFileSync(file, nextContent, 'utf-8')
   return true
 }
 

@@ -176,15 +176,35 @@ ${COLOR_BOLD}For detailed help on any command:${COLOR_RESET}
  */
 
 /**
+ * Opt field a command fills from a leading positional argument.
+ * @typedef {'sub'|'type'|'name'|'cloneUrl'|'targetDir'} PositionalSlot
+ */
+
+/**
  * Parse a CLI argv array into the structured `opts` consumed by command
- * handlers. Detects a subcommand slot for branch-action commands
- * (release/hotfix/start/finish/publish/track/delete) and folds the rest of
- * the argv into the known flag set.
+ * handlers. Commands listed in POSITIONAL_SLOTS consume their leading
+ * non-flag positionals into the named fields (`start feature myname` fills
+ * type and name); a flag in a positional slot goes back to the flag loop.
+ * Commands without slots keep the legacy behavior of dropping a 2nd-argv
+ * flag (except --help/-h).
  *
  * @param {string[]} argv process argv slice
  * @returns {ParsedArgs}
  */
 export function parseArgs(argv) {
+  /** @type {Record<string, PositionalSlot[]>} */
+  const POSITIONAL_SLOTS = {
+    release: ['sub'],
+    hotfix: ['sub'],
+    start: ['type', 'name'],
+    finish: ['type', 'name'],
+    publish: ['type', 'name'],
+    track: ['type', 'name'],
+    delete: ['type', 'name'],
+    list: ['type'],
+    clone: ['cloneUrl', 'targetDir']
+  }
+
   const args = [...argv]
   const next = () => args.shift()
   /** @param {string} flag @returns {string} */
@@ -199,35 +219,29 @@ export function parseArgs(argv) {
 
   const command = next()
   const nextArg = next()
-  let sub = null
-  if (
-    command &&
-    [
-      'release',
-      'hotfix',
-      'start',
-      'finish',
-      'publish',
-      'track',
-      'delete'
-    ].includes(command)
-  ) {
-    if (nextArg && !nextArg.startsWith('-')) {
-      sub = nextArg
-    } else if (nextArg) {
-      // Flag in the sub slot (--name, --help, etc.) — hand it back to the
-      // main flag loop instead of swallowing it as the subcommand.
-      args.unshift(nextArg)
+  /** @type {Partial<Record<PositionalSlot, string>>} */
+  const positionals = {}
+
+  const slots = command ? POSITIONAL_SLOTS[command] : undefined
+  if (slots) {
+    let pending = nextArg
+    for (const slot of slots) {
+      if (!pending || pending.startsWith('-')) break
+      positionals[slot] = pending
+      pending = args.shift()
     }
-  } else if (nextArg === '--help' || nextArg === '-h') {
+    if (pending) args.unshift(pending)
+  } else if (nextArg) {
+    // Commands without positional slots still take flags in the 2nd argv
+    // position: `sync --dry-run`, `config --get key`.
     args.unshift(nextArg)
   }
 
   /** @type {ParsedArgs} */
   const opts = {
     command,
-    sub,
-    name: undefined,
+    sub: positionals.sub ?? null,
+    name: positionals.name,
     base: null,
     force: false,
     tag: undefined,
@@ -237,9 +251,9 @@ export function parseArgs(argv) {
     offline: false,
     dryRun: false,
     autoInstall: false,
-    targetDir: undefined,
-    cloneUrl: undefined,
-    type: undefined,
+    targetDir: positionals.targetDir,
+    cloneUrl: positionals.cloneUrl,
+    type: positionals.type,
     bump: undefined,
     version: undefined,
     fetch: false,

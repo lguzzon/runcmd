@@ -159,7 +159,7 @@ export async function main() {
     // Set required options for git-flow operations
     opts.name = version
     opts.tag = `v${version}`
-    opts.message = `Release version ${version}`
+    opts.message = `${detectedType === 'hotfix' ? 'Hotfix' : 'Release'} version ${version}`
 
     // Map to git-flow.js operation
     const action = 'finish'

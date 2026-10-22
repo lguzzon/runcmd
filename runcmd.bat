@@ -17,6 +17,11 @@
 :: ===================================================================================
 :: INITIALIZATION SECTION
 :: ===================================================================================
+
+:: Capture the full invocation before any CALL: %* is empty inside CALLed
+:: subroutines, so the post-update restart must replay this variable instead
+SET "INVOCATION_ARGS=%*"
+
 CALL :initialize_environment
 
 :: Enable delayed variable expansion for complex string operations
@@ -29,6 +34,11 @@ CALL :configure_output_redirection
 
 :: Update Check
 CALL :check_for_updates
+IF DEFINED UPDATE_RESTARTED (
+    :: The replacement runner already ran the target and returned its exit
+    :: code in RESTART_EXITCODE; exit here instead of running the target twice.
+    ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !RESTART_EXITCODE!
+)
 
 ECHO Debug=%DEBUG% %ECHO_TO_NUL%
 
@@ -37,7 +47,7 @@ CALL :main !args_after_debug!
 ECHO ... finished!!! %ECHO_TO_NUL%
 
 :: Restore original DEBUG state and exit
-ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
+ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & SET "INVOCATION_ARGS=" & EXIT /B !ERRORLEVEL!
 
 :: ===================================================================================
 :: INITIALIZATION FUNCTIONS
@@ -45,11 +55,21 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
 
 :initialize_environment
     SET "OLD_DEBUG=%DEBUG%"
-    
+
+    :: RUNCMD_DEBUG=1 behaves like DEBUG=1 and wins over the DEBUG variable,
+    :: mirroring runcmd.sh. The +d/+dd/+ddd/+d0 flags are parsed later, so
+    :: +d0 still disables debug for the run.
+    IF "%RUNCMD_DEBUG%"=="1" SET "DEBUG=1"
+
+    :: Remember whether a version file exists, so a failed update can restore
+    :: the previous version instead of leaving a stale one behind.
+    SET "VERSION_FILE_EXISTED=0"
+
     :: Read version from version.txt for single source of truth
     :: Falls back to 1.0.0 if file is missing
     SET "RUNCMD_VERSION=1.0.0"
     IF EXIST "%~dp0version.txt" (
+        SET "VERSION_FILE_EXISTED=1"
         FOR /F "usebackq delims=" %%V IN ("%~dp0version.txt") DO SET "RUNCMD_VERSION=%%V"
     )
     
@@ -493,29 +513,69 @@ ENDLOCAL & SET "DEBUG=%OLD_DEBUG%" & EXIT /B !ERRORLEVEL!
             SET "EXPECTED_NEW=%~f0.new"
             IF /I NOT "!NEW_SCRIPT!"=="!EXPECTED_NEW!" (
                 ECHO [WARN] Update path rejected: !NEW_SCRIPT! >&2
-                EXIT /B 0
+                GOTO :update_abort
             )
 
             IF NOT EXIST "!NEW_SCRIPT!" (
                 ECHO [WARN] Update file missing: !NEW_SCRIPT! >&2
-                EXIT /B 0
+                GOTO :update_abort
             )
 
             ECHO [INFO] Applying update to version !NEW_VER!...
 
             MOVE /Y "%~f0" "%~f0.old" >nul
             MOVE /Y "!NEW_SCRIPT!" "%~f0" >nul
+            IF NOT EXIST "%~f0" (
+                ECHO [WARN] Update failed, restoring previous runner. >&2
+                IF EXIST "%~f0.old" MOVE /Y "%~f0.old" "%~f0" >nul
+                GOTO :update_abort
+            )
+
+            :: Record the applied version: runcmd.bat reads it from version.txt
+            IF NOT "!NEW_VER!"=="" ECHO !NEW_VER!>"%~dp0version.txt"
 
             ECHO [INFO] Update applied. Restarting...
 
-            "%~f0" %*
-            EXIT /B
+            :: The replacement runner runs the target and owns the exit code.
+            "%~f0" !INVOCATION_ARGS!
+            SET "RESTART_EXITCODE=!ERRORLEVEL!"
+            SET "UPDATE_RESTARTED=1"
+            EXIT /B 0
         )
     )
 
     :: Cleanup old backup if exists
     IF EXIST "%~f0.old" DEL "%~f0.old" %TO_NUL%
 
+    :: No update was applied. runcmd-update.js may have staged the new version
+    :: in version.txt before the handshake was read; put the running version
+    :: back so the next check retries the download.
+    CALL :restore_version
+    EXIT /B 0
+
+:update_abort
+    :: The update was not applied. Keep the previous version recorded so the
+    :: next check still compares against it and retries the download.
+    CALL :restore_version
+    IF EXIST "%~f0.old" DEL "%~f0.old" %TO_NUL%
+    EXIT /B 0
+
+:restore_version
+    :: Undo a staged version bump. runcmd-update.js writes the new version
+    :: next to the runner before the UPDATE_READY handshake, so an aborted
+    :: update must put the running version back; otherwise the next check
+    :: compares against a version the runner never reached.
+    :: No-op when version.txt already holds the running version.
+    IF "%VERSION_FILE_EXISTED%"=="0" (
+        IF EXIST "%~dp0version.txt" DEL "%~dp0version.txt" %TO_NUL%
+        EXIT /B 0
+    )
+    SET "STAGED_VERSION="
+    IF EXIST "%~dp0version.txt" (
+        FOR /F "usebackq delims=" %%V IN ("%~dp0version.txt") DO SET "STAGED_VERSION=%%V"
+    )
+    IF "!STAGED_VERSION!"=="%RUNCMD_VERSION%" EXIT /B 0
+    ECHO %RUNCMD_VERSION%>"%~dp0version.txt"
     EXIT /B 0
 
 :check_mode

@@ -3,11 +3,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// Point GITFLOW_ROOT at a temp fixture so README.md resolves there, before the
-// dynamic import captures the module-load-time README_FILE constant.
+// Point GITFLOW_ROOT at a temp fixture so README.md resolves there.
 const dir = mkdtempSync(join(tmpdir(), 'rm-'))
 process.env.GITFLOW_ROOT = dir
-const { README_FILE, updateReadmeVersion } = await import('./readme.js')
+const { updateReadmeVersion } = await import('./readme.js')
 
 const BADGE =
   '[![Version](https://img.shields.io/badge/version-1.11.4-blue)](version.txt)'
@@ -30,7 +29,7 @@ describe('updateReadmeVersion', () => {
   test('rewrites the badge and the footer', () => {
     writeReadme(`# runcmd\n\n${BADGE}\n\nprose\n\n---\n\n*Version 1.11.4*\n`)
     expect(updateReadmeVersion('2.0.2', {})).toBe(true)
-    const out = readFileSync(README_FILE, 'utf-8')
+    const out = readFileSync(readmePath, 'utf-8')
     expect(out).toContain('badge/version-2.0.2-blue')
     expect(out).toContain('*Version 2.0.2*')
     expect(out).not.toContain('1.11.4')
@@ -39,7 +38,7 @@ describe('updateReadmeVersion', () => {
   test('leaves unrelated version-shaped text alone', () => {
     writeReadme('# runcmd\n\nNeeds bash 1.2.3 and curl.\n\n*Version 1.11.4*\n')
     expect(updateReadmeVersion('2.0.2', {})).toBe(true)
-    const out = readFileSync(README_FILE, 'utf-8')
+    const out = readFileSync(readmePath, 'utf-8')
     expect(out).toContain('Needs bash 1.2.3')
     expect(out).toContain('*Version 2.0.2*')
   })
@@ -48,14 +47,14 @@ describe('updateReadmeVersion', () => {
     const same = `# runcmd\n\n${BADGE.replace('1.11.4', '2.0.2')}\n\n*Version 2.0.2*\n`
     writeReadme(same)
     expect(updateReadmeVersion('2.0.2', {})).toBe(false)
-    expect(readFileSync(README_FILE, 'utf-8')).toBe(same)
+    expect(readFileSync(readmePath, 'utf-8')).toBe(same)
   })
 
   test('dry-run reports without writing', () => {
     const before = `# runcmd\n\n${BADGE}\n\n*Version 1.11.4*\n`
     writeReadme(before)
     expect(updateReadmeVersion('2.0.2', { dryRun: true })).toBe(false)
-    expect(readFileSync(README_FILE, 'utf-8')).toBe(before)
+    expect(readFileSync(readmePath, 'utf-8')).toBe(before)
   })
 
   test('returns false instead of throwing when README.md is missing', () => {

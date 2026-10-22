@@ -55,10 +55,11 @@ export async function handleDelete(opts) {
   ensureBranchExists(branchName)
 
   logInfo(`Deleting ${type} branch: ${branchName}`)
-  runGitFlow(`${type} delete ${name}`, { dryRun })
-
   if (force) {
     logWarn('Force delete: branch may not be merged')
+    runGitFlow(`${type} delete -f ${name}`, { dryRun })
+  } else {
+    runGitFlow(`${type} delete ${name}`, { dryRun })
   }
 
   logSuccess(`${type} branch deleted: ${branchName}`)

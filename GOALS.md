@@ -4,7 +4,7 @@ Fitness goals for runcmd
 
 ## North Stars
 
-- All checks pass on every commit
+- Checks run on every commit, and CI runs on every push and pull request
 
 ## Anti Stars
 

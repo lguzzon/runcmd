@@ -14,6 +14,7 @@ import {
   mergeBranch,
   pullBranch,
   pushBranch,
+  runGit,
   stashPop,
   stashPush
 } from '../git-flow.js'
@@ -48,6 +49,23 @@ Examples:
 }
 
 /**
+ * Pop the stash entry captured at push time, wherever it now sits in the
+ * stash list. Resolving by commit sha instead of popping the top keeps a
+ * stash created concurrently (or earlier) from being consumed, and skips
+ * the pop when our entry is already gone.
+ * @param {string|null} sha - Commit sha of the pushed stash; null pops the top
+ */
+function popCapturedStash(sha) {
+  if (!sha) {
+    stashPop()
+    return
+  }
+  const list = runGit('stash list --format=%gd:%H', { allowFail: true }) || ''
+  const entry = list.split('\n').find((line) => line.endsWith(`:${sha}`))
+  if (entry) stashPop(entry.slice(0, entry.indexOf(':')))
+}
+
+/**
  * Sync main/master and develop with the remote: stash, pull, merge into
  * develop, push, restore.
  * @param {{ dryRun?: boolean, offline?: boolean, help?: boolean }} opts
@@ -72,25 +90,35 @@ export async function handleSync(opts) {
   const base = detectMainBranch()
   const original = currentBranch()
   const stash = stashPush('git-flow-sync') || ''
+  const stashed = Boolean(stash) && !stash.includes('No local changes')
+  const stashSha = stashed
+    ? runGit('rev-parse --verify stash@{0}', { allowFail: true })
+    : null
 
   logInfo(`Using base branch: ${base}`)
 
-  checkout(base, { dryRun })
-  pullBranch(base, { dryRun, offline })
-  pushBranch(base, { dryRun, offline })
+  try {
+    checkout(base, { dryRun })
+    pullBranch(base, { dryRun, offline })
+    pushBranch(base, { dryRun, offline })
 
-  ensureBranchExists('develop')
-  checkout('develop', { dryRun })
-  pullBranch('develop', { dryRun, offline })
-  mergeBranch(base, 'develop', { dryRun })
-  pushBranch('develop', { dryRun, offline })
-
-  if (original && original !== 'develop' && original !== base) {
-    checkout(original, { dryRun })
-  }
-
-  if (stash && !stash.includes('No local changes')) {
-    stashPop()
+    ensureBranchExists('develop')
+    checkout('develop', { dryRun })
+    pullBranch('develop', { dryRun, offline })
+    mergeBranch(base, 'develop', { dryRun })
+    pushBranch('develop', { dryRun, offline })
+  } catch (error) {
+    // A failed merge leaves the tree conflicted; abort it so the restore
+    // below can check the original branch out on a clean tree.
+    runGit('merge --abort', { allowFail: true })
+    throw error
+  } finally {
+    if (original && original !== 'develop' && original !== base) {
+      checkout(original, { dryRun })
+    }
+    if (stashed) {
+      popCapturedStash(stashSha)
+    }
   }
 
   logSuccess('Sync complete')

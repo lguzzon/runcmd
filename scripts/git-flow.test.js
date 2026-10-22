@@ -57,32 +57,36 @@ describe('parseArgs — command and sub detection', () => {
     expect(opts.tag).toBe('v1.1.1')
   })
 
-  test('finish feature — "feature" is captured as sub', () => {
+  test('finish feature — "feature" fills the type slot', () => {
     const { opts } = safeParse(['finish', 'feature', 'foo'])
     expect(opts.command).toBe('finish')
-    expect(opts.sub).toBe('feature')
-    expect(opts.cloneUrl).toBe('foo')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('foo')
   })
 
   test('publish hotfix — both positional slots consumed', () => {
     const { opts } = safeParse(['publish', 'hotfix', 'fix'])
     expect(opts.command).toBe('publish')
-    expect(opts.sub).toBe('hotfix')
-    expect(opts.cloneUrl).toBe('fix')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('hotfix')
+    expect(opts.name).toBe('fix')
   })
 
   test('track support — both positional slots consumed', () => {
     const { opts } = safeParse(['track', 'support', 'v1'])
     expect(opts.command).toBe('track')
-    expect(opts.sub).toBe('support')
-    expect(opts.cloneUrl).toBe('v1')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('support')
+    expect(opts.name).toBe('v1')
   })
 
   test('delete feature — both positional slots consumed', () => {
     const { opts } = safeParse(['delete', 'feature', 'old'])
     expect(opts.command).toBe('delete')
-    expect(opts.sub).toBe('feature')
-    expect(opts.cloneUrl).toBe('old')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('old')
   })
 
   test('start with only --help has sub=null', () => {
@@ -100,16 +104,14 @@ describe('parseArgs — command and sub detection', () => {
     }
   })
 
-  test('clone command (not in sub-detect list) — second arg is consumed as nextArg and dropped', () => {
-    // pre-existing quirk: clone is not in the sub-detect list, but parseArgs
-    // still shifts the second argv element into nextArg and discards it.
+  test('clone command — url fills the cloneUrl slot', () => {
     const { opts } = safeParse(['clone', 'https://example.com/repo.git'])
     expect(opts.command).toBe('clone')
     expect(opts.sub).toBeNull()
-    expect(opts.cloneUrl).toBeUndefined()
+    expect(opts.cloneUrl).toBe('https://example.com/repo.git')
   })
 
-  test('clone with three args — first two consumed as nextArg+arg, third becomes cloneUrl', () => {
+  test('clone with three args — url and dir fill cloneUrl and targetDir', () => {
     const { opts } = safeParse([
       'clone',
       'https://example.com/repo.git',
@@ -117,8 +119,8 @@ describe('parseArgs — command and sub detection', () => {
     ])
     expect(opts.command).toBe('clone')
     expect(opts.sub).toBeNull()
-    expect(opts.cloneUrl).toBe('mydir')
-    expect(opts.targetDir).toBeUndefined()
+    expect(opts.cloneUrl).toBe('https://example.com/repo.git')
+    expect(opts.targetDir).toBe('mydir')
   })
 })
 
@@ -310,11 +312,12 @@ describe('parseArgs — combined flag scenario (all flags at once)', () => {
 })
 
 describe('parseArgs — positional fallback for non-sub-detect commands', () => {
-  test('start with positional fallback when no sub is provided (cloneUrl path)', () => {
-    // `start foo` — start is in sub-detect, so 'foo' becomes sub
+  test('start with one positional — it fills the type slot', () => {
     const { opts } = safeParse(['start', 'foo'])
     expect(opts.command).toBe('start')
-    expect(opts.sub).toBe('foo')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('foo')
+    expect(opts.name).toBeUndefined()
   })
 
   test('hotfix start with three positionals: sub then cloneUrl then targetDir', () => {

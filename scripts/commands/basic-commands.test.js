@@ -220,6 +220,27 @@ describe('handleDelete', () => {
     const call = gitCalls.find((c) => c.fn === 'runGitFlow')
     expect(call.opts.dryRun).toBe(true)
   })
+
+  test('passes -f to the built command when force is set', async () => {
+    await safeHandle(handlers.delete.handleDelete, {
+      type: 'feature',
+      name: 'new-auth',
+      force: true
+    })
+    const call = gitCalls.find((c) => c.fn === 'runGitFlow')
+    expect(call.args).toBe('feature delete -f new-auth')
+  })
+
+  test('omits -f when force is not set', async () => {
+    await safeHandle(handlers.delete.handleDelete, {
+      type: 'feature',
+      name: 'new-auth',
+      force: false
+    })
+    const call = gitCalls.find((c) => c.fn === 'runGitFlow')
+    expect(call.args).toBe('feature delete new-auth')
+    expect(call.args).not.toContain('-f')
+  })
 })
 
 describe('handlePublish', () => {

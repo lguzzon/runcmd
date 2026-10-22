@@ -2,9 +2,16 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { GuardError } from './validators.js'
 import { logError } from './logger.js'
+import { repoRoot } from './paths.js'
 
-const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
-export const VERSION_FILE = `${PROJECT_ROOT}/version.txt`
+/**
+ * Absolute path of version.txt, resolved at call time against the
+ * repository root.
+ * @returns {string} Path to version.txt
+ */
+export function versionFile() {
+  return `${repoRoot()}/version.txt`
+}
 
 /**
  * Check a string matches strict `X.Y.Z` semver (no leading zeros).
@@ -68,14 +75,12 @@ export function compareVersions(a, b) {
  * @throws {GuardError} when the file is missing or malformed
  */
 export function readVersion() {
-  if (!existsSync(VERSION_FILE)) {
-    logError(`version.txt not found at ${VERSION_FILE}`)
-    throw new GuardError(`version.txt not found at ${VERSION_FILE}`)
+  const file = versionFile()
+  if (!existsSync(file)) {
+    logError(`version.txt not found at ${file}`)
+    throw new GuardError(`version.txt not found at ${file}`)
   }
-  const version = readFileSync(VERSION_FILE, 'utf-8')
-    .trim()
-    .split('\n')[0]
-    .trim()
+  const version = readFileSync(file, 'utf-8').trim().split('\n')[0].trim()
   if (!validateVersion(version)) {
     logError(`Invalid version format in version.txt: ${version}`)
     throw new GuardError(`Invalid version format in version.txt: ${version}`)

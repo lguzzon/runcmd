@@ -38,5 +38,5 @@ The branch is gone locally and remotely.
 
 ## Edge cases
 
-- --force warns that the branch may not be merged.
+- --force deletes the branch even when it is not merged.
 - --dry-run prints the actions without executing them.

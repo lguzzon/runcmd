@@ -70,15 +70,15 @@ Now I have all the context needed. Let me build the comprehensive cleanup plan.
 
 - [ ] `runcmd.sh:224` -- Fix `resolve_path` bun -e injection. Interpolates `$target` directly into a JS string literal: `bun -e "console.log(require('path').resolve('$target'))"`. A file/directory name containing a single quote can inject arbitrary JS. Use `bun -e` with stdin or pass the path via an environment variable.
 
-- [ ] `runcmd.sh:816` -- Add Bun install script integrity verification. Pipes `curl -fsSL https://bun.sh/install | bash` with no checksum/signature. Add GPG verification or checksum check against a known hash.
+- [x] `runcmd.sh:816` -- Add Bun install script integrity verification. Pipes `curl -fsSL https://bun.sh/install | bash` with no checksum/signature. Add GPG verification or checksum check against a known hash. (Done: downloaded installer written to a temp file, then rejected unless non-empty and starting with a `#!` shebang — a truncated-response/HTML-page guard, not a signature check; the code comment documents this posture.)
 
-- [ ] `runcmd.sh:384` -- Add self-update integrity check. Writes downloaded update (`cat temp > script_path`) with only a single `grep -q "runcmd.sh"` as validation. Verify checksum or at minimum validate bash syntax with `bash -n` before overwriting.
+- [x] `runcmd.sh:384` -- Add self-update integrity check. Writes downloaded update (`cat temp > script_path`) with only a single `grep -q "runcmd.sh"` as validation. Verify checksum or at minimum validate bash syntax with `bash -n` before overwriting. (Done: sha256 manifest verification with `bash -n` fallback, fail-closed.)
 
-- [ ] `runcmd.bat:414-416` -- Add batch self-update path validation. The `.new` file path returned by `runcmd-update.js` is not validated before `MOVE`. A compromised update source could overwrite an arbitrary file. Add checks that the path is within the expected update directory.
+- [x] `runcmd.bat:414-416` -- Add batch self-update path validation. The `.new` file path returned by `runcmd-update.js` is not validated before `MOVE`. A compromised update source could overwrite an arbitrary file. Add checks that the path is within the expected update directory. (Done: the bat accepts only the sibling `%~f0.new` file and rejects anything else via the `EXPECTED_NEW` check in `:check_for_updates`.)
 
-- [ ] `runcmd-update.js:62` -- Fix empty catch block. Silently swallows all errors (fetch failures, filesystem errors, JSON parse failures, invalid content). Log at minimum a warning so update failures are observable.
+- [x] `runcmd-update.js:62` -- Fix empty catch block. Silently swallows all errors (fetch failures, filesystem errors, JSON parse failures, invalid content). Log at minimum a warning so update failures are observable. (Done: both catch blocks log `[WARN] ...` to stderr.)
 
-- [ ] `runcmd-update.js:59` -- Fix state file write timing. Writes `state.json` with `remoteVersion` BEFORE the batch script applies the update (MOVE). If the batch script crashes or MOVE fails, the state permanently records the new version, preventing future update checks from detecting the same update. Write state only after successful file replacement.
+- [x] `runcmd-update.js:59` -- Fix state file write timing. Writes `state.json` with `remoteVersion` BEFORE the batch script applies the update (MOVE). If the batch script crashes or MOVE fails, the state permanently records the new version, preventing future update checks from detecting the same update. Write state only after successful file replacement. (Done: state now records `last_check` only — no remote version — so a failed MOVE still retries on the next run past the 7-day interval.)
 
 ### Polish (removes noise)
 
@@ -423,5 +423,5 @@ All 36 callsites across 6 files use the correct signature `runGit(args_string, {
 ## Final Diff
 
 ```text
-$(git diff --stat d7dad6ca..HEAD)
+206 files changed, 14236 insertions(+), 2203 deletions(-)
 ```

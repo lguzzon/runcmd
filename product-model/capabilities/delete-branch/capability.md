@@ -10,4 +10,4 @@ references:
 
 # Delete a branch
 
-Delete a branch locally and remotely, with an optional force that warns the branch may not be merged.
+Delete a branch locally and remotely; --force deletes it even when it is not merged.

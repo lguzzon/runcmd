@@ -12,16 +12,16 @@ import {
   runGit,
   runGitFlow
 } from '../git-flow.js'
-import { CHANGELOG_FILE, appendChangelog } from '../lib/changelog.js'
+import { changelogFile, appendChangelog } from '../lib/changelog.js'
 import { promptText } from '../lib/prompts.js'
-import { README_FILE, updateReadmeVersion } from '../lib/readme.js'
+import { readmeFile, updateReadmeVersion } from '../lib/readme.js'
 import { GuardError } from '../lib/validators.js'
 import {
-  VERSION_FILE,
   compareVersions,
   incrementVersion,
   readVersion,
-  validateVersion
+  validateVersion,
+  versionFile
 } from '../lib/version.js'
 
 /**
@@ -32,18 +32,19 @@ import {
  * @throws {GuardError} when version.txt does not exist
  */
 export function updateVersionFile(version, { dryRun }) {
-  if (!existsSync(VERSION_FILE)) {
-    logError(`version.txt not found at ${VERSION_FILE}`)
-    throw new GuardError(`version.txt not found at ${VERSION_FILE}`)
+  const file = versionFile()
+  if (!existsSync(file)) {
+    logError(`version.txt not found at ${file}`)
+    throw new GuardError(`version.txt not found at ${file}`)
   }
-  const lines = readFileSync(VERSION_FILE, 'utf-8').split('\n')
+  const lines = readFileSync(file, 'utf-8').split('\n')
   lines[0] = version
   const nextContent = lines.join('\n')
   if (dryRun) {
     logInfo(`[dry-run] would write version.txt => ${version}`)
     return false
   }
-  writeFileSync(VERSION_FILE, nextContent, 'utf-8')
+  writeFileSync(file, nextContent, 'utf-8')
   return true
 }
 
@@ -55,7 +56,9 @@ export function updateVersionFile(version, { dryRun }) {
  */
 export function commitChanges(version, type, { dryRun }) {
   const message = `chore: bump version to ${version} for ${type}`
-  const files = [VERSION_FILE, CHANGELOG_FILE, README_FILE].filter(existsSync)
+  const files = [versionFile(), changelogFile(), readmeFile()].filter(
+    existsSync
+  )
   runGit(`add ${files.join(' ')}`, { dryRun })
   runGit(`commit -m "${message}"`, { dryRun })
 }

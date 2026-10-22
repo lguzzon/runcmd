@@ -52,7 +52,7 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 - **Script Discovery:** Explicit path takes precedence over discovery chain for predictability
 - **Environment Override:** Current directory `.env` takes precedence to allow local overrides
-- **Debug Levels:** +d (basic), +dd (file ops), +ddd (full echo), +d0 (disabled) for granular troubleshooting
+- **Debug Levels:** +debug/+nodebug (Unix, on/off), +d/+dd/+ddd/+d0 (Windows, granular) for troubleshooting
 - **Update Mechanism:** State file at `$HOME/.runcmd/state.json`, compares semantic versions with 7-day check interval
 
 ---
@@ -61,13 +61,13 @@ Update Check: 7-day interval, version.txt comparison, self-update
 
 ### Runner Scripts
 
-**runcmd.sh** (Unix/macOS runner, 1191 lines)
+**runcmd.sh** (Unix/macOS runner, 1226 lines)
 
-- Exported behaviors: DEBUG flags (+debug/+dd/+ddd/+d0), environment loading, Bun auto-install, script resolution, update checking, check mode (+check)
+- Exported behaviors: debug flags (+debug/+nodebug), environment loading, Bun auto-install, script resolution, update checking, check mode (+check), version print (+version)
 
-**runcmd.bat** (Windows runner, 602 lines)
+**runcmd.bat** (Windows runner, 675 lines)
 
-- Exported behaviors: Equivalent Unix functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing
+- Exported behaviors: Equivalent Unix functionality, PowerShell-based Bun installer, .env loading via `FOR /F` parsing, multi-level debug (+d/+dd/+ddd/+d0)
 
 **runcmd.mjs** (Default target script)
 
@@ -186,7 +186,7 @@ interface ReleaseFinalizeOpts {
 ### Version Library (scripts/lib/version.js)
 
 ```typescript
-export const VERSION_FILE: string
+export function versionFile(): string
 export function parseVersion(
   version: string
 ): { major: number; minor: number; patch: number } | null
@@ -202,7 +202,7 @@ export function readVersion(): string
 ### Changelog Library (scripts/lib/changelog.js)
 
 ```typescript
-export const CHANGELOG_FILE: string
+export function changelogFile(): string
 export function getLastTag(): string | null
 export function collectCommitsSince(ref: string | null): string[]
 export function appendChangelog(
@@ -288,8 +288,7 @@ interface GitFlowConfig {
 
 ```typescript
 interface RunCmdState {
-  lastCheck: number // Unix timestamp
-  currentVersion: string // Semantic version from version.txt
+  last_check: number // Unix timestamp; the only field written
 }
 ```
 
@@ -348,10 +347,11 @@ interface PublishOpts {
 
 **Environment Variables:**
 
-| Variable           | Description               | Required |
-| ------------------ | ------------------------- | -------- |
-| `RUNCMD_DEBUG`     | Enable debug output (1/0) | No       |
-| `RUNCMD_NO_UPDATE` | Disable update checking   | No       |
+| Variable           | Description                                       | Required |
+| ------------------ | ------------------------------------------------- | -------- |
+| `DEBUG`            | Enable debug output (1/0)                        | No       |
+| `RUNCMD_DEBUG`     | Enable debug output (1/0), takes precedence over `DEBUG` | No       |
+| `RUNCMD_NO_UPDATE` | Disable update checking                          | No       |
 
 **Update Check Configuration:**
 
@@ -505,13 +505,14 @@ Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
 
 **Sentinel Values:**
 
-- **Debug flags:** +d, +dd, +ddd, +d0 (disabled when 0)
+- **Debug flags:** +d, +dd, +ddd, +d0 (Windows); +debug, +nodebug (Unix)
 - **Branch types:** feature, release, hotfix, support
 - **Bump types:** major, minor, patch
 
 **Environment Variables:**
 
-- `RUNCMD_DEBUG`: Enable debug output
+- `DEBUG`: Enable debug output (1/0)
+- `RUNCMD_DEBUG`: Enable debug output, takes precedence over `DEBUG`
 - `RUNCMD_NO_UPDATE`: Disable update checking
 
 **File Format Specifications:**
@@ -527,14 +528,13 @@ Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
      and empty values are skipped
 
 2. **version.txt:**
-   - Single line containing semantic version (e.g., "1.11.4")
+   - Single line containing semantic version (e.g., "2.1.0")
 
 3. **state.json:**
 
    ```json
    {
-     "lastCheck": 1234567890,
-     "currentVersion": "1.11.4"
+     "last_check": 1234567890
    }
    ```
 
@@ -640,8 +640,8 @@ Note: Linting and formatting are handled at the repo root via oxlint/oxfmt
 
 **Defines:**
 
-- `scripts/lib/version.js` exports: `VERSION_FILE`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion`
-- `scripts/lib/changelog.js` exports: `CHANGELOG_FILE`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`
+- `scripts/lib/version.js` exports: `versionFile`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion`
+- `scripts/lib/changelog.js` exports: `changelogFile`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`
 - `scripts/lib/prompts.js` exports: `promptText`, `promptTextSync`, `promptYesNo`
 
 **Consumes:**
@@ -761,12 +761,16 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 
 | File           | Module        | Exports                                                                      |
 | -------------- | ------------- | ---------------------------------------------------------------------------- |
-| `runcmd.sh`    | Runner        | Shell script with DEBUG flags, environment loading, Bun auto-install         |
+| `runcmd.sh`    | Runner        | Shell script with debug flags, environment loading, Bun auto-install        |
 | `runcmd.bat`   | Runner        | Windows batch script with equivalent functionality                           |
 | `runcmd.mjs`   | Runner        | Default target script, logs CWD and CLI args                                 |
+| `runcmd-update.js` | Updater   | Windows self-update check (`runUpdateCheck`, `main`, `compareVersions`)       |
+| `runcmd-update.manifest.js` | Updater | `parseManifestLine`, `expectedHashFor` (sha256 manifest lookup)             |
+| `runcmd-update.manifest.test.js` | Test | Tests for the manifest parser                                               |
+| `runcmd-update.test.js` | Test       | Tests for the updater and the Windows restart contract                      |
 | `oxlint.json`  | Configuration | JS/TS lint config (oxlint)                                                   |
 | `.oxfmtrc.json`| Configuration | JS/TS format config (oxfmt)                                                  |
-| `version.txt`  | Configuration | Version file (1.11.4)                                                        |
+| `version.txt`  | Configuration | Version file (2.1.0)                                                         |
 | `README.md`    | Documentation | Project overview and usage                                                   |
 | `CHANGELOG.md` | Documentation | Keep a Changelog format                                                      |
 | `LICENSE`      | Documentation | MIT license                                                                  |
@@ -797,14 +801,17 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 
 | File           | Module    | Exports                                                                                                                    |
 | -------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `version.js`   | Utilities | `VERSION_FILE`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion` |
-| `changelog.js` | Utilities | `CHANGELOG_FILE`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`           |
+| `version.js`   | Utilities | `versionFile`, `parseVersion`, `compareVersions`, `validateVersion`, `incrementVersion`, `readVersion` |
+| `changelog.js` | Utilities | `changelogFile`, `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`           |
 | `prompts.js`   | Utilities | `promptText`, `promptTextSync`, `promptYesNo`                                                           |
 | `core.js`      | Utilities | `requireValidCommand` (shared command-dispatch gate)                                                   |
 | `git.js`       | Utilities | `splitArgs`, `runGit`, `runGitFlow`                                                                    |
 | `logger.js`    | Utilities | `COLOR_INFO`, `COLOR_WARN`, `COLOR_ERROR`, `COLOR_RESET`, `COLOR_BOLD`, `logInfo`, `logWarn`, `logError`, `logSuccess` |
 | `installer.js` | Utilities | `ensureGitFlowAvailable`                                                                                |
 | `options.js`   | Utilities | `parseFlags`, `releaseInitDefaults`, `releaseFinalizeDefaults`                                          |
+| `paths.js`     | Utilities | `repoRoot` (resolves the directory that owns version.txt, CHANGELOG.md and README.md) |
+| `readme.js`    | Utilities | `readmeFile`, `updateReadmeVersion`                                                                    |
+| `validators.js`| Utilities | `GuardError`, `ensureCleanTree`, `ensureBranchExists`, `ensureBranchMissing`, `detectMainBranch`, `checkout`, `pullBranch`, `pushBranch`, `mergeBranch`, `stashPush`, `stashPop`, `ensureTagMissing`, `getBranchType`, `validateBranchName`, `ensureGitFlowInitialized`, `getGitFlowConfig`, `listBranchesByType` |
 
 ### scripts/operations/ Directory
 
@@ -833,6 +840,9 @@ No annex files provided with verbatim IDE/installer templates. This section is o
 | -------------------------- | ---------- | -------------------- |
 | `pages/index.astro`        | Pages      | Homepage             |
 | `pages/docs.astro`         | Pages      | Documentation page   |
+| `pages/AGENTS.md`           | Docs       | Agent notes for the pages directory |
+| `pages/CLAUDE.md`           | Docs       | Pointer to `pages/AGENTS.md` |
 | `layouts/BaseLayout.astro` | Layouts    | Root layout          |
 | `components/Nav.astro`     | Components | Navigation component |
+| `lib/constants.ts`         | Lib        | `normalizedBase`, `version`, `githubUrl`, `scriptHref` (build-time constants) |
 | `styles/global.css`        | Styles     | Global stylesheet    |

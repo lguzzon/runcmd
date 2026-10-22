@@ -1,9 +1,16 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { logInfo, logWarn } from './logger.js'
+import { repoRoot } from './paths.js'
 
-const PROJECT_ROOT = process.env.GITFLOW_ROOT || process.cwd()
-export const README_FILE = `${PROJECT_ROOT}/README.md`
+/**
+ * Absolute path of README.md, resolved at call time against the repository
+ * root.
+ * @returns {string} Path to README.md
+ */
+export function readmeFile() {
+  return `${repoRoot()}/README.md`
+}
 
 const BADGE_RE = /(badge\/version-)\d+\.\d+\.\d+(-)/
 const FOOTER_RE = /^(\*Version )\d+\.\d+\.\d+(\*)$/m
@@ -19,11 +26,12 @@ const FOOTER_RE = /^(\*Version )\d+\.\d+\.\d+(\*)$/m
  * @returns {boolean} true when the file was written
  */
 export function updateReadmeVersion(version, opts) {
-  if (!existsSync(README_FILE)) {
-    logWarn(`README.md not found at ${README_FILE}`)
+  const file = readmeFile()
+  if (!existsSync(file)) {
+    logWarn(`README.md not found at ${file}`)
     return false
   }
-  const existing = readFileSync(README_FILE, 'utf-8')
+  const existing = readFileSync(file, 'utf-8')
   const next = existing
     .replace(BADGE_RE, `$1${version}$2`)
     .replace(FOOTER_RE, `$1${version}$2`)
@@ -35,6 +43,6 @@ export function updateReadmeVersion(version, opts) {
     logInfo(`[dry-run] would update README.md with v${version}`)
     return false
   }
-  writeFileSync(README_FILE, next, 'utf-8')
+  writeFileSync(file, next, 'utf-8')
   return true
 }

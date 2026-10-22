@@ -80,9 +80,12 @@ describe('ensureCleanTree (real repo)', () => {
     expect(() => validators.ensureCleanTree()).toThrow(validators.GuardError)
   })
 
-  test('throws GuardError on untracked files (?? porcelain)', () => {
+  test('ignores untracked files (?? porcelain) — only tracked changes block', () => {
+    // Reset any staged leftovers from earlier tests in this suite.
+    git(['reset', '--hard'])
     writeFileSync(join(repoDir, 'untracked.txt'), 'floating')
-    expect(() => validators.ensureCleanTree()).toThrow(validators.GuardError)
+    expect(() => validators.ensureCleanTree()).not.toThrow()
+    rmSync(join(repoDir, 'untracked.txt'), { force: true })
   })
 })
 

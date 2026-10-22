@@ -1,13 +1,14 @@
 // ============================================================================
-// Tests for cli.js parseArgs — argv parsing, positional resolution, subcommand
-// slot detection, flag handling, and --help propagation.
+// Tests for cli.js parseArgs — argv parsing, POSITIONAL_SLOTS mapping,
+// subcommand slot detection, flag handling, and --help propagation.
 //
 // These tests document the actual behavior of parseArgs including the
-// known quirks: any 2nd argv is consumed unconditionally as `nextArg` (so
-// flags that live in the 2nd slot get dropped unless the subcommand-slot
-// block re-inserts them), the `--list` collision guard with the `list`
-// command, and the positional default branch that fills cloneUrl/targetDir
-// before any type whitelist check.
+// known quirks: commands without positional slots consume the 2nd argv
+// unconditionally as `nextArg` (so flags that live in the 2nd slot get
+// dropped unless the block re-inserts them — see the `config --get key`
+// tests), the `--list` collision guard with the `list` command, and the
+// default branch that fills cloneUrl/targetDir/type/name from leftover
+// positionals.
 // ============================================================================
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -91,55 +92,75 @@ describe('parseArgs — defaults', () => {
 })
 
 // ============================================================================
-// subcommand slot detection (start/finish/publish/track/delete and
-// release/hotfix — the seven commands that take a "sub" positional slot)
+// positional slot mapping (start/finish/publish/track/delete take
+// <type> <name> positionally; list takes [type]; release/hotfix keep a
+// "sub" action slot)
 // ============================================================================
 
-describe('parseArgs — subcommand slot detection', () => {
-  test('start feature new-auth → sub="feature", positional "new-auth" → cloneUrl', () => {
-    // The 2nd arg "feature" is consumed as the subcommand slot. The 3rd arg
-    // "new-auth" reaches the default branch and fills cloneUrl (not name,
-    // not type) because cloneUrl is the first positional default slot.
+describe('parseArgs — positional slot mapping', () => {
+  test('start feature new-auth → type="feature", name="new-auth"', () => {
     const opts = parseArgs(['start', 'feature', 'new-auth'])
     expect(opts.command).toBe('start')
-    expect(opts.sub).toBe('feature')
-    expect(opts.cloneUrl).toBe('new-auth')
-    expect(opts.type).toBeUndefined()
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('new-auth')
+    expect(opts.cloneUrl).toBeUndefined()
+  })
+
+  test('finish release v1.2.0 → type="release", name="v1.2.0"', () => {
+    const opts = parseArgs(['finish', 'release', 'v1.2.0'])
+    expect(opts.command).toBe('finish')
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('release')
+    expect(opts.name).toBe('v1.2.0')
+  })
+
+  test('publish hotfix urgent → type="hotfix", name="urgent"', () => {
+    const opts = parseArgs(['publish', 'hotfix', 'urgent'])
+    expect(opts.type).toBe('hotfix')
+    expect(opts.name).toBe('urgent')
+  })
+
+  test('track support legacy → type="support", name="legacy"', () => {
+    const opts = parseArgs(['track', 'support', 'legacy'])
+    expect(opts.type).toBe('support')
+    expect(opts.name).toBe('legacy')
+  })
+
+  test('delete feature old → type="feature", name="old"', () => {
+    const opts = parseArgs(['delete', 'feature', 'old'])
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('old')
+  })
+
+  test('list feature → type="feature" (list reads opts.type)', () => {
+    const opts = parseArgs(['list', 'feature'])
+    expect(opts.command).toBe('list')
+    expect(opts.type).toBe('feature')
+    expect(opts.sub).toBeNull()
+  })
+
+  test('start with only a type → name stays undefined', () => {
+    const opts = parseArgs(['start', 'feature'])
+    expect(opts.type).toBe('feature')
     expect(opts.name).toBeUndefined()
   })
 
-  test('finish release v1.2.0 → sub="release", positional "v1.2.0" → cloneUrl', () => {
-    const opts = parseArgs(['finish', 'release', 'v1.2.0'])
-    expect(opts.command).toBe('finish')
-    expect(opts.sub).toBe('release')
-    expect(opts.cloneUrl).toBe('v1.2.0')
-  })
-
-  test('publish hotfix urgent → sub captured', () => {
-    const opts = parseArgs(['publish', 'hotfix', 'urgent'])
-    expect(opts.sub).toBe('hotfix')
-    expect(opts.cloneUrl).toBe('urgent')
-  })
-
-  test('track support legacy → sub captured', () => {
-    const opts = parseArgs(['track', 'support', 'legacy'])
-    expect(opts.sub).toBe('support')
-    expect(opts.cloneUrl).toBe('legacy')
-  })
-
-  test('delete feature old → sub captured', () => {
-    const opts = parseArgs(['delete', 'feature', 'old'])
-    expect(opts.sub).toBe('feature')
-    expect(opts.cloneUrl).toBe('old')
+  test('start feature --name lonely → type positional + flag name', () => {
+    // The flag stops slot filling, so name comes from the --name flag.
+    const opts = parseArgs(['start', 'feature', '--name', 'lonely'])
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('lonely')
   })
 
   test('start with --name flag → sub=null, name set', () => {
-    // No positional after start, so sub stays null. --name consumes its
-    // own value because it lives in the switch loop, not as nextArg.
+    // No positional after start, so the slot walk stops on the flag and
+    // --name consumes its own value in the flag loop.
     const opts = parseArgs(['start', '--name', 'lonely'])
     expect(opts.command).toBe('start')
     expect(opts.sub).toBeNull()
     expect(opts.name).toBe('lonely')
+    expect(opts.type).toBeUndefined()
   })
 
   test('start --help → sub=null, opts.help=true (help flag re-inserted)', () => {
@@ -160,6 +181,19 @@ describe('parseArgs — subcommand slot detection', () => {
     const opts = parseArgs(['init'])
     expect(opts.command).toBe('init')
     expect(opts.sub).toBeNull()
+  })
+
+  test('sync --dry-run → dryRun is set (flag in 2nd position)', () => {
+    // sync has no positional slots, so its 2nd argv is a flag.
+    const opts = parseArgs(['sync', '--dry-run'])
+    expect(opts.command).toBe('sync')
+    expect(opts.dryRun).toBe(true)
+  })
+
+  test('install --auto-install → autoInstall is set', () => {
+    const opts = parseArgs(['install', '--auto-install'])
+    expect(opts.command).toBe('install')
+    expect(opts.autoInstall).toBe(true)
   })
 })
 
@@ -282,48 +316,50 @@ describe('parseArgs — release/hotfix with flags', () => {
 })
 
 // ============================================================================
-// positional capture for clone (and the well-known parsing quirk where the
-// 2nd argv is unconditionally consumed as `nextArg` and dropped for any
-// command that is not in the subcommand-slot list)
+// positional capture for clone (cloneUrl then targetDir slots)
 // ============================================================================
 
 describe('parseArgs — clone positional capture', () => {
-  test('clone with one positional → cloneUrl set', () => {
-    // clone is not in the subcommand-slot list, so its 2nd argv
-    // ("https://...") is consumed by nextArg and dropped; the 3rd argv
-    // ("mydir") reaches the default branch and fills cloneUrl. This
-    // documents the existing behavior.
+  test('clone <url> <dir> → cloneUrl and targetDir set', () => {
     const opts = parseArgs(['clone', 'https://example.com/repo.git', 'mydir'])
     expect(opts.command).toBe('clone')
-    expect(opts.cloneUrl).toBe('mydir')
+    expect(opts.cloneUrl).toBe('https://example.com/repo.git')
+    expect(opts.targetDir).toBe('mydir')
   })
 
-  test('clone with single positional → cloneUrl set, targetDir undefined', () => {
+  test('clone <url> → cloneUrl set, targetDir undefined', () => {
     const opts = parseArgs(['clone', 'https://example.com/repo.git'])
     expect(opts.command).toBe('clone')
-    // The URL is consumed by nextArg, so the only arg reaching the
-    // default branch is nothing — cloneUrl stays undefined.
-    expect(opts.cloneUrl).toBeUndefined()
+    expect(opts.cloneUrl).toBe('https://example.com/repo.git')
     expect(opts.targetDir).toBeUndefined()
+  })
+
+  test('clone <url> --dry-run → flag stops slot walk, url still fills cloneUrl', () => {
+    const opts = parseArgs([
+      'clone',
+      'https://example.com/repo.git',
+      '--dry-run'
+    ])
+    expect(opts.cloneUrl).toBe('https://example.com/repo.git')
+    expect(opts.dryRun).toBe(true)
   })
 })
 
 // ============================================================================
-// positional capture for branch commands (type → name fallback)
+// positional overflow (leftover positionals after the slots are filled go
+// through the default branch: cloneUrl → targetDir → type → name → warn)
 // ============================================================================
 
 describe('parseArgs — positional default branch (cloneUrl/targetDir/type/name)', () => {
-  test('finish hotfix with three positionals → cloneUrl/targetDir/name, NOT type', () => {
-    // finish IS a subcommand-slot command, so its 2nd argv becomes sub.
-    // The remaining positionals reach the default branch: cloneUrl fills
-    // first, then targetDir, then type (whitelist), then name. The
-    // whitelist never matches because the first two slots gobble it.
+  test('finish with three positionals → type/name from slots, rest overflow', () => {
+    // type and name consume the first two positionals. name2 and name3
+    // reach the default branch and fill cloneUrl/targetDir.
     const opts = parseArgs(['finish', 'hotfix', 'name1', 'name2', 'name3'])
-    expect(opts.sub).toBe('hotfix')
-    expect(opts.cloneUrl).toBe('name1')
-    expect(opts.targetDir).toBe('name2')
-    expect(opts.name).toBe('name3')
-    expect(opts.type).toBeUndefined()
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('hotfix')
+    expect(opts.name).toBe('name1')
+    expect(opts.cloneUrl).toBe('name2')
+    expect(opts.targetDir).toBe('name3')
   })
 })
 
@@ -332,27 +368,21 @@ describe('parseArgs — positional default branch (cloneUrl/targetDir/type/name)
 // ============================================================================
 
 describe('parseArgs — config command', () => {
-  test('config --get key (2nd-slot flag is consumed as nextArg, drops --get)', () => {
-    // The 2nd argv is unconditionally consumed as `nextArg`. For commands
-    // NOT in the subcommand-slot list (config is not), the only way for
-    // the flag to survive is to be re-inserted via args.unshift, which
-    // only happens for --help/-h. So `config --get key` loses --get.
-    // This documents existing behavior; the main() dispatch path
-    // overrides --get via COMMANDS.config → handleConfigCommand directly.
+  test('config --get key → get is set', () => {
+    // The 2nd argv is re-inserted for commands without positional slots,
+    // so the flag reaches the switch.
     const opts = parseArgs(['config', '--get', 'gitflow.branch.master'])
     expect(opts.command).toBe('config')
-    expect(opts.get).toBeUndefined()
-    expect(opts.cloneUrl).toBe('gitflow.branch.master')
+    expect(opts.get).toBe('gitflow.branch.master')
+    expect(opts.cloneUrl).toBeUndefined()
   })
 
-  test('config --set foo bar → set is undefined (flag dropped by nextArg)', () => {
-    // Same quirk: --set lives in the 2nd slot for `config` and is
-    // silently consumed. The two value args then reach the default branch.
+  test('config --set foo bar → set holds both values', () => {
     const opts = parseArgs(['config', '--set', 'foo', 'bar'])
     expect(opts.command).toBe('config')
-    expect(opts.set).toBeUndefined()
-    expect(opts.cloneUrl).toBe('foo')
-    expect(opts.targetDir).toBe('bar')
+    expect(opts.set).toEqual(['foo', 'bar'])
+    expect(opts.cloneUrl).toBeUndefined()
+    expect(opts.targetDir).toBeUndefined()
   })
 
   test('config x --list (flag in 3rd slot) → list=true', () => {
@@ -400,8 +430,8 @@ describe('parseArgs — --help / -h propagation', () => {
 
   test('finish feature x --help → opts.help=true (help after positionals)', () => {
     const opts = parseArgs(['finish', 'feature', 'x', '--help'])
-    expect(opts.sub).toBe('feature')
-    expect(opts.cloneUrl).toBe('x')
+    expect(opts.type).toBe('feature')
+    expect(opts.name).toBe('x')
     expect(opts.help).toBe(true)
   })
 
@@ -524,21 +554,27 @@ describe('parseArgs — missing flag value', () => {
 
 describe('parseArgs — unknown argument', () => {
   test('5th+ positional triggers logWarn and is otherwise ignored', () => {
-    // finish + hotfix consume the first two slots. The remaining four
-    // positionals go through the default branch: name1 → cloneUrl,
-    // name2 → targetDir, name3 → name, name4 → unknown (logWarn).
+    // finish consumes type/name via slots. The remaining three
+    // positionals go through the default branch: name2 → cloneUrl,
+    // name3 → targetDir, name4 and name5 → unknown (logWarn), because
+    // type and name are already filled.
     const opts = parseArgs([
       'finish',
       'hotfix',
       'name1',
       'name2',
       'name3',
-      'name4'
+      'name4',
+      'name5'
     ])
-    expect(warnMessages).toEqual(['Ignoring unknown argument: name4'])
-    expect(opts.sub).toBe('hotfix')
-    expect(opts.cloneUrl).toBe('name1')
-    expect(opts.targetDir).toBe('name2')
-    expect(opts.name).toBe('name3')
+    expect(warnMessages).toEqual([
+      'Ignoring unknown argument: name4',
+      'Ignoring unknown argument: name5'
+    ])
+    expect(opts.sub).toBeNull()
+    expect(opts.type).toBe('hotfix')
+    expect(opts.name).toBe('name1')
+    expect(opts.cloneUrl).toBe('name2')
+    expect(opts.targetDir).toBe('name3')
   })
 })

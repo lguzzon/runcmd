@@ -17,10 +17,12 @@ export class GuardError extends Error {
 
 /**
  * Abort if the working tree has uncommitted tracked-file changes.
- * @throws {GuardError} when `git status --porcelain` is non-empty
+ * Untracked files are ignored: they are not part of the committed state the
+ * guard protects.
+ * @throws {GuardError} when `git status --porcelain -uno` is non-empty
  */
 export function ensureCleanTree() {
-  const status = runGit('status --porcelain', { allowFail: true })
+  const status = runGit('status --porcelain -uno', { allowFail: true })
   if (status && status.length > 0) {
     logError('Uncommitted changes detected. Please commit or stash them first.')
     throw new GuardError('Uncommitted changes detected')
@@ -144,11 +146,14 @@ export function stashPush(message = 'auto-stash') {
 }
 
 /**
- * Restore the most recent stash.
+ * Restore a stashed change set. Without a ref the top stash is popped;
+ * with a ref (e.g. `stash@{1}`) that exact entry is popped, so a stash
+ * created concurrently is never consumed.
+ * @param {string} [ref] - Stash ref, e.g. `stash@{1}`
  * @returns {string|null} `git stash pop` output, or null on failure
  */
-export function stashPop() {
-  return runGit('stash pop', { allowFail: true })
+export function stashPop(ref = '') {
+  return runGit(ref ? `stash pop ${ref}` : 'stash pop', { allowFail: true })
 }
 
 /**

@@ -39,6 +39,8 @@
 #
 # ENVIRONMENT VARIABLES:
 #   - DEBUG: Set to 1 to enable debug logging
+#   - RUNCMD_DEBUG: Set to 1 to enable debug logging (takes precedence over DEBUG)
+#   - RUNCMD_NO_UPDATE: Set to 1 to skip the update check
 #   - .env files: Automatically loaded from script directory and current directory
 #
 # DEPENDENCIES (auto-installed):
@@ -67,7 +69,8 @@ readonly COLOR_RESET="\033[0m"
 # Fallback version - will be updated after script_dir is defined
 RUNCMD_VERSION="1.0.0"
 
-DEBUG=0
+# RUNCMD_DEBUG (spec-documented) wins over the legacy DEBUG env var
+DEBUG=${RUNCMD_DEBUG:-${DEBUG:-0}}
 CHECK_MODE=0
 REQUESTED_SCRIPT=""
 BUN_ARGS=()
@@ -124,6 +127,20 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Print a file's permission bits in octal (e.g. 755), portable across GNU and
+# BSD stat. Falls back to 755 when the mode cannot be read.
+# Args:
+#   $1: File path
+# Returns:
+#   0 always; prints the mode on stdout
+file_mode() {
+  if [[ $UNAME_S == Darwin ]]; then
+    stat -f '%Lp' "$1" 2>/dev/null || echo 755
+  else
+    stat -c '%a' "$1" 2>/dev/null || echo 755
+  fi
+}
+
 # Print usage text. Callers choose the exit status: 0 for +help, 1 for a
 # rejected invocation.
 usage() {
@@ -153,7 +170,10 @@ OPTIONS:
 
   +help, +h
       Display this comprehensive help message and exit
-      
+
+  +version, +v
+      Print the current runcmd version and exit
+
   +runme, +r <script_path>
       specify the .mjs script to run instead of auto-discovering default script
       Supports: absolute paths, relative paths, directory names, or script filename
@@ -178,6 +198,8 @@ EXAMPLES:
 
 ENVIRONMENT:
   DEBUG=1  # Enable debug output (same as +debug)
+  RUNCMD_DEBUG=1  # Enable debug output (takes precedence over DEBUG)
+  RUNCMD_NO_UPDATE=1  # Skip the update check and self-update
   # .env files are auto-loaded from script directory and current working directory
 
 EOF
@@ -313,10 +335,6 @@ version_lt() {
   local ver2
   IFS='.' read -ra ver2 <<<"$2"
 
-  # Fill missing parts with 0
-  for ((i = ${#ver1[@]}; i < 3; i++)); do ver1[i]=0; done
-  for ((i = ${#ver2[@]}; i < 3; i++)); do ver2[i]=0; done
-
   for ((i = 0; i < 3; i++)); do
     if ((ver1[i] < ver2[i])); then return 0; fi
     if ((ver1[i] > ver2[i])); then return 1; fi
@@ -394,9 +412,14 @@ check_for_updates() {
     log_info "New version available: $remote_version (current: $current_version). Updating..."
 
     local temp_script
-    temp_script=$(mktemp)
+    # Create the temp file next to the target so the final mv is a
+    # same-filesystem atomic rename (/tmp may be another device).
+    if ! temp_script=$(mktemp "${script_path}.update.XXXXXX"); then
+      log_error "Failed to create temp file next to '$script_path'. Skipping update."
+      return 0
+    fi
 
-    if curl -fsSL "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
+    if curl -fsSL --connect-timeout 3 --max-time 5 "$UPDATE_URL_BASE/runcmd.sh" -o "$temp_script"; then
       # Fail-closed: verify SHA256 from update.sha256 manifest before
       # overwriting the running shell script. Manifest travels over the same
       # TLS channel as the payload — same posture as installer.js until a
@@ -418,12 +441,13 @@ check_for_updates() {
       elif [[ -z $actual_hash ]] || [[ $actual_hash != "$expected_hash" ]]; then
         log_error "Update checksum mismatch (expected $expected_hash, got $actual_hash). Aborting."
       elif grep -q "runcmd.sh" "$temp_script" && bash -n "$temp_script"; then
-        chmod +x "$temp_script"
-
-        # Atomic replacement
-        # Note: Replacing the running script in bash is generally safe-ish if we exec the new one or if the OS handles it (Unix usually does)
-        # However, to be cleaner, we can overwrite the file
-        cat "$temp_script" >"$script_path"
+        # Atomic swap: mv renames a fresh inode over the old path, so the bash
+        # process keeps executing the old (now unlinked) script instead of
+        # reading a truncated file.
+        local target_mode
+        target_mode=$(file_mode "$script_path")
+        mv "$temp_script" "$script_path"
+        chmod "$target_mode" "$script_path"
 
         log_info "Updated to version $remote_version."
         current_version="$remote_version"
@@ -526,14 +550,15 @@ resolve_script_path() {
 #   2. Backup original file atomically
 #   3. Format to temporary file using available shfmt (system or bunx)
 #   4. Validate syntax of formatted result with bash -n
-#   5. Atomic replace if validation passes, otherwise restore from backup
+#   5. Atomic replace if validation passes; a failed check leaves the
+#      original untouched
 #
 # SAFETY FEATURES:
 #   - Atomic file operations to prevent corruption
 #   - Syntax validation before replacement
-#   - Automatic rollback on any failure
+#   - Backup restored if the atomic replace itself fails
 #   - Proper cleanup of temporary files via trap
-#   - Preserves executable permissions
+#   - Preserves the original file mode
 #
 # Args:
 #   $1: Path to the shell script file to format (must be .sh file)
@@ -574,6 +599,10 @@ safe_format_file() {
   local backup_file
   local format_success=0
 
+  # Preserve the original mode: mktemp creates 0600 and mv carries it over.
+  local file_mode
+  file_mode=$(file_mode "$file_path")
+
   # Create temporary files in the same directory to avoid cross-device issues
   temp_file=$(mktemp "${file_path}.tmp.XXXXXX") || return 1
   backup_file=$(mktemp "${file_path}.bak.XXXXXX") || return 1
@@ -603,20 +632,18 @@ safe_format_file() {
       if mv "$temp_file" "$file_path" 2>/dev/null; then
         log_info "Successfully formatted and safely updated: $(basename "$file_path")"
         rm -f "$backup_file" 2>/dev/null || true
-        chmod +x "$file_path"
+        chmod "$file_mode" "$file_path"
         return 0
       else
         log_error "Failed to replace original file: $(basename "$file_path")"
         # Restore from backup
         mv "$backup_file" "$file_path" 2>/dev/null || true
-        chmod +x "$file_path"
+        chmod "$file_mode" "$file_path"
         return 1
       fi
     else
+      # The original was never modified: formatting went to temp_file only.
       log_error "Formatted file failed syntax check: $(basename "$file_path")"
-      # Restore from backup
-      mv "$backup_file" "$file_path" 2>/dev/null || true
-      chmod +x "$file_path"
       return 1
     fi
   else
@@ -746,9 +773,7 @@ run_json_sort() {
   local target_dir="$1"
   log_info "Running Json Sort check on '$target_dir'..."
 
-  local args=("$target_dir/**/*.json")
-
-  if bunx --silent json-sort-cli "${args[@]}"; then
+  if bunx --silent json-sort-cli "$target_dir/**/*.json"; then
     log_info "Json Sort completed successfully."
     return 0
   fi
@@ -970,17 +995,21 @@ run_check_mode() {
 
   # Step 2: Shellcheck all shell scripts
   log_info "Running shellcheck..."
-  local shellcheck_failed=0
-  while IFS= read -r -d '' sh_file; do
-    if ! shellcheck -s bash "$sh_file" 2>/dev/null; then
-      log_warn "shellcheck warnings in: $sh_file"
-      shellcheck_failed=1
-    fi
-  done < <(find "$target_dir" -maxdepth 1 -name "*.sh" -type f -print0 2>/dev/null)
-  if ((shellcheck_failed)); then
-    log_warn "shellcheck completed with warnings (not blocking)."
+  if ! command_exists shellcheck; then
+    log_warn "shellcheck not found; skipping shellcheck."
   else
-    log_info "shellcheck passed."
+    local shellcheck_failed=0
+    while IFS= read -r -d '' sh_file; do
+      if ! shellcheck -s bash "$sh_file" 2>/dev/null; then
+        log_warn "shellcheck warnings in: $sh_file"
+        shellcheck_failed=1
+      fi
+    done < <(find "$target_dir" -maxdepth 1 -name "*.sh" -type f -print0 2>/dev/null)
+    if ((shellcheck_failed)); then
+      log_warn "shellcheck completed with warnings (not blocking)."
+    else
+      log_info "shellcheck passed."
+    fi
   fi
 
   # Step 3: Sort JSON files (non-fatal)
@@ -1168,13 +1197,15 @@ main() {
   # Load environment variables from .env files before processing arguments
   load_env_files
 
-  # Check for updates
-  check_for_updates
-
+  # Parse first: +help, +version, and rejected options exit inside
+  # parse_args, so they never trigger the network update check below.
   parse_args "$@"
 
   # Normalize DEBUG value to ensure consistent behavior
   normalize_debug
+
+  # Update check only runs for invocations that reach execution
+  check_for_updates
 
   local resolved_script
   resolved_script=$(resolve_script_path "$REQUESTED_SCRIPT")

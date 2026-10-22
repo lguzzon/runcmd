@@ -130,7 +130,12 @@ mock.module('./operations/clone.js', () => ({
 let main
 
 beforeAll(async () => {
-  ;({ main } = await import('./cli.js'))
+  // The query suffix gives this file its own cli.js instance. Bun shares the
+  // module registry across test files in one run, so a plain import would
+  // hand back the instance another file already evaluated — and that one
+  // captured the real command handlers in COMMANDS before the mocks below
+  // were installed.
+  ;({ main } = await import('./cli.js?cli-test'))
 })
 
 beforeEach(() => {
@@ -253,17 +258,19 @@ describe('main — COMMANDS dispatch', () => {
     expect(handlerCalls[0].opts.command).toBe('init')
   })
 
-  test('start feature x → handleStartCommand with sub="feature"', async () => {
+  test('start feature x → handleStartCommand with type="feature", name="x"', async () => {
     await runMain(['start', 'feature', 'x'])
     expect(handlerCalls).toHaveLength(1)
     expect(handlerCalls[0].name).toBe('start')
-    expect(handlerCalls[0].opts.sub).toBe('feature')
+    expect(handlerCalls[0].opts.type).toBe('feature')
+    expect(handlerCalls[0].opts.name).toBe('x')
   })
 
-  test('finish hotfix y → handleFinishCommand with sub="hotfix"', async () => {
+  test('finish hotfix y → handleFinishCommand with type="hotfix", name="y"', async () => {
     await runMain(['finish', 'hotfix', 'y'])
     expect(handlerCalls[0].name).toBe('finish')
-    expect(handlerCalls[0].opts.sub).toBe('hotfix')
+    expect(handlerCalls[0].opts.type).toBe('hotfix')
+    expect(handlerCalls[0].opts.name).toBe('y')
   })
 
   test('publish → handlePublishCommand', async () => {
@@ -298,8 +305,8 @@ describe('main — COMMANDS dispatch', () => {
 
   test('clone → handleCloneOperation', async () => {
     await runMain(['clone', 'https://example.com/repo.git'])
-    // parseArgs quirk: clone's 2nd argv is consumed as nextArg and dropped
     expect(handlerCalls[0].name).toBe('clone')
+    expect(handlerCalls[0].opts.cloneUrl).toBe('https://example.com/repo.git')
   })
 })
 

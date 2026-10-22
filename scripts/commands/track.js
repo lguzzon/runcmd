@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
-import { requireValidCommand } from '../lib/core.js'
+import { requireTypeAndName, requireValidCommand } from '../lib/core.js'
 import {
   COLOR_BOLD,
   COLOR_RESET,
-  logError,
   logInfo,
   logSuccess,
   runGitFlow
@@ -41,12 +40,9 @@ export async function handleTrack(opts) {
   if (!requireValidCommand(opts, { commandName: 'track', helpFn: printHelp }))
     return
 
-  const { type, name, dryRun } = opts
+  const { dryRun } = opts
 
-  if (!type || !name) {
-    logError('Both <type> and <name> are required')
-    process.exit(1)
-  }
+  const { type, name } = requireTypeAndName(opts)
 
   const branchName = `${type}/${name}`
 

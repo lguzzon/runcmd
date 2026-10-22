@@ -31,6 +31,10 @@ console.log = (...args) => {
 }
 
 mock.module('../lib/core.js', () => ({
+  requireTypeAndName(opts) {
+    if (!opts.type || !opts.name) process.exit(1)
+    return { type: opts.type, name: opts.name }
+  },
   requireValidCommand(_opts, _cfg) {
     return requireValidResult
   }
@@ -42,6 +46,9 @@ mock.module('../git-flow.js', () => ({
   ensureBranchExists(name) {
     branchExistsCalls.push(name)
   },
+  ensureBranchMissing() {},
+  ensureCleanTree() {},
+  ensureTagMissing() {},
   ensureGitFlowAvailable() {
     return available
   },
@@ -63,6 +70,7 @@ mock.module('../git-flow.js', () => ({
   logInfo: () => {},
   logSuccess: () => {},
   logWarn: () => {},
+  pullBranch() {},
   runGitFlow(args, opts) {
     gitCalls.push({ fn: 'runGitFlow', args, opts })
     return args.includes('config') ? 'gitflow config output' : ''
@@ -70,6 +78,9 @@ mock.module('../git-flow.js', () => ({
   runGit(args, opts) {
     gitCalls.push({ fn: 'runGit', args, opts })
     return 'feature/\n'
+  },
+  validateBranchName() {
+    return true
   }
 }))
 

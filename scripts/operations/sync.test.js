@@ -174,7 +174,7 @@ describe('handleSync orchestration', () => {
     }
   })
 
-  test('original === develop: no restore-back checkout after merge', async () => {
+  test('original === develop: restore checkout is still emitted (no-op)', async () => {
     installRunGit((args) => {
       if (args.startsWith('config --get gitflow.initialized')) return 'true'
       if (args.includes('ls-remote --exit-code --heads origin main'))
@@ -190,11 +190,14 @@ describe('handleSync orchestration', () => {
       c.args.startsWith('merge main --no-ff --no-edit')
     )
     expect(mergeIdx).toBeGreaterThanOrEqual(0)
-    const after = gitCalls.slice(mergeIdx + 1)
-    expect(after.some((c) => c.args === 'checkout develop')).toBe(false)
+    // The restore is unconditional: checking out the branch you are already
+    // on is a no-op, so the finally block does not special-case develop.
+    expect(
+      gitCalls.slice(mergeIdx + 1).some((c) => c.args === 'checkout develop')
+    ).toBe(true)
   })
 
-  test('original === base (main): no restore-back checkout after merge', async () => {
+  test('original === base (main): restore checkout is still emitted (no-op)', async () => {
     installRunGit((args) => {
       if (args.startsWith('config --get gitflow.initialized')) return 'true'
       if (args.includes('ls-remote --exit-code --heads origin main'))
@@ -209,8 +212,9 @@ describe('handleSync orchestration', () => {
     const mergeIdx = gitCalls.findIndex((c) =>
       c.args.startsWith('merge main --no-ff --no-edit')
     )
-    const after = gitCalls.slice(mergeIdx + 1)
-    expect(after.some((c) => c.args === 'checkout main')).toBe(false)
+    expect(
+      gitCalls.slice(mergeIdx + 1).some((c) => c.args === 'checkout main')
+    ).toBe(true)
   })
 
   test('stash output containing "No local changes" skips stashPop', async () => {

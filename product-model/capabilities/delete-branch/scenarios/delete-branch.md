@@ -15,7 +15,7 @@ steps:
     actor: developer
     entities:
       - { entity: branch, effect: reads, facts: [Name] }
-  - text: The Product deletes the branch locally and remotely
+  - text: The Product deletes the branch locally
     kind: product
     actor: developer
     entities:
@@ -34,7 +34,7 @@ The Developer deletes a branch.
 
 ## Outcome
 
-The branch is gone locally and remotely.
+The branch is gone locally. The remote copy stays until the Developer removes it with `git push origin --delete`.
 
 ## Edge cases
 

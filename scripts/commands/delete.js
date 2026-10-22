@@ -17,7 +17,7 @@ ${COLOR_BOLD}Git Flow Delete${COLOR_RESET}
 
 Usage: bun scripts/git-flow.js delete <type> <name> [options]
 
-Delete a branch locally and remotely.
+Delete a branch locally.
 
 Arguments:
   type                      Branch type: feature, release, hotfix, support
@@ -35,7 +35,7 @@ Examples:
 }
 
 /**
- * Delete a branch locally and remotely.
+ * Delete a branch locally.
  * @param {{ type?: string, name?: string, force?: boolean, dryRun?: boolean, help?: boolean }} opts
  * @returns {Promise<void>}
  */

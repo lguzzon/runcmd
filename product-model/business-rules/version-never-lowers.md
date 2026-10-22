@@ -8,7 +8,7 @@ appliesTo:
 
 # The version never lowers
 
-A bump always resolves to a version higher than the current one; an invalid or lower version is refused.
+A bump never resolves to a version lower than the current one; an invalid or lower version is refused.
 
 ## Rationale
 

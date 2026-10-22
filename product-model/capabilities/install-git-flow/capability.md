@@ -6,6 +6,9 @@ references:
   - kind: code
     role: implementation
     target: scripts/lib/installer.js#ensureGitFlowAvailable
+  - kind: code
+    role: implementation
+    target: scripts/cli.js#handleInstall
 ---
 
 # Install git-flow

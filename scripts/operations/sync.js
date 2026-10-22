@@ -113,7 +113,7 @@ export async function handleSync(opts) {
     runGit('merge --abort', { allowFail: true })
     throw error
   } finally {
-    if (original && original !== 'develop' && original !== base) {
+    if (original) {
       checkout(original, { dryRun })
     }
     if (stashed) {

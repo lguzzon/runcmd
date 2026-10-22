@@ -135,11 +135,13 @@ bunx json-sort-cli "**/*.json"       # Sort JSON files
 
 ### Lint/Format Requirements
 
-Every file edit SHOULD pass format and lint rules before commit. The pre-commit hook (`.githooks/pre-commit`) runs checks non-blocking (warns on failure, does not block commit):
+Every file edit SHOULD pass format and lint rules before commit. The pre-commit hook (`.githooks/pre-commit`) runs shellcheck (warnings only) and `oxlint --fix-dangerously` (auto-fixes, re-stages). When `scripts/` files are staged it also runs `bun test --isolate` and blocks the commit on failure.
 
-- **shellcheck** on `.sh` files (warnings only)
-- **oxlint --fix-dangerously** on JS/TS files
-- Re-adds all staged files after auto-fixes
+Run tests with `--isolate` — plain `bun test` runs every file in one process and `mock.module` registrations collide across files, producing failures that do not exist in isolation:
+
+```bash
+cd scripts && bun test --isolate
+```
 
 Run manually after any edit:
 

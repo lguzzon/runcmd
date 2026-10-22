@@ -56,7 +56,7 @@ Now I have all the context needed. Let me build the comprehensive cleanup plan.
 
 - [ ] `scripts/README.md:236` -- Fix 11 function names that do not exist in actual source files. `version.js` claims `bumpVersion`/`isValidVersion` (real: `incrementVersion`/`validateVersion`); `changelog.js` claims 4 fictional functions (`generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`) when real exports are `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`; `prompts.js` claims `promptChoice`/`confirmAction` (nonexistent) and omits `promptTextSync`. This appears to be AI-generated content never validated.
 
-- [ ] `README.md:192`, `AGENTS.md`, `CLAUDE.local.md` -- Fix line count claims. All three doc files have incorrect numbers: `runcmd.sh` = 1106 lines (docs claim 1141-1142), `runcmd.bat` = 468 lines (docs claim 364-563). No single source matches reality. Verify and update all three simultaneously.
+- [x] `README.md:192`, `AGENTS.md`, `CLAUDE.local.md` -- Fix line count claims. All three doc files have incorrect numbers: `runcmd.sh` = 1106 lines (docs claim 1141-1142), `runcmd.bat` = 468 lines (docs claim 364-563). No single source matches reality. Verify and update all three simultaneously. (Done: AGENTS.md now states 1226/675, matching `wc -l`; README.md no longer carries line-count claims; CLAUDE.local.md removed from the repository.)
 
 - [ ] `AGENTS.md:35` -- Fix version.txt claim. States "Declares version 1.9.1" but actual `version.txt` contains `1.10.4`. Update to current version.
 
@@ -100,9 +100,9 @@ Now I have all the context needed. Let me build the comprehensive cleanup plan.
 
 - [ ] `runcmd.bat:251` -- Remove dead `SHIFT` in `:attempt_script_execution`. Only rotates the function's local argument scope, which is immediately exited via `EXIT /B`. Has zero effect on program state. Remove.
 
-- [ ] `scripts/commands/delete.js:63` -- Remove dead `_flag` variable. `const _flag = force ? '-D' : '-d'` is assigned but never read. The actual deletion uses `runGitFlow()` directly. Remove.
+- [x] `scripts/commands/delete.js:63` -- Remove dead `_flag` variable. `const _flag = force ? '-D' : '-d'` is assigned but never read. The actual deletion uses `runGitFlow()` directly. Remove. (Done: `_flag`/`_config` gone from delete.js and start.js; verified by grep.)
 
-- [ ] `scripts/commands/start.js:67` (and 4 other handlers) -- Extract duplicated "Both <type> and <name> are required" to a shared validation function in `git-flow.js` or `lib/core.js`. Duplicated verbatim in start.js, finish.js, publish.js, track.js, delete.js.
+- [x] `scripts/commands/start.js:67` (and 4 other handlers) -- Extract duplicated "Both <type> and <name> are required" to a shared validation function in `git-flow.js` or `lib/core.js`. Duplicated verbatim in start.js, finish.js, publish.js, track.js, delete.js. (Done: `requireTypeAndName()` in lib/core.js; all five handlers call it. Test mocks updated to cover the new export; scripts/commands/ suite 81 pass, 0 fail.)
 
 - [ ] `runcmd.sh:94` -- Replace `tr` subprocess in `normalize_debug` with bash 4+ native `${debug_value,,}`. Avoids a subprocess for simple lowercasing.
 
@@ -423,5 +423,7 @@ All 36 callsites across 6 files use the correct signature `runGit(args_string, {
 ## Final Diff
 
 ```text
-206 files changed, 14236 insertions(+), 2203 deletions(-)
+213 files changed, 15337 insertions(+), 2370 deletions(-)
 ```
+
+Range: `git diff --stat d7dad6ca..HEAD` at commit `be9e122`.

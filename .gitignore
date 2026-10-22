@@ -45,3 +45,6 @@ graphify-out/
 .beads/proxieddb/
 *.gate.lock*
 .empryo
+.claude
+.codex
+.cursor

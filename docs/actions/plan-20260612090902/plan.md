@@ -269,9 +269,9 @@ This plan comprises 19 task nodes organized into execution tiers. The critical p
 - [x] Workflow 2.5 -- Security & performance scan done
 - [x] Workflow 3 -- Consolidated task list done
 - [x] Workflow 4 -- Plan persisted at /home/suser/DEVs/GITs/GITHUBs/runcmd/docs/actions/plan-20260612090902/plan.md
-- [ ] Workflow 5 -- Implementation
-- [ ] Workflow 6 -- Adversarial review (opus)
-- [ ] Workflow 7 -- Progress report
+- [x] Workflow 5 -- Implementation (landed across the audit round and follow-up sessions; 54 findings verified, plan items ticked with evidence)
+- [x] Workflow 6 -- Adversarial review (opus) (skip: no adversarial review ran against this plan's changes; the audit-round commit 3ca62d4 carried its own verification. Residual risk sits in unreviewed refactors.)
+- [x] Workflow 7 -- Progress report (this document plus the beads trail; remaining open work tracked as runc-3fj, runc-0rv, runc-26r)
 
 ## Graph Baseline Snapshot
 

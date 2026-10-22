@@ -40,20 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - docs: record the README sync in the module docs
 - docs: sync the README badge and footer to 2.0.2
 - feat(git-flow): sync the README version during release start
-- Merge branch 'main' into develop
 
 ## v2.0.2 - 2026-10-19
 - docs: document the hotfix flow end to end
 - ci: run local act jobs one at a time
 - fix(git-flow): refuse a start whose version tag already exists
 - fix(git-flow): stop deleting the branch git-flow already deleted
-- Merge branch 'main' into develop
 
 ## v2.0.1 - 2026-10-19
 - docs: document running the GitHub workflows locally
 - fix(ci): install git-flow and shellcheck so the suite stops killing the runner
 - ci: run the workflows locally with act
-- Merge branch 'main' into develop
 
 ## v2.0.0 - 2026-10-19
 - chore: ignore the .empryo directory
@@ -61,10 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci: cover the untested suites, the website and lint
 - fix(publish): serve the updater and gate the deploy on CI
 - fix(runcmd): validate the Bun installer and the Windows update payload
-- Merge branch 'main' into develop
 - fix(changelog): insert release section below the file header
 - fix(git-flow): use --push for finish; -p is --preserve-merges in git-flow-next
-- Merge branch 'main' into develop
 
 ## v1.12.0 - 2026-10-19
 

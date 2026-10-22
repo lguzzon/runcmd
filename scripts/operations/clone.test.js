@@ -3,6 +3,7 @@
 // sole dependency of clone.js.
 
 import { afterEach, beforeAll, describe, expect, mock, test } from 'bun:test'
+import { gitFlowDouble } from '../testing/doubles.js'
 
 let exit = 0
 
@@ -20,22 +21,20 @@ console.log = (...args) => {
   consoleOut.push(args.join(' '))
 }
 
-mock.module('../git-flow.js', () => ({
-  COLOR_BOLD: '',
-  COLOR_RESET: '',
-  ensureGitFlowAvailable() {
-    return available
-  },
-  logError: () => {},
-  logInfo: (msg) => {
-    infoOut.push(msg)
-  },
-  logSuccess: () => {},
-  runGit(args, opts) {
-    gitCalls.push({ args, opts })
-    return ''
-  }
-}))
+mock.module('../git-flow.js', () =>
+  gitFlowDouble({
+    ensureGitFlowAvailable() {
+      return available
+    },
+    logInfo: (msg) => {
+      infoOut.push(msg)
+    },
+    runGit(args, opts) {
+      gitCalls.push({ args, opts })
+      return ''
+    }
+  })
+)
 
 let clone
 

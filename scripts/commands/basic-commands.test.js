@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { afterEach, beforeAll, describe, expect, mock, test } from 'bun:test'
+import { coreDouble, gitFlowDouble } from '../testing/doubles.js'
 
 let exit = 0
 
@@ -30,59 +31,46 @@ console.log = (...args) => {
   consoleOut.push(args.join(' '))
 }
 
-mock.module('../lib/core.js', () => ({
-  requireTypeAndName(opts) {
-    if (!opts.type || !opts.name) process.exit(1)
-    return { type: opts.type, name: opts.name }
-  },
-  requireValidCommand(_opts, _cfg) {
-    return requireValidResult
-  }
-}))
-
-mock.module('../git-flow.js', () => ({
-  COLOR_BOLD: '',
-  COLOR_RESET: '',
-  ensureBranchExists(name) {
-    branchExistsCalls.push(name)
-  },
-  ensureBranchMissing() {},
-  ensureCleanTree() {},
-  ensureTagMissing() {},
-  ensureGitFlowAvailable() {
-    return available
-  },
-  getGitFlowConfig() {
-    return {
-      master: 'main',
-      develop: 'develop',
-      featurePrefix: 'feature/',
-      releasePrefix: 'release/',
-      hotfixPrefix: 'hotfix/',
-      supportPrefix: 'support/'
+mock.module('../lib/core.js', () =>
+  coreDouble({
+    requireValidCommand(_opts, _cfg) {
+      return requireValidResult
     }
-  },
-  listBranchesByType(type) {
-    listCalls.push(type)
-    return listResults[type] || []
-  },
-  logError: () => {},
-  logInfo: () => {},
-  logSuccess: () => {},
-  logWarn: () => {},
-  pullBranch() {},
-  runGitFlow(args, opts) {
-    gitCalls.push({ fn: 'runGitFlow', args, opts })
-    return args.includes('config') ? 'gitflow config output' : ''
-  },
-  runGit(args, opts) {
-    gitCalls.push({ fn: 'runGit', args, opts })
-    return 'feature/\n'
-  },
-  validateBranchName() {
-    return true
-  }
-}))
+  })
+)
+
+mock.module('../git-flow.js', () =>
+  gitFlowDouble({
+    ensureBranchExists(name) {
+      branchExistsCalls.push(name)
+    },
+    ensureGitFlowAvailable() {
+      return available
+    },
+    getGitFlowConfig() {
+      return {
+        master: 'main',
+        develop: 'develop',
+        featurePrefix: 'feature/',
+        releasePrefix: 'release/',
+        hotfixPrefix: 'hotfix/',
+        supportPrefix: 'support/'
+      }
+    },
+    listBranchesByType(type) {
+      listCalls.push(type)
+      return listResults[type] || []
+    },
+    runGitFlow(args, opts) {
+      gitCalls.push({ fn: 'runGitFlow', args, opts })
+      return args.includes('config') ? 'gitflow config output' : ''
+    },
+    runGit(args, opts) {
+      gitCalls.push({ fn: 'runGit', args, opts })
+      return 'feature/\n'
+    }
+  })
+)
 
 let available = true
 const listResults = {}

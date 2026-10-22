@@ -11,8 +11,8 @@ covered:
   - description: The documentation website sources.
     paths: [website/src/]
 exclusions:
-  - description: Test suites, read as leads only.
-    paths: [tests/]
+  - description: Test suites and shared test doubles, read as leads only.
+    paths: [tests/, scripts/testing/]
   - description: Issue tracker state, agent tooling configuration, CI workflows, git hooks, editor settings, and internal planning documents.
     paths: [.beads/, .claude/, .codex/, .cursor/, .github/, .vscode/, .githooks/, docs/, specs/]
   - description: Website build configuration and local CI runner helper, which shape development rather than shipped behavior.

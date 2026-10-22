@@ -1,13 +1,11 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test'
+import { gitFlowDouble } from '../testing/doubles.js'
 
 // release.js imports COLOR_BOLD/COLOR_RESET from ../git-flow.js which
 // re-exports parseArgs from ./cli.js, and cli.js top-level references
 // releaseConfig before it is initialized. Stub git-flow.js to break
 // the cycle so the module loads cleanly under --isolate.
-mock.module('../git-flow.js', () => ({
-  COLOR_BOLD: '',
-  COLOR_RESET: ''
-}))
+mock.module('../git-flow.js', () => gitFlowDouble())
 
 const { hotfixConfig, printHelp } = await import('./hotfix.js')
 

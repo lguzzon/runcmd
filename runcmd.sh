@@ -763,25 +763,6 @@ run_oxfmt() {
   return 1
 }
 
-# Run JSON sort check on files in target directory
-# Uses json-sort-cli to sort and format JSON files recursively
-# Args:
-#   $1: Target directory path to search for JSON files
-# Returns:
-#   0 on success, 1 on failure
-run_json_sort() {
-  local target_dir="$1"
-  log_info "Running Json Sort check on '$target_dir'..."
-
-  if bunx --silent json-sort-cli "$target_dir/**/*.json"; then
-    log_info "Json Sort completed successfully."
-    return 0
-  fi
-
-  log_error "Json Sort failed."
-  return 1
-}
-
 # Print the current epoch time in milliseconds.
 # EPOCHREALTIME (bash 5) avoids a process spawn; GNU date covers bash 4 on
 # Linux; bun remains the portable last resort (macOS bash 3.2).
@@ -853,46 +834,18 @@ end_timer() {
   fi
 }
 
-# Ensure curl is installed, installing it if necessary
-# Checks for curl and installs it using available package managers if missing
-# Supports apt-get (Debian/Ubuntu), yum (RHEL/CentOS), and brew (macOS)
-# Globals:
-#   None
-# Returns:
-#   None
-# Exits:
-#   1 if curl installation fails or no supported package manager is found
-ensure_curl_installed() {
-  if command_exists curl; then
-    log_info "'curl' is already installed."
-    return
-  fi
-
-  log_info "Installing 'curl'..."
-  if command_exists apt-get; then
-    sudo apt-get update >/dev/null 2>&1
-    sudo apt-get install -y curl >/dev/null 2>&1
-  elif command_exists yum; then
-    sudo yum install -y curl >/dev/null 2>&1
-  elif command_exists brew; then
-    brew install curl >/dev/null 2>&1
-  else
-    log_error "Failed to install curl: no supported package manager found."
-    exit 1
-  fi
-  log_info "'curl' installed."
-}
-
 # Ensure Bun is installed, installing it if necessary
 # Checks for Bun and installs it from the official source if missing
-# Also sources the Bun environment and updates PATH
+# Installs curl via the available package manager (apt-get/yum/brew) when
+# needed for the download
 # Globals:
 #   BUN_INSTALL: Path to Bun installation directory
 #   BUN_INSTALL_SCRIPT: URL to Bun installation script
 # Returns:
 #   None
 # Exits:
-#   1 if Bun installation fails or command is unavailable after installation
+#   1 if curl or Bun installation fails or no supported package manager is
+#   found
 ensure_bun_installed() {
   if command_exists bun; then
     log_info "Bun is installed."
@@ -900,7 +853,21 @@ ensure_bun_installed() {
   fi
 
   log_info "Bun is not installed. Installing now..."
-  ensure_curl_installed
+  if ! command_exists curl; then
+    log_info "Installing 'curl'..."
+    if command_exists apt-get; then
+      sudo apt-get update >/dev/null 2>&1
+      sudo apt-get install -y curl >/dev/null 2>&1
+    elif command_exists yum; then
+      sudo yum install -y curl >/dev/null 2>&1
+    elif command_exists brew; then
+      brew install curl >/dev/null 2>&1
+    else
+      log_error "Failed to install curl: no supported package manager found."
+      exit 1
+    fi
+    log_info "'curl' installed."
+  fi
 
   local installer_tmp
   installer_tmp=$(mktemp)
@@ -1013,8 +980,12 @@ run_check_mode() {
   fi
 
   # Step 3: Sort JSON files (non-fatal)
-  if ! run_json_sort "$target_dir"; then
+  log_info "Running Json Sort check on '$target_dir'..."
+  if ! bunx --silent json-sort-cli "$target_dir/**/*.json"; then
+    log_error "Json Sort failed."
     log_warn "JSON sort failed, but continuing..."
+  else
+    log_info "Json Sort completed successfully."
   fi
 
   # Step 4: Run oxfmt (non-fatal)

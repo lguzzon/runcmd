@@ -50,25 +50,25 @@ Now I have all the context needed. Let me build the comprehensive cleanup plan.
 
 - [ ] `runcmd.bat:262` -- Add `+r/+runme` flag for explicit script targeting. runcmd.sh supports `+r <path>` for script/directory selection. The bat version can only discover by extension in current/script directory. Implement equivalent flag with path resolution.
 
-- [ ] `CHANGELOG.md:142-152` -- Add missing reference link definitions for v1.10.0 through v1.10.4. Currently only defined up to v1.9.1. Broken links on next edit referencing these versions.
+- [x] `CHANGELOG.md:142-152` -- Add missing reference link definitions for v1.10.0 through v1.10.4. Currently only defined up to v1.9.1. Broken links on next edit referencing these versions. (Done: `[v1.10.0]`–`[v1.10.4]` refs present at CHANGELOG.md:257-261.)
 
-- [ ] `CHANGELOG.md:10-11` -- Remove duplicate entry in v1.10.2 section. "ci: bump actions to latest major versions" appears on two consecutive lines.
+- [x] `CHANGELOG.md:10-11` -- Remove duplicate entry in v1.10.2 section. "ci: bump actions to latest major versions" appears on two consecutive lines. (Done: single occurrence at CHANGELOG.md:148.)
 
-- [ ] `scripts/README.md:236` -- Fix 11 function names that do not exist in actual source files. `version.js` claims `bumpVersion`/`isValidVersion` (real: `incrementVersion`/`validateVersion`); `changelog.js` claims 4 fictional functions (`generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`) when real exports are `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`; `prompts.js` claims `promptChoice`/`confirmAction` (nonexistent) and omits `promptTextSync`. This appears to be AI-generated content never validated.
+- [x] `scripts/README.md:236` -- Fix 11 function names that do not exist in actual source files. `version.js` claims `bumpVersion`/`isValidVersion` (real: `incrementVersion`/`validateVersion`); `changelog.js` claims 4 fictional functions (`generateChangelog`, `updateChangelog`, `parseCommitMessage`, `formatChangelogEntry`) when real exports are `getLastTag`, `collectCommitsSince`, `appendChangelog`, `commitChangelog`; `prompts.js` claims `promptChoice`/`confirmAction` (nonexistent) and omits `promptTextSync`. This appears to be AI-generated content never validated. (Done: no hits for `bumpVersion`, `generateChangelog`, `promptChoice` in scripts/README.md.)
 
 - [x] `README.md:192`, `AGENTS.md`, `CLAUDE.local.md` -- Fix line count claims. All three doc files have incorrect numbers: `runcmd.sh` = 1106 lines (docs claim 1141-1142), `runcmd.bat` = 468 lines (docs claim 364-563). No single source matches reality. Verify and update all three simultaneously. (Done: AGENTS.md now states 1226/675, matching `wc -l`; README.md no longer carries line-count claims; CLAUDE.local.md removed from the repository.)
 
-- [ ] `AGENTS.md:35` -- Fix version.txt claim. States "Declares version 1.9.1" but actual `version.txt` contains `1.10.4`. Update to current version.
+- [x] `AGENTS.md:35` -- Fix version.txt claim. States "Declares version 1.9.1" but actual `version.txt` contains `1.10.4`. Update to current version. (Done: stale claim removed; version.txt holds 2.1.0.)
 
-- [ ] `AGENTS.md:31` -- Fix CHANGELOG range claim. States "documented versions v1.9.0 through v1.0.0" but CHANGELOG goes up to v1.10.4. Update description.
+- [x] `AGENTS.md:31` -- Fix CHANGELOG range claim. States "documented versions v1.9.0 through v1.0.0" but CHANGELOG goes up to v1.10.4. Update description. (Done: claim removed from AGENTS.md.)
 
-- [ ] `AGENTS.md:97` -- Fix changelog v-prefix convention claim. States "without v in changelog" but every changelog heading uses `## vX.Y.Z`. Either update convention to "with v prefix" or change the changelog to drop the v prefix.
+- [x] `AGENTS.md:97` -- Fix changelog v-prefix convention claim. States "without v in changelog" but every changelog heading uses `## vX.Y.Z`. Either update convention to "with v prefix" or change the changelog to drop the v prefix. (Done: AGENTS.md convention updated; grep finds no stale "without v" claim.)
 
-- [ ] `AGENTS.md:39` -- Fix biome.json reference in Configuration section. `biome.json` was deleted from the repository during migration to oxlint/oxfmt. Update or remove the reference.
+- [x] `AGENTS.md:39` -- Fix biome.json reference in Configuration section. `biome.json` was deleted from the repository during migration to oxlint/oxfmt. Update or remove the reference. (Done: no biome reference remains in AGENTS.md.)
 
-- [ ] `scripts/README.md:21-27` -- Add missing lib files to directory tree. Lists only 3 files under `lib/` (version.js, changelog.js, prompts.js) but the actual directory contains 5 files -- `release-utils.js` and `options.js` are missing.
+- [x] `scripts/README.md:21-27` -- Add missing lib files to directory tree. Lists only 3 files under `lib/` (version.js, changelog.js, prompts.js) but the actual directory contains 5 files -- `release-utils.js` and `options.js` are missing. (Done: tree lists options.js (line 37) and release-utils.js (line 52), plus lib/AGENTS.md module index.)
 
-- [ ] `runcmd.sh:224` -- Fix `resolve_path` bun -e injection. Interpolates `$target` directly into a JS string literal: `bun -e "console.log(require('path').resolve('$target'))"`. A file/directory name containing a single quote can inject arbitrary JS. Use `bun -e` with stdin or pass the path via an environment variable.
+- [x] `runcmd.sh:224` -- Fix `resolve_path` bun -e injection. Interpolates `$target` directly into a JS string literal: `bun -e "console.log(require('path').resolve('$target'))"`. A file/directory name containing a single quote can inject arbitrary JS. Use `bun -e` with stdin or pass the path via an environment variable. (Done: runcmd.sh:260 passes the path via `process.env._RESOLVE_PATH`; no string interpolation.)
 
 - [x] `runcmd.sh:816` -- Add Bun install script integrity verification. Pipes `curl -fsSL https://bun.sh/install | bash` with no checksum/signature. Add GPG verification or checksum check against a known hash. (Done: downloaded installer written to a temp file, then rejected unless non-empty and starting with a `#!` shebang — a truncated-response/HTML-page guard, not a signature check; the code comment documents this posture.)
 
@@ -108,7 +108,7 @@ Now I have all the context needed. Let me build the comprehensive cleanup plan.
 
 - [ ] `CHANGELOG.md:3-7` -- Fix formatting inconsistency. v1.10.4 and v1.10.3 entries lack blank lines between list items while every other version section has proper blank-line separation. Also remove 5 merge commit entries that are internal VCS noise, not user-facing changelog content.
 
-- [ ] `CHANGELOG.md:32,36` -- Fix date/semver ordering anomaly. v1.9.2 (dated 2026-04-08) appears before v1.9.1 (dated 2026-06-09). Newest-first ordering by version means v1.9.1 should come before v1.9.2 unless the dates are wrong. Verify dates from git history and reorder or correct.
+- [x] `CHANGELOG.md:32,36` -- Fix date/semver ordering anomaly. v1.9.2 (dated 2026-04-08) appears before v1.9.1 (dated 2026-06-09). Newest-first ordering by version means v1.9.1 should come before v1.9.2 unless the dates are wrong. Verify dates from git history and reorder or correct. (Done: v1.9.1 now dated 2026-02-19; ordering 1.9.2 then 1.9.1 is newest-first and date-consistent.)
 
 ### Consolidation Targets
 

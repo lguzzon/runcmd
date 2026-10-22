@@ -993,7 +993,8 @@ run_check_mode() {
     log_error "oxfmt failed, but continuing..."
   fi
 
-  # Step 5: Run linting (non-fatal)
+  # Step 5: Final lint gate. Steps 1-4 auto-fix and continue; a failure
+  # here means defects survived the fixes, so +check exits non-zero.
   if ! run_lint "$target"; then
     log_error "oxlint failed."
     exit 1

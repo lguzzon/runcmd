@@ -5,7 +5,7 @@
 ### Zero-config runner for Bun scripts. Drop the file, run the file.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1.1-blue)](version.txt)
+[![Version](https://img.shields.io/badge/version-2.1.2-blue)](version.txt)
 
 [Install](#install) · [See It Work](#see-it-work) · [Getting Started](#getting-started) · [Docs](https://lguzzon.github.io/runcmd)
 
@@ -227,4 +227,4 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-*Version 2.1.1*
+*Version 2.1.2*

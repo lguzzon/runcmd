@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: NXTG-Forge governance + beads issue tracker
 - docs: sync version refs to 1.11.4
 
+## v2.1.2 - 2026-10-23
+- chore: untrack local tool dirs (.beads, .claude, .codex, .cursor)
+- Merge branch 'main' into develop
+
 ## v2.1.1 - 2026-10-22
 - fix(model): sync restores the starting branch; delete is local-only
 - fix(update): record the check when a fetch fails; find local Bun off PATH

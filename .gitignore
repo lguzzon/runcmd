@@ -42,7 +42,7 @@ graphify-out/
 .beads-credential-key
 
 # Beads / Dolt files (added by bd init)
-.beads/proxieddb/
+.beads/
 *.gate.lock*
 .empryo
 .claude
